@@ -23,11 +23,14 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/cli/git"
+	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/globals"
 	"github.com/go-enjin/be/pkg/notify"
 )
 
 var SlackChannel string
+
+var CustomIndent = ""
 
 var BinName = filepath.Base(os.Args[0])
 
@@ -109,21 +112,29 @@ func SetupSlackIfPresent(ctx *cli.Context) (err error) {
 	return
 }
 
+func SetupCustomIndent(ctx *cli.Context) (err error) {
+	if customIndent := ctx.String("custom-indent"); customIndent != "" {
+		CustomIndent = customIndent
+		run.CustomExeIndent = customIndent
+	}
+	return
+}
+
 func NotifyF(tag, format string, argv ...interface{}) {
 	msg := fmt.Sprintf(fmt.Sprintf("%v\n", strings.TrimSpace(format)), argv...)
-	fmt.Printf("# " + tag + ": " + msg)
+	fmt.Printf(CustomIndent + "# " + tag + ": " + msg)
 	notifySlack(tag, msg)
 }
 
 func StdoutF(format string, argv ...interface{}) {
-	fmt.Printf(format, argv...)
+	fmt.Printf(CustomIndent+format, argv...)
 }
 
 func StderrF(format string, argv ...interface{}) {
-	_, _ = fmt.Fprintf(os.Stderr, format, argv...)
+	_, _ = fmt.Fprintf(os.Stderr, CustomIndent+format, argv...)
 }
 
 func FatalF(format string, argv ...interface{}) {
-	_, _ = fmt.Fprintf(os.Stderr, format, argv...)
+	_, _ = fmt.Fprintf(os.Stderr, CustomIndent+format, argv...)
 	os.Exit(1)
 }
