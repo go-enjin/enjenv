@@ -31,7 +31,8 @@ deploy-slug will perform the following steps, stopping on any error:
 	- else:
 		- mkdir <dst> and cd <dst>
 	- run git clone <src> .
-	- run enjenv init --golang "--golang" --nodejs "--nodejs"
+	- run enjenv golang init --golang "--golang"
+	- run enjenv nodejs init --nodejs "--nodejs" // if --nodejs given
 	- run make "--release-targets"
 	- run enjenv clean --force
 	- run rm -rf .git
@@ -139,28 +140,29 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	}
 
 	// 	- run enjenv init --golang "--golang" --nodejs "--nodejs"
-	io.StdoutF("# initializing enjenv\n")
+	io.StdoutF("# initializing enjenv: %v\n", basepath.EnjenvPath)
 
-	if basepath.EnjenvPresent() {
-		io.StdoutF("# enjenv path present, masking for local\n")
-		_ = os.Setenv("ENVJENV_PATH", "")
-	}
-	// basepath.EnjenvPath = basepath.FindEnjenvDir()
-	// _ = os.Setenv("ENVJENV_PATH", basepath.EnjenvPath)
+	// if basepath.EnjenvPresent() {
+	// 	io.StdoutF("# enjenv path present, masking for local\n")
+	// 	_ = os.Setenv("ENVJENV_PATH", "")
+	// }
 
-	var initArgs []string
-	initArgs = append(initArgs, "init")
-	if golang := ctx.String("golang"); golang != "" {
-		initArgs = append(initArgs, "--golang", golang)
+	var initSystemNames []string
+	initSystemNames = append(initSystemNames, "golang")
+	if ctx.IsSet("nodejs") {
+		initSystemNames = append(initSystemNames, "nodejs")
 	}
-	if nodejs := ctx.String("nodejs"); nodejs != "" {
-		initArgs = append(initArgs, "--nodejs", nodejs)
-	}
-	initArgs = append(initArgs, ".")
-
-	if _, err = c.enjenvExe(initArgs...); err != nil {
-		err = fmt.Errorf("enjenv init error: %v", err)
-		return
+	for _, sysName := range initSystemNames {
+		var initArgs []string
+		initArgs = append(initArgs, sysName, "init")
+		if arg := ctx.String(sysName); arg != "" {
+			initArgs = append(initArgs, "--"+sysName, arg)
+		}
+		initArgs = append(initArgs, "--force", basepath.EnjenvPath)
+		if _, err = c.enjenvExe(initArgs...); err != nil {
+			err = fmt.Errorf("enjenv %v init error: %v", sysName, err)
+			return
+		}
 	}
 
 	//	- run make "--release-targets"
