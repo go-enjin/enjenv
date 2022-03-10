@@ -87,11 +87,19 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 	app.UsageText += "\t$ " + BinName + "\n"
 	app.UsageText += "\t/path/to/.enjenv\n"
 
-	app.Flags = append(app.Flags, &cli.StringFlag{
-		Name:    "slack",
-		Usage:   "send notifications the given slack channel as well as os.Stdout",
-		EnvVars: []string{"ENJENV_SLACK"},
-	})
+	app.Flags = append(
+		app.Flags,
+		&cli.StringFlag{
+			Name:    "slack",
+			Usage:   "send notifications the given slack channel as well as os.Stdout",
+			EnvVars: []string{"ENJENV_SLACK"},
+		},
+		&cli.StringFlag{
+			Name:    "custom-indent",
+			Usage:   "include custom indentation with all output",
+			EnvVars: []string{"ENJENV_CUSTOM_INDENT"},
+		},
+	)
 
 	var names []string
 	isInstalled := make(map[string]bool)
