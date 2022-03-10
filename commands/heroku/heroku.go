@@ -16,18 +16,13 @@ package heroku
 
 import (
 	"fmt"
+	"os"
 	"regexp"
-	"sort"
-	"strings"
 
-	"github.com/fvbommel/sortorder"
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/cli/git"
+	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/be/pkg/slug"
-	"github.com/go-enjin/enjenv/pkg/basepath"
-	"github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
 )
 
@@ -50,181 +45,39 @@ func New() (s *Command) {
 	return
 }
 
-func (s *Command) Init(this interface{}) {
-	s.CCommand.Init(this)
-	s.TagName = Name
+func (c *Command) Init(this interface{}) {
+	c.CCommand.Init(this)
+	c.TagName = Name
 	return
 }
 
-func (s *Command) ExtraCommands(app *cli.App) (commands []*cli.Command) {
+func (c *Command) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 	commands = append(
 		commands,
-		s.makeValidateSlugCommand(app.Name),
-		s.makeFinalizeSlugCommand(app.Name),
-		s.makeWriteSlugfileCommand(app.Name),
+		c.makeValidateSlugCommand(app.Name),
+		c.makeFinalizeSlugCommand(app.Name),
+		c.makeWriteSlugfileCommand(app.Name),
+		c.makeDeploySlugCommand(app.Name),
+		c.makeBuildpackCommand(app.Name),
 	)
 	return
 }
 
-func (s *Command) makeWriteSlugfileCommand(appNamePrefix string) *cli.Command {
-	return &cli.Command{
-		Name:      "write-slugfile",
-		Category:  s.TagName,
-		Usage:     "generate a simple Slugfile from the relative paths given",
-		UsageText: appNamePrefix + " write-slugfile <path> [paths...]",
-		Description: `
-A Slugfile is a simple text file with one relative file path per line. This file
-is used during the finalize-slug process to know what files to keep and which to
-purge.
-
-This command simply verifies each path given is in fact a relative path to the
-current directory and appends it to a new Slugfile.
-
-The write-slugfile command will be hidden whenever Slugfile or Slugsums files
-are present in this or any parent directory.
-`,
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:    "verbose",
-				Usage:   "output detailed information",
-				Aliases: []string{"v"},
-			},
-		},
-		Action: func(ctx *cli.Context) (err error) {
-			if err = s.Prepare(ctx); err != nil {
-				return
-			}
-			argv := ctx.Args().Slice()
-			if len(argv) == 0 {
-				cli.ShowCommandHelpAndExit(ctx, "write-slugfile", 1)
-				return
-			}
-			sort.Sort(sortorder.Natural(argv))
-			var slugfile string
-			if slugfile, err = slug.WriteSlugfile(argv...); err != nil {
-				return
-			}
-			io.StdoutF("# wrote: ./Slugfile\n")
-			if ctx.Bool("verbose") {
-				io.StdoutF(slugfile)
-			}
-			return
-		},
-	}
+func (c *Command) makeExe(argv ...string) (status int, err error) {
+	status, err = run.Exe("make", argv...)
+	return
 }
 
-func (s *Command) makeFinalizeSlugCommand(appNamePrefix string) *cli.Command {
-	return &cli.Command{
-		Name:      "finalize-slug",
-		Category:  s.TagName,
-		Usage:     "use the present Slugfile to prepare and finalize a heroku slug environment",
-		UsageText: appNamePrefix + " finalize-slug [options]",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:  "force",
-				Usage: "confirm the destructive process",
-			},
-			&cli.BoolFlag{
-				Name:    "verbose",
-				Usage:   "output detailed information",
-				Aliases: []string{"v"},
-			},
-		},
-		Action: func(ctx *cli.Context) (err error) {
-			if slugfile := bePath.FindFileRelativeToPwd("Slugfile"); slugfile == "" {
-				err = fmt.Errorf("missing Slugfile")
+func (c *Command) enjenvExe(argv ...string) (status int, err error) {
+	self := os.Args[0]
+	if len(self) > 3 {
+		if self[0:2] == "./" || self[0:3] == "../" || self[0] == '/' {
+			if self, err = bePath.Abs(self); err != nil {
+				err = fmt.Errorf("error getting absolute path to: %v", os.Args[0])
 				return
 			}
-			if !ctx.IsSet("force") {
-				err = fmt.Errorf("cannot finalize-slug without --force")
-				return
-			}
-			if basepath.EnjenvPresent() {
-				err = fmt.Errorf("finalize-slug requires '%v clean'", io.BinName)
-				return
-			}
-			if git.IsRepo() {
-				err = fmt.Errorf("cannot finalize-slug when .git is present")
-				return
-			}
-
-			var slugsums string
-			var removed []string
-			if slugsums, removed, err = slug.FinalizeSlugfile(ctx.Bool("force")); err != nil {
-				return
-			}
-
-			if ctx.Bool("verbose") {
-				io.StdoutF("# Slugsums:\n")
-				io.StdoutF(slugsums)
-				io.StdoutF("# Removed:\n")
-				io.StdoutF("%v\n", strings.Join(removed, "\n"))
-			} else {
-				io.StdoutF("# %d Slugsums\n", len(strings.Split(slugsums, "\n")))
-				io.StdoutF("# removed %d extraneous paths\n", len(removed))
-			}
-
-			io.NotifyF("slug environment finalized")
-			return
-		},
+		}
 	}
-}
-
-func (s *Command) makeValidateSlugCommand(appNamePrefix string) *cli.Command {
-	return &cli.Command{
-		Name:      "validate-slug",
-		Category:  s.TagName,
-		Usage:     "use the present Slugsums to validate the current slug environment",
-		UsageText: appNamePrefix + " validate-slug",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:    "verbose",
-				Usage:   "output more detailed information",
-				Aliases: []string{"v"},
-			},
-			&cli.BoolFlag{
-				Name:    "strict",
-				Usage:   "extraneous files are considered an error",
-				Aliases: []string{"s"},
-			},
-		},
-		Action: func(ctx *cli.Context) (err error) {
-			if slugsums := bePath.FindFileRelativeToPwd("Slugsums"); slugsums == "" {
-				err = fmt.Errorf("missing Slugsums")
-				return
-			}
-			var imposters, extraneous, validated []string
-			if imposters, extraneous, validated, err = slug.ValidateSlugsums(); err != nil {
-				return
-			}
-			il := len(imposters)
-			el := len(extraneous)
-			vl := len(validated)
-			failed := il != 0 || (ctx.Bool("strict") && el != 0)
-			if ctx.Bool("verbose") {
-				for _, file := range imposters {
-					io.StderrF("# imposter: %v\n", file)
-				}
-				for _, file := range extraneous {
-					io.StderrF("# extraneous: %v\n", file)
-				}
-				for _, file := range validated {
-					io.StderrF("# validated: %v\n", file)
-				}
-				io.NotifyF("Summary: %d imposters, %d extraneous, %v validated", il, el, vl)
-			}
-			if failed {
-				if il > 0 && el > 0 {
-					err = fmt.Errorf("%d imposters and %d extraneaous files found", len(imposters), len(extraneous))
-				} else if il > 0 {
-					err = fmt.Errorf("%d imposters found", len(imposters))
-				} else if el > 0 {
-					err = fmt.Errorf("%d extraneaous files found", len(extraneous))
-				}
-				return
-			}
-			io.NotifyF("Slugsums validated successfully")
-			return
-		},
-	}
+	status, err = run.Exe(os.Args[0], argv...)
+	return
 }
