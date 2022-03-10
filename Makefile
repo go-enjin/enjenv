@@ -25,14 +25,12 @@ PREFIX ?= ${GOPATH}
 
 PWD = $(shell pwd)
 
-ENV_PATH = $(shell enjenv)
-
 define _trimPath =
 $(shell \
 if [ "${GOPATH}" != "" ]; then \
-	echo "${GOPATH};${ENV_PATH};${PWD}"; \
+	echo "${GOPATH};${PWD}"; \
 else \
-	echo "${ENV_PATH};${PWD}"; \
+	echo "${PWD}"; \
 fi)
 endef
 
@@ -73,9 +71,7 @@ build:
 		-trimpath \
 		./cmd/enjenv
 
-enjenv: build
-
-install: enjenv
+install:
 	@if [ ! -f enjenv ]; then \
 		echo "error: missing enjenv binary"; \
 		false; \
