@@ -19,94 +19,75 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
+
+	"github.com/iancoleman/strcase"
+	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/cli/git"
+	"github.com/go-enjin/be/pkg/globals"
 	"github.com/go-enjin/be/pkg/notify"
-	bePath "github.com/go-enjin/be/pkg/path"
 )
 
 var SlackChannel string
 
-var SlackPrefix string
-
 var BinName = filepath.Base(os.Args[0])
 
-var _slackBuffer = make(chan string, 25)
+var EnvPrefix = strcase.ToScreamingSnake(BinName)
 
-var _slackTimer *time.Timer
-
-func Shutdown() {
-	if _slackTimer != nil {
-		_slackTimer.Stop()
-		_slackTimer = nil
+func GitTagRelVer() (gitTag, relVer string) {
+	if gitTag, _ = git.Describe(); gitTag == "" {
+		gitTag = "untagged"
 	}
-	if SlackChannel != "" {
-		processSlackNotifications()
-	}
-	close(_slackBuffer)
-}
-
-func getSlackPrefix() (prefix string) {
-	if SlackPrefix == "" {
-		var gitTag, relVer string
-		if gitTag, _ = git.Describe(); gitTag == "" {
-			gitTag = "untagged"
-		}
-		relVer = git.MakeCustomVersion("release", "c", "d")
-		name := bePath.Base(bePath.Pwd())
-		SlackPrefix = fmt.Sprintf("(%v) %v %v %v", BinName, name, gitTag, relVer)
-	}
-	prefix = SlackPrefix
+	relVer = git.MakeCustomVersion("release", "c", "d")
 	return
 }
 
-func notifySlack(message string) {
-	var channel string
-	if channel = notify.SlackUrl(SlackChannel); channel == "" {
-		return
+func GitTagRelVerString() (out string) {
+	var gitTag, relVer string
+	if gitTag, _ = git.Describe(); gitTag == "" {
+		gitTag = "untagged"
 	}
-	_slackBuffer <- message
-	if _slackTimer != nil {
-		_slackTimer.Stop()
-		_slackTimer = nil
-	}
-	_slackTimer = time.AfterFunc(
-		time.Duration(2)*time.Second,
-		processSlackNotifications,
-	)
+	relVer = git.MakeCustomVersion("release", "c", "d")
+	out = gitTag + " (" + relVer + ")"
+	return
 }
 
-func processSlackNotifications() {
+func getSlackPrefix() (prefix string) {
+	if notifyPrefix := os.Getenv(EnvPrefix + "_NOTIFY_PREFIX"); notifyPrefix != "" {
+		prefix = fmt.Sprintf("(%v) %v %v", BinName, globals.Hostname, notifyPrefix)
+	} else {
+		prefix = fmt.Sprintf("(%v) %v %v", BinName, globals.Hostname, tag)
+	}
+	return
+}
+
+func notifySlack(tag string, message string) {
 	var channel string
 	if channel = notify.SlackUrl(SlackChannel); channel == "" {
 		return
 	}
-	_slackTimer = nil
 	prefix := getSlackPrefix()
 	messages := ""
 	count := 0
-	for i := 0; i < 25; i++ {
-		select {
-		case msg := <-_slackBuffer:
-			lines := strings.Split(msg, "\n")
-			for _, line := range lines {
-				if len(line) > 0 {
-					line = strings.TrimSpace(line)
-					messages += "\t- " + line + "\n"
-					count += 1
-				}
+	lines := strings.Split(message, "\n")
+	if len(lines) == 1 {
+		messages = strings.TrimSpace(lines[0])
+		count = 1
+	} else {
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if len(line) > 0 {
+				messages += "\t" + line + "\n"
+				count += 1
 			}
-		default:
 		}
 	}
 	if messages != "" {
-		fancyPrefix := "*" + prefix + "*"
 		var output string
 		if count > 1 {
-			output = fmt.Sprintf("%v:\n%v", fancyPrefix, messages)
+			output = fmt.Sprintf("%v: (%v)\n%v", prefix, tag, messages)
 		} else {
-			output = fmt.Sprintf("%v: %v", fancyPrefix, messages)
+			output = fmt.Sprintf("%v: (%v) %v", prefix, tag, messages)
 		}
 		if err := notify.SlackF(channel, output); err != nil {
 			StderrF("error notifying slack channel: %v\n", err)
@@ -131,10 +112,10 @@ func SetupSlackIfPresent(ctx *cli.Context) (err error) {
 	return
 }
 
-func NotifyF(format string, argv ...interface{}) {
+func NotifyF(tag, format string, argv ...interface{}) {
 	msg := fmt.Sprintf(fmt.Sprintf("%v\n", strings.TrimSpace(format)), argv...)
-	fmt.Printf("# " + msg)
-	notifySlack(msg)
+	fmt.Printf("# " + tag + ": " + msg)
+	notifySlack(tag, msg)
 }
 
 func StdoutF(format string, argv ...interface{}) {

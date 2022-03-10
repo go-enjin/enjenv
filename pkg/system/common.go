@@ -19,11 +19,8 @@ import (
 	"os"
 
 	"github.com/iancoleman/strcase"
-	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/notify"
 	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/enjenv/pkg/io"
 )
 
 var BinName = bePath.Base(os.Args[0])

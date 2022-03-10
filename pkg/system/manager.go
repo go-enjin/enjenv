@@ -76,7 +76,7 @@ func (m *SystemsManager) AddSystem(s System) *SystemsManager {
 }
 
 func (m *SystemsManager) Shutdown() {
-	io.Shutdown()
+	// nothing to do here anymore, leaving stub temporarily
 }
 
 func (m *SystemsManager) Setup(app *cli.App) (err error) {
