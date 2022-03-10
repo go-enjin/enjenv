@@ -17,18 +17,13 @@ package heroku
 import (
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/enjenv/pkg/system"
-)
 
-var (
-	rxSlugfileLine = regexp.MustCompile(`^\s*([^/].+?)\s*$`)
-	rxSlugsumsLine = regexp.MustCompile(`(?ms)^\s*([0-9a-f]{64})\s*([^/].+?)\s*$`)
+	"github.com/go-enjin/enjenv/pkg/system"
 )
 
 const (
