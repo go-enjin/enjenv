@@ -34,7 +34,19 @@ func EnjenvPresent() (present bool) {
 	return
 }
 
+func EnjenvIsInPwd() (present bool) {
+	pwd := path.Pwd()
+	if path.IsDir(pwd + "/" + EnjenvDirName) {
+		present = true
+		return
+	}
+	return
+}
+
 func FindEnjenvDir() string {
+	if envPathValue := os.Getenv("ENJENV_PATH"); envPathValue != "" {
+		return envPathValue
+	}
 	var name string
 	if name = env.Get("ENJENV_DIR_NAME", ""); name == "" {
 		name = EnjenvDirName
@@ -48,11 +60,6 @@ func FindEnjenvDir() string {
 				}
 			}
 			wd = path.Dir(wd)
-		}
-	}
-	if bmp := env.Get("ENJENV_PATH", ""); bmp != "" {
-		if path.IsDir(bmp) {
-			return bmp
 		}
 	}
 	return fmt.Sprintf("%v/%v", path.Pwd(), EnjenvDirName)
