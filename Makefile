@@ -36,6 +36,22 @@ else \
 fi)
 endef
 
+define _tag_ver =
+$(shell git describe 2> /dev/null || echo "untagged")
+endef
+
+GIT_STATUS = $(shell git status 2> /dev/null)
+
+define _rel_ver =
+$(shell \
+	if [ "$${GIT_STATUS}" = "" ]; then \
+		git rev-parse --short=10 HEAD; \
+	else \
+		git diff | sha256sum - | perl -pe 's!^\s*([a-f0-9]{10}).*$$!$$1!'; \
+	fi \
+)
+endef
+
 .PHONY: all help clean build install local unlocal tidy
 
 help:
@@ -44,14 +60,16 @@ help:
 clean:
 	@if [ -f "${BIN_NAME}" ]; then rm -fv "${BIN_NAME}"; fi
 
-build: TRIMPATH=$(call _trimPath)
+build: BUILD_VERSION=$(call _tag_ver)
+build: BUILD_RELEASE=$(call _rel_ver)
+build: TRIM_PATHS=$(call _trimPath)
 build:
-	@echo "# building: ${BIN_NAME} (${TRIMPATH})"
+	@echo "# building: ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"
 	@${CMD} go build -v \
 		-o "${BIN_NAME}" \
-		-ldflags="-w -s -buildid=''" \
-		-gcflags="-trimpath='${TRIMPATH}'" \
-		-asmflags="-trimpath='${TRIMPATH}'" \
+		-ldflags="-w -s -buildid='' -X 'main.BuildVersion=${BUILD_VERSION}' -X 'main.BuildRelease=${BUILD_RELEASE}'" \
+		-gcflags="-trimpath='${TRIM_PATHS}'" \
+		-asmflags="-trimpath='${TRIM_PATHS}'" \
 		-trimpath \
 		./cmd/enjenv
 
