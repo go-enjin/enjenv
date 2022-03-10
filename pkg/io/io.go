@@ -54,9 +54,9 @@ func GitTagRelVerString() (out string) {
 
 func getSlackPrefix() (prefix string) {
 	if notifyPrefix := os.Getenv(EnvPrefix + "_NOTIFY_PREFIX"); notifyPrefix != "" {
-		prefix = fmt.Sprintf("(%v) %v %v", BinName, globals.Hostname, notifyPrefix)
+		prefix = fmt.Sprintf("(%v) *%v %v*", BinName, globals.Hostname, notifyPrefix)
 	} else {
-		prefix = fmt.Sprintf("(%v) %v %v", BinName, globals.Hostname, GitTagRelVerString())
+		prefix = fmt.Sprintf("(%v) *%v %v*", BinName, globals.Hostname, GitTagRelVerString())
 	}
 	return
 }
@@ -85,9 +85,9 @@ func notifySlack(tag string, message string) {
 	if messages != "" {
 		var output string
 		if count > 1 {
-			output = fmt.Sprintf("%v: (%v)\n%v", prefix, tag, messages)
+			output = fmt.Sprintf("%v:\t_(%v)_\n%v", prefix, tag, messages)
 		} else {
-			output = fmt.Sprintf("%v: (%v) %v", prefix, tag, messages)
+			output = fmt.Sprintf("%v:\t%v\t_(%v)_", prefix, strings.TrimSpace(messages), tag)
 		}
 		if err := notify.SlackF(channel, output); err != nil {
 			StderrF("error notifying slack channel: %v\n", err)
