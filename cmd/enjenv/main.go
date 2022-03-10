@@ -15,12 +15,15 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/log"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	herokuCmd "github.com/go-enjin/enjenv/commands/heroku"
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -32,6 +35,24 @@ import (
 
 var BinName = bePath.Base(os.Args[0])
 
+var (
+	BuildVersion = "v0.0.0"
+	BuildRelease = "development"
+	BuildBinHash = ""
+)
+
+func init() {
+	var absPath string
+	if absPath = bePath.Which(os.Args[0]); absPath == "" {
+		panic(fmt.Sprintf("could not find self: %v\n", os.Args[0]))
+	}
+	var err error
+	if BuildBinHash, err = sha.FileHash10(absPath); err != nil {
+		io.StderrF("enjenv sha256 error %v: %v\n", absPath, err)
+		BuildBinHash = "0000000000"
+	}
+}
+
 func main() {
 	log.Config.AppName = BinName
 	log.Config.DisableTimestamp = true
@@ -41,7 +62,7 @@ func main() {
 	app = &cli.App{
 		Name:    BinName,
 		Usage:   "go-enjin environment management utility",
-		Version: "v0.1.0",
+		Version: BuildVersion + " (" + BuildRelease + ") [" + BuildBinHash + "]",
 		Action: func(ctx *cli.Context) (err error) {
 			if ctx.NArg() > 0 {
 				cli.ShowAppHelpAndExit(ctx, 1)
@@ -52,6 +73,9 @@ func main() {
 		},
 	}
 	app.EnableBashCompletion = true
+	cli.VersionPrinter = func(c *cli.Context) {
+		fmt.Printf("%s %s\n", BinName, c.App.Version)
+	}
 	var err error
 	if err = system.Manager().
 		AddCommand(herokuCmd.New()).
