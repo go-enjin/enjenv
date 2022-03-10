@@ -69,13 +69,13 @@ install: enjenv
 
 local:
 	@if [ -d "${BE_PATH}" ]; then \
-		enjenv go-local ${BE_PATH}; \
+		go mod edit -replace="github.com/go-enjin/be=${BE_PATH}"; \
 	else \
 		echo "BE_PATH not set or not a directory: \"${BE_PATH}\""; \
 	fi
 
 unlocal:
-	@enjenv go-unlocal
+	@go mod edit -dropreplace="github.com/go-enjin/be"
 
 tidy:
 	@go mod tidy -go=1.16 && go mod tidy -go=1.17
