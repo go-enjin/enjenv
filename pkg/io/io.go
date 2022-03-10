@@ -56,7 +56,7 @@ func getSlackPrefix() (prefix string) {
 	if notifyPrefix := os.Getenv(EnvPrefix + "_NOTIFY_PREFIX"); notifyPrefix != "" {
 		prefix = fmt.Sprintf("(%v) %v %v", BinName, globals.Hostname, notifyPrefix)
 	} else {
-		prefix = fmt.Sprintf("(%v) %v %v", BinName, globals.Hostname, tag)
+		prefix = fmt.Sprintf("(%v) %v %v", BinName, globals.Hostname, GitTagRelVerString())
 	}
 	return
 }
