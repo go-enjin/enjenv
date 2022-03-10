@@ -8,6 +8,7 @@ import (
 	"github.com/go-enjin/be/pkg/cli/git"
 	"github.com/go-enjin/be/pkg/path"
 	"github.com/go-enjin/be/pkg/slug"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -38,8 +39,8 @@ func (c *Command) makeFinalizeSlugCommand(appNamePrefix string) *cli.Command {
 				err = fmt.Errorf("cannot finalize-slug without --force")
 				return
 			}
-			if basepath.EnjenvPresent() {
-				err = fmt.Errorf("finalize-slug requires '%v clean'", io.BinName)
+			if basepath.EnjenvIsInPwd() {
+				err = fmt.Errorf("cannot finalize-slug: found .enjenv in slug, use '%v clean'", io.BinName)
 				return
 			}
 			if git.IsRepo() {
