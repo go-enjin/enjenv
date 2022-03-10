@@ -138,3 +138,10 @@ func FatalF(format string, argv ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, CustomIndent+format, argv...)
 	os.Exit(1)
 }
+
+// ErrorF wraps fmt.Errorf and also issues a NotifyF with the error message
+func ErrorF(format string, argv ...interface{}) (err error) {
+	err = fmt.Errorf(format, argv...)
+	NotifyF("error", err.Error())
+	return
+}
