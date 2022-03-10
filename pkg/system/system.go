@@ -122,7 +122,7 @@ func (s *CSystem) MakeDirs() (err error) {
 }
 
 func (s *CSystem) InitAction(ctx *cli.Context) (err error) {
-	io.NotifyF("%v init started", s.Self().Name())
+	io.NotifyF("init-"+s.Self().Name(), "%v init started", s.Self().Name())
 	if err = s.Self().Prepare(ctx); err != nil {
 		return
 	}
@@ -216,13 +216,13 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 					return
 				}
 				useFile = ver
-				io.NotifyF("%v version (from file): %v", name, s.Version)
+				io.NotifyF("init-"+s.Self().Name(), "%v version (from file): %v", name, s.Version)
 			}
 		} else {
-			io.NotifyF("%v version (requested): %v", name, s.Version)
+			io.NotifyF("init-"+s.Self().Name(), "%v version (requested): %v", name, s.Version)
 		}
 	} else {
-		io.NotifyF("%v version (default): %v", name, s.Version)
+		io.NotifyF("init-"+s.Self().Name(), "%v version (default): %v", name, s.Version)
 	}
 
 	if argv := ctx.Args().Slice(); len(argv) >= 1 {
@@ -309,7 +309,7 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 		return
 	}
 
-	io.NotifyF("%v init complete", s.Self().Name())
+	io.NotifyF("init-"+s.Self().Name(), "%v init complete", s.Self().Name())
 	return
 }
 
@@ -320,12 +320,12 @@ func (s *CSystem) Clean(ctx *cli.Context) (err error) {
 			err = fmt.Errorf("not cleaning local %v environment: %v (missing --force)", s.Self().Name(), path)
 			return
 		}
-		io.NotifyF("cleaning local %v environment: %v", s.Self().Name(), path)
+		io.NotifyF("clean-"+s.Self().Name(), "cleaning local %v environment: %v", s.Self().Name(), path)
 		bePath.ChmodAll(path)
 		err = os.RemoveAll(path)
 		return
 	}
-	io.NotifyF("nothing to clean for %v", s.Self().Name())
+	io.NotifyF("clean-"+s.Self().Name(), "nothing to clean for %v", s.Self().Name())
 	return
 }
 

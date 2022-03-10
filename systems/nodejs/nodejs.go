@@ -542,6 +542,9 @@ func (s *System) makePackageInstallFunc(p, d string) func(ctx *cli.Context) (err
 		wd := bePath.Pwd()
 		if d != "." {
 			_ = os.Chdir(d)
+			io.NotifyF("nodejs", "running %v install (%v)", p, d)
+		} else {
+			io.NotifyF("nodejs", "running %v install (./)", p)
 		}
 		if p == "yarn" {
 			_, err = s.YarnBin("install")
@@ -576,7 +579,7 @@ func (s *System) runPackageScript(pm, dir, name string, argv ...string) (err err
 	default:
 		_ = os.Chdir(dir)
 	}
-	io.NotifyF("running %v %v", pm, name)
+	io.NotifyF("nodejs", "running %v %v", pm, name)
 	if pm == "yarn" {
 		_, err = s.YarnBin(name, argv...)
 	} else {

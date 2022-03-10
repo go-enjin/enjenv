@@ -248,7 +248,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 				err = fmt.Errorf("no systems built-in, nothing to do")
 				return
 			}
-			io.NotifyF("all systems init started")
+			io.NotifyF("init", "all systems init started")
 			for _, s := range m.systems {
 				name := s.Self().Name()
 				if ctx.IsSet(name) && ctx.String(name) != "" {
@@ -257,7 +257,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 					}
 				}
 			}
-			io.NotifyF("all systems init complete")
+			io.NotifyF("init", "all systems init complete")
 			return
 		},
 	}

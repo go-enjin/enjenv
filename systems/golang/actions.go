@@ -72,7 +72,7 @@ func (s *System) ActionGoBuild(ctx *cli.Context) (err error) {
 			fmt.Sprintf("-X 'github.com/go-enjin/be/pkg/globals.SlugIntegrity=%v'", slugIntegrity),
 			fmt.Sprintf("-X 'github.com/go-enjin/be/pkg/globals.SumsIntegrity=%v'", sumsIntegrity),
 		)
-		io.NotifyF("finalizing integrity values: slug=%v, sums=%v", slugIntegrity, sumsIntegrity)
+		io.StdoutF("# finalizing slug integrity: %v\n", slugIntegrity)
 	}
 
 	if moreGcFlags := ctx.String("gcflags"); moreGcFlags != "" {
@@ -135,7 +135,8 @@ func (s *System) ActionGoBuild(ctx *cli.Context) (err error) {
 
 	argv := ctx.Args().Slice()
 	argv = append(extra, argv...)
-	io.NotifyF("running go build %v", argv)
+	io.NotifyF("go build", "running go build for %v", appName)
+	io.StdoutF("go build %v", argv)
 	_, err = s.GoBin("build", argv...)
 	return
 }
