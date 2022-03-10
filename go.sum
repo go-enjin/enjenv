@@ -40,8 +40,8 @@ github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm
 github.com/gin-gonic/gin v1.7.4/go.mod h1:jD2toBW3GZUr5UMcdrwQA10I7RuaFOl/SGeDjXkfUtY=
 github.com/gin-gonic/gin v1.7.7/go.mod h1:axIBovoeJpVj8S3BwE0uPMTeReE4+AfFtqpqaZ1qq1U=
 github.com/go-chi/chi/v5 v5.0.7/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
-github.com/go-enjin/be v0.0.0-20220310175010-3e88ce54e7c1 h1:QCmJ8dFyk0sT0EHhXaSA5N7KbeTSkJqCEbiCsvM9MGE=
-github.com/go-enjin/be v0.0.0-20220310175010-3e88ce54e7c1/go.mod h1:ojW3AVyWhwIBELQvnHup4+i8B3LXGZSFMCROrgQILs0=
+github.com/go-enjin/be v0.0.0-20220310214948-252f5aa00cf5 h1:nUp+vSpYJEMImv2BoDauZ6KoJZuuF8+igOPOtZ1NGc8=
+github.com/go-enjin/be v0.0.0-20220310214948-252f5aa00cf5/go.mod h1:ojW3AVyWhwIBELQvnHup4+i8B3LXGZSFMCROrgQILs0=
 github.com/go-kit/log v0.1.0/go.mod h1:zbhenjAZHb184qTLMA9ZjW7ThYL0H2mk7Q6pNt4vbaY=
 github.com/go-logfmt/logfmt v0.5.0/go.mod h1:wCYkCAKZfumFQihp8CzCvQ3paCTfi41vtzG1KdI/P7A=
 github.com/go-playground/assert/v2 v2.0.1/go.mod h1:VDjEfimB/XKnb+ZQfWdccd7VUvScMdVu0Titje2rxJ4=

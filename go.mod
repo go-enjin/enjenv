@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20220310175010-3e88ce54e7c1
+	github.com/go-enjin/be v0.0.0-20220310214948-252f5aa00cf5
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.3.0
 )
