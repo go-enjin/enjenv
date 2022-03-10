@@ -1,7 +1,6 @@
 package heroku
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/urfave/cli/v2"
@@ -21,9 +20,10 @@ func (c *Command) makeBuildpackCommand(appNamePrefix string) *cli.Command {
 		Description: `
 buildpack will perform the following steps, stopping on any error:
 
-	- run enjenv init --golang "--golang" --nodejs "--nodejs"
+	- run enjenv golang init --golang "--golang"
+	- run enjenv nodejs init --nodejs "--nodejs" // if --nodejs given
 	- run make "--release-targets"
-	- run enjenv clean --force
+	- run enjenv clean --force // if .enjenv present in PWD
 	- run enjenv finalize-slug --verbose --force
 
 Note that this is a destructive process and exclusively intended for use within
@@ -51,12 +51,6 @@ the Go-Enjin Heroku buildpack: github.com/go-enjin/enjenv-heroku-buildpack
 				Usage:   "pass through to 'nodejs init --nodejs'",
 				EnvVars: []string{"ENJENV_BUILDPACK_NODEJS"},
 			},
-			// &cli.BoolFlag{
-			// 	Name:    "verbose",
-			// 	Usage:   "output detailed information",
-			// 	Aliases: []string{"v"},
-			// 	EnvVars: []string{"ENJENV_BUILDPACK_VERBOSE"},
-			// },
 		},
 		Action: c.ActionBuildpack,
 	}
@@ -68,7 +62,7 @@ func (c *Command) ActionBuildpack(ctx *cli.Context) (err error) {
 	}
 
 	if !ctx.IsSet("force") || !ctx.Bool("force") {
-		err = fmt.Errorf("buildpack requires --force argument")
+		err = io.ErrorF("buildpack requires --force argument")
 		return
 	}
 
@@ -77,48 +71,48 @@ func (c *Command) ActionBuildpack(ctx *cli.Context) (err error) {
 	io.NotifyF("buildpack", "starting deployment")
 
 	// 	- run enjenv init --golang "--golang" --nodejs "--nodejs"
-	io.StdoutF("# initializing enjenv\n")
+	io.StdoutF("# initializing enjenv: %v\n", basepath.EnjenvPath)
 
-	if basepath.EnjenvPresent() {
-		io.StdoutF("# enjenv path present, masking for local\n")
-		_ = os.Setenv("ENVJENV_PATH", "")
+	var initSystemNames []string
+	initSystemNames = append(initSystemNames, "golang")
+	if ctx.IsSet("nodejs") {
+		initSystemNames = append(initSystemNames, "nodejs")
 	}
-
-	var initArgs []string
-	initArgs = append(initArgs, "init")
-	if golang := ctx.String("golang"); golang != "" {
-		initArgs = append(initArgs, "--golang", golang)
-	}
-	if nodejs := ctx.String("nodejs"); nodejs != "" {
-		initArgs = append(initArgs, "--nodejs", nodejs)
-	}
-	initArgs = append(initArgs, ".")
-
-	if _, err = c.enjenvExe(initArgs...); err != nil {
-		err = fmt.Errorf("enjenv init error: %v", err)
-		return
+	for _, sysName := range initSystemNames {
+		var initArgs []string
+		initArgs = append(initArgs, sysName, "init")
+		if arg := ctx.String(sysName); arg != "" {
+			initArgs = append(initArgs, "--"+sysName, arg)
+		}
+		initArgs = append(initArgs, "--force")
+		if _, err = c.enjenvExe(initArgs...); err != nil {
+			err = io.ErrorF("enjenv %v init error: %v", sysName, err)
+			return
+		}
 	}
 
 	//	- run make "--release-targets"
 	targets := ctx.StringSlice("target")
 	io.NotifyF("buildpack", "making release targets: %v\n", targets)
 	if _, err = c.makeExe(targets...); err != nil {
-		err = fmt.Errorf("make error: %v", err)
+		err = io.ErrorF("make error: %v", err)
 		return
 	}
 	io.NotifyF("buildpack", "release targets completed: %v\n", targets)
 
 	//	- run enjenv clean --force
-	io.StdoutF("# enjenv cleaning up\n")
-	if _, err = c.enjenvExe("clean", "--force"); err != nil {
-		err = fmt.Errorf("enjenv clean error: %v", err)
-		return
+	if basepath.EnjenvIsInPwd() {
+		io.StdoutF("# cleaning up local .enjenv for finalization\n")
+		if _, err = c.enjenvExe("clean", "--force"); err != nil {
+			err = io.ErrorF("enjenv clean error: %v", err)
+			return
+		}
 	}
 
 	//	- run enjenv finalize-slug --verbose --force
 	io.NotifyF("buildpack", "enjenv finalize-slug")
 	if _, err = c.enjenvExe("finalize-slug", "--verbose", "--force"); err != nil {
-		err = fmt.Errorf("enjenv finalize-slug error: %v", err)
+		err = io.ErrorF("enjenv finalize-slug error: %v", err)
 		return
 	}
 
