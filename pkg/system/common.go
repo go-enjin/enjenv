@@ -18,14 +18,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/iancoleman/strcase"
-
 	bePath "github.com/go-enjin/be/pkg/path"
 )
 
 var BinName = bePath.Base(os.Args[0])
-
-var EnvPrefix = strcase.ToScreamingSnake(BinName)
 
 var BashCompletionScript string = fmt.Sprintf(`#! /bin/bash
 

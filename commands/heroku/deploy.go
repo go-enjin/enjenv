@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-enjin/be/pkg/cli/git"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
-	"github.com/go-enjin/enjenv/pkg/system"
 )
 
 func (c *Command) makeDeploySlugCommand(appNamePrefix string) *cli.Command {
@@ -41,35 +41,35 @@ deploy-slug will perform the following steps, stopping on any error:
 			&cli.StringFlag{
 				Name:    "backup",
 				Usage:   "specify the backup directory path",
-				EnvVars: []string{system.EnvPrefix + "_DEPLOY_SLUG_BACKUP"},
+				EnvVars: []string{"ENJENV_DEPLOY_SLUG_BACKUP"},
 			},
 			&cli.BoolFlag{
 				Name:    "no-backup",
 				Usage:   "if <dst> exists, remove it without backing up",
-				EnvVars: []string{system.EnvPrefix + "_DEPLOY_SLUG_NO_BACKUP"},
+				EnvVars: []string{"ENJENV_DEPLOY_SLUG_NO_BACKUP"},
 			},
 			&cli.StringSliceFlag{
 				Name:    "target",
 				Usage:   "specify one or more build targets to use",
 				Value:   cli.NewStringSlice("release"),
-				EnvVars: []string{system.EnvPrefix + "_DEPLOY_SLUG_TARGETS"},
+				EnvVars: []string{"ENJENV_DEPLOY_SLUG_TARGETS"},
 				Aliases: []string{"t"},
 			},
 			&cli.StringFlag{
 				Name:    "golang",
 				Usage:   "pass through to 'golang init --golang'",
-				EnvVars: []string{system.EnvPrefix + "_DEPLOY_SLUG_GOLANG"},
+				EnvVars: []string{"ENJENV_DEPLOY_SLUG_GOLANG"},
 			},
 			&cli.StringFlag{
 				Name:    "nodejs",
 				Usage:   "pass through to 'nodejs init --nodejs'",
-				EnvVars: []string{system.EnvPrefix + "_DEPLOY_SLUG_NODEJS"},
+				EnvVars: []string{"ENJENV_DEPLOY_SLUG_NODEJS"},
 			},
 			// &cli.BoolFlag{
 			// 	Name:    "verbose",
 			// 	Usage:   "output detailed information",
 			// 	Aliases: []string{"v"},
-			// 	EnvVars: []string{system.EnvPrefix+"_DEPLOY_SLUG_VERBOSE"},
+			// 	EnvVars: []string{"ENJENV_DEPLOY_SLUG_VERBOSE"},
 			// },
 		},
 		Action: c.ActionDeploySlug,
@@ -88,7 +88,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	src := argv[0]
 	dst := argv[1]
 
-	_ = os.Setenv(system.EnvPrefix+"_NOTIFY_PREFIX", "deploy-slug "+bePath.Base(src))
+	_ = os.Setenv("_ENJENV_NOTIFY_PREFIX", "deploy-slug "+bePath.Base(src))
 	io.NotifyF("deploy-slug", "starting local deployment")
 	io.StdoutF("# src: %v, dst: %v\n", src, dst)
 

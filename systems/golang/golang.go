@@ -29,6 +29,7 @@ import (
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/net"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
@@ -40,7 +41,7 @@ var (
 	BinName           = bePath.Base(bePath.Pwd())
 	Summary           = "Custom Go-Enjin Service"
 	Version           = "v0.0.0"
-	EnvPrefix         = strcase.ToScreamingSnake(BinName)
+	BeEnvPrefix       = strcase.ToScreamingSnake(BinName)
 	GoEnvFileName     = "env"
 	GoTmpDirName      = "tmp"
 	GoCacheDirName    = "cache"
@@ -64,7 +65,7 @@ func init() {
 	BinName = env.Get("ENJENV_"+tag+"_BIN_NAME", BinName)
 	Summary = env.Get("ENJENV_"+tag+"_SUMMARY", Summary)
 	Version = env.Get("ENJENV_"+tag+"_VERSION", Version)
-	EnvPrefix = env.Get("ENJENV_"+tag+"_ENV_PREFIX", EnvPrefix)
+	BeEnvPrefix = env.Get("ENJENV_"+tag+"_ENV_PREFIX", BeEnvPrefix)
 	GoTmpDirName = env.Get("ENJENV_"+tag+"_TMP_DIR_NAME", GoTmpDirName)
 	GoCacheDirName = env.Get("ENJENV_"+tag+"_CACHE_DIR_NAME", GoCacheDirName)
 	GoModCacheDirName = env.Get("ENJENV_"+tag+"_MOD_CACHE_DIR_NAME", GoModCacheDirName)

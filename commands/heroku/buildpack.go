@@ -7,9 +7,9 @@ import (
 	"github.com/urfave/cli/v2"
 
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
-	"github.com/go-enjin/enjenv/pkg/system"
 )
 
 func (c *Command) makeBuildpackCommand(appNamePrefix string) *cli.Command {
@@ -38,24 +38,24 @@ the Go-Enjin Heroku buildpack: github.com/go-enjin/enjenv-heroku-buildpack
 				Name:    "target",
 				Usage:   "specify one or more build targets to use",
 				Value:   cli.NewStringSlice("release"),
-				EnvVars: []string{system.EnvPrefix + "_DEPLOY_SLUG_TARGETS"},
+				EnvVars: []string{"ENJENV_DEPLOY_SLUG_TARGETS"},
 				Aliases: []string{"t"},
 			},
 			&cli.StringFlag{
 				Name:    "golang",
 				Usage:   "pass through to 'golang init --golang'",
-				EnvVars: []string{system.EnvPrefix + "_DEPLOY_SLUG_GOLANG"},
+				EnvVars: []string{"ENJENV_DEPLOY_SLUG_GOLANG"},
 			},
 			&cli.StringFlag{
 				Name:    "nodejs",
 				Usage:   "pass through to 'nodejs init --nodejs'",
-				EnvVars: []string{system.EnvPrefix + "_DEPLOY_SLUG_NODEJS"},
+				EnvVars: []string{"ENJENV_DEPLOY_SLUG_NODEJS"},
 			},
 			// &cli.BoolFlag{
 			// 	Name:    "verbose",
 			// 	Usage:   "output detailed information",
 			// 	Aliases: []string{"v"},
-			// 	EnvVars: []string{system.EnvPrefix+"_DEPLOY_SLUG_VERBOSE"},
+			// 	EnvVars: []string{"ENJENV_DEPLOY_SLUG_VERBOSE"},
 			// },
 		},
 		Action: c.ActionBuildpack,
@@ -73,7 +73,7 @@ func (c *Command) ActionBuildpack(ctx *cli.Context) (err error) {
 	}
 
 	pwd := bePath.Pwd()
-	_ = os.Setenv(system.EnvPrefix+"_NOTIFY_PREFIX", "buildpack "+bePath.Base(pwd))
+	_ = os.Setenv("_ENJENV_NOTIFY_PREFIX", "buildpack "+bePath.Base(pwd))
 	io.NotifyF("buildpack", "starting deployment")
 
 	// 	- run enjenv init --golang "--golang" --nodejs "--nodejs"

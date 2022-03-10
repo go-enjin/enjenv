@@ -25,6 +25,7 @@ import (
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/git"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -89,7 +90,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 	app.Flags = append(app.Flags, &cli.StringFlag{
 		Name:    "slack",
 		Usage:   "send notifications the given slack channel as well as os.Stdout",
-		EnvVars: []string{EnvPrefix + "_SLACK"},
+		EnvVars: []string{"ENJENV_SLACK"},
 	})
 
 	var names []string

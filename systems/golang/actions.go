@@ -11,6 +11,7 @@ import (
 	"github.com/go-enjin/be/pkg/cli/git"
 	"github.com/go-enjin/be/pkg/path"
 	"github.com/go-enjin/be/pkg/slug"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -34,7 +35,7 @@ func (s *System) ActionGoBuild(ctx *cli.Context) (err error) {
 		release = git.MakeReleaseVersion()
 	}
 	if envPrefix = ctx.String("be-env-prefix"); envPrefix == "" {
-		envPrefix = EnvPrefix
+		envPrefix = BeEnvPrefix
 	}
 
 	var gcFlags, ldFlags, asmFlags []string

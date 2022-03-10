@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/cli/git"
@@ -31,8 +30,6 @@ import (
 var SlackChannel string
 
 var BinName = filepath.Base(os.Args[0])
-
-var EnvPrefix = strcase.ToScreamingSnake(BinName)
 
 func GitTagRelVer() (gitTag, relVer string) {
 	if gitTag, _ = git.Describe(); gitTag == "" {
@@ -53,7 +50,7 @@ func GitTagRelVerString() (out string) {
 }
 
 func getSlackPrefix() (prefix string) {
-	if notifyPrefix := os.Getenv(EnvPrefix + "_NOTIFY_PREFIX"); notifyPrefix != "" {
+	if notifyPrefix := os.Getenv("_ENJENV_NOTIFY_PREFIX"); notifyPrefix != "" {
 		prefix = fmt.Sprintf("(%v) *%v %v*", BinName, globals.Hostname, notifyPrefix)
 	} else {
 		prefix = fmt.Sprintf("(%v) *%v %v*", BinName, globals.Hostname, GitTagRelVerString())
@@ -102,7 +99,7 @@ func SetupSlackIfPresent(ctx *cli.Context) (err error) {
 	}
 	if channel != "" {
 		if webhook := notify.SlackUrl(channel); webhook != "" {
-			_ = os.Setenv(EnvPrefix+"_SLACK", channel)
+			_ = os.Setenv("ENJENV_SLACK", channel)
 			SlackChannel = webhook
 			// StdoutF("# using slack channel: %v\n", channel)
 			return
