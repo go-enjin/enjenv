@@ -26,6 +26,7 @@ import (
 	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/net"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -122,10 +123,10 @@ func (s *CSystem) MakeDirs() (err error) {
 }
 
 func (s *CSystem) InitAction(ctx *cli.Context) (err error) {
-	io.NotifyF("init-"+s.Self().Name(), "%v init started", s.Self().Name())
 	if err = s.Self().Prepare(ctx); err != nil {
 		return
 	}
+	io.NotifyF("init-"+s.Self().Name(), "%v init started", s.Self().Name())
 	err = s.Self().InitSystem(ctx)
 	return
 }

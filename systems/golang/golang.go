@@ -145,6 +145,7 @@ func (s *System) NancyBin(argv ...string) (status int, err error) {
 }
 
 func (s *System) Prepare(ctx *cli.Context) (err error) {
+	_ = io.SetupCustomIndent(ctx)
 	if err = s.CSystem.Prepare(ctx); err != nil {
 		return
 	}

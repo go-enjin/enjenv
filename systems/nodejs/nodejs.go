@@ -29,6 +29,7 @@ import (
 	"github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/net"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 	system2 "github.com/go-enjin/enjenv/pkg/system"
@@ -177,6 +178,8 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 }
 
 func (s *System) Prepare(ctx *cli.Context) (err error) {
+	_ = io.SetupCustomIndent(ctx)
+
 	if !RuntimeSupported() {
 		err = fmt.Errorf("%v is not supported on %v/%v", Tag, runtime.GOOS, runtime.GOARCH)
 		return
