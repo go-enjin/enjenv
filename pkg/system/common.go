@@ -52,18 +52,3 @@ _cli_bash_autocomplete() {
 complete -o bashdefault -o default -o nospace -F _cli_bash_autocomplete $PROG
 unset PROG
 `, BinName)
-
-func setupSlackIfPresent(ctx *cli.Context) (err error) {
-	if io.SlackChannel == "" {
-		if ctx.IsSet("slack") {
-			channel := ctx.String("slack")
-			if webhook := notify.SlackUrl(channel); webhook != "" {
-				io.SlackChannel = webhook
-				io.StdoutF("# using slack channel: %v\n", channel)
-				return
-			}
-			err = fmt.Errorf("invalid slack channel given: %v", channel)
-		}
-	}
-	return
-}

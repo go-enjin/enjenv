@@ -241,7 +241,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 			},
 		},
 		Action: func(ctx *cli.Context) (err error) {
-			if err = setupSlackIfPresent(ctx); err != nil {
+			if err = io.SetupSlackIfPresent(ctx); err != nil {
 				return
 			}
 			if len(m.systems) == 0 {

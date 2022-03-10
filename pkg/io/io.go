@@ -114,6 +114,23 @@ func processSlackNotifications() {
 	}
 }
 
+func SetupSlackIfPresent(ctx *cli.Context) (err error) {
+	channel := SlackChannel
+	if channel == "" {
+		channel = ctx.String("slack")
+	}
+	if channel != "" {
+		if webhook := notify.SlackUrl(channel); webhook != "" {
+			_ = os.Setenv(EnvPrefix+"_SLACK", channel)
+			SlackChannel = webhook
+			// StdoutF("# using slack channel: %v\n", channel)
+			return
+		}
+		err = fmt.Errorf("invalid slack channel given: %v", channel)
+	}
+	return
+}
+
 func NotifyF(format string, argv ...interface{}) {
 	msg := fmt.Sprintf(fmt.Sprintf("%v\n", strings.TrimSpace(format)), argv...)
 	fmt.Printf("# " + msg)

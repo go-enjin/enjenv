@@ -18,6 +18,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/context"
+	"github.com/go-enjin/enjenv/pkg/io"
 )
 
 var _ Command = (*CCommand)(nil)
@@ -71,7 +72,7 @@ func (c *CCommand) Setup(app *cli.App) (err error) {
 }
 
 func (s *CCommand) Prepare(ctx *cli.Context) (err error) {
-	if err = setupSlackIfPresent(ctx); err != nil {
+	if err = io.SetupSlackIfPresent(ctx); err != nil {
 		return
 	}
 	return

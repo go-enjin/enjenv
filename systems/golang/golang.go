@@ -147,6 +147,9 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 	if err = s.CSystem.Prepare(ctx); err != nil {
 		return
 	}
+	if err = io.SetupSlackIfPresent(ctx); err != nil {
+		return
+	}
 	s.Root = s.TagName + "/" + Tag
 	s.CSystem.Root = s.Root
 
