@@ -170,10 +170,12 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	io.NotifyF("deploy-slug", "release targets completed: %v\n", targets)
 
 	//	- run enjenv clean --force
-	io.StdoutF("# enjenv cleaning up\n")
-	if _, err = c.enjenvExe("clean", "--force"); err != nil {
-		err = fmt.Errorf("enjenv clean error: %v", err)
-		return
+	if basepath.EnjenvIsInPwd() {
+		io.StdoutF("# enjenv cleaning up\n")
+		if _, err = c.enjenvExe("clean", "--force"); err != nil {
+			err = fmt.Errorf("enjenv clean error: %v", err)
+			return
+		}
 	}
 
 	if err = os.RemoveAll(".git"); err != nil {
