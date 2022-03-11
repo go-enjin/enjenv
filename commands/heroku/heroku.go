@@ -15,14 +15,13 @@
 package heroku
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/cli/run"
-	bePath "github.com/go-enjin/be/pkg/path"
 
+	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/system"
 )
 
@@ -59,20 +58,12 @@ func (c *Command) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 }
 
 func (c *Command) makeExe(argv ...string) (status int, err error) {
+	_ = os.Setenv("ENJENV_BIN", basepath.WhichBin())
 	status, err = run.Exe("make", argv...)
 	return
 }
 
 func (c *Command) enjenvExe(argv ...string) (status int, err error) {
-	self := os.Args[0]
-	if len(self) > 3 {
-		if self[0:2] == "./" || self[0:3] == "../" || self[0] == '/' {
-			if self, err = bePath.Abs(self); err != nil {
-				err = fmt.Errorf("error getting absolute path to: %v", os.Args[0])
-				return
-			}
-		}
-	}
-	status, err = run.Exe(os.Args[0], argv...)
+	status, err = run.Exe(basepath.WhichBin(), argv...)
 	return
 }
