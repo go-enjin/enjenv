@@ -142,11 +142,6 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	// 	- run enjenv init --golang "--golang" --nodejs "--nodejs"
 	io.StdoutF("# initializing enjenv: %v\n", basepath.EnjenvPath)
 
-	// if basepath.EnjenvPresent() {
-	// 	io.StdoutF("# enjenv path present, masking for local\n")
-	// 	_ = os.Setenv("ENVJENV_PATH", "")
-	// }
-
 	var initSystemNames []string
 	initSystemNames = append(initSystemNames, "golang")
 	if ctx.IsSet("nodejs") {
