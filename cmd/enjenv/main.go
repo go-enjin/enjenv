@@ -20,7 +20,6 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/log"
 	bePath "github.com/go-enjin/be/pkg/path"
 
@@ -38,19 +37,16 @@ var BinName = bePath.Base(os.Args[0])
 var (
 	BuildVersion = "v0.0.0"
 	BuildRelease = "development"
+	BuildBinPath = ""
 	BuildBinHash = ""
 )
 
 func init() {
-	var absPath string
-	if absPath = bePath.Which(os.Args[0]); absPath == "" {
-		panic(fmt.Sprintf("could not find self: %v\n", os.Args[0]))
-	}
 	var err error
-	if BuildBinHash, err = sha.FileHash10(absPath); err != nil {
-		io.StderrF("enjenv sha256 error %v: %v\n", absPath, err)
-		BuildBinHash = "0000000000"
+	if BuildBinPath, BuildBinHash, err = basepath.BinCheck(); err != nil {
+		panic(err)
 	}
+	_ = os.Setenv("ENJENV_BIN", BuildBinPath)
 }
 
 func main() {
