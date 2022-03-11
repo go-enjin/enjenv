@@ -36,6 +36,10 @@ func EnjenvPresent() (present bool) {
 
 func EnjenvIsInPwd() (present bool) {
 	pwd := path.Pwd()
+	if envPathValue := os.Getenv("ENJENV_PATH"); envPathValue != "" {
+		present = envPathValue[0:len(pwd)] == pwd
+		return
+	}
 	if path.IsDir(pwd + "/" + EnjenvDirName) {
 		present = true
 		return
