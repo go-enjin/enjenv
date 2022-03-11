@@ -166,7 +166,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	}
 
 	//	- run make "--release-targets"
-	targets := ctx.StringSlice("release-targets")
+	targets := ctx.StringSlice("target")
 	io.NotifyF("deploy-slug", "making release targets: %v\n", targets)
 	if _, err = c.makeExe(targets...); err != nil {
 		err = fmt.Errorf("make error: %v", err)
