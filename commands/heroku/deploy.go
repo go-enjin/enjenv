@@ -153,7 +153,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 		if arg := ctx.String(sysName); arg != "" {
 			initArgs = append(initArgs, "--"+sysName, arg)
 		}
-		initArgs = append(initArgs, "--force", basepath.EnjenvPath)
+		initArgs = append(initArgs, "--force")
 		if _, err = c.enjenvExe(initArgs...); err != nil {
 			err = fmt.Errorf("enjenv %v init error: %v", sysName, err)
 			return
