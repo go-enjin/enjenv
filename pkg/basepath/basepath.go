@@ -20,14 +20,27 @@ import (
 	"strings"
 
 	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/path"
 )
 
-var EnjenvPath = FindEnjenvDir()
-
 var (
+	EnjenvPath    = FindEnjenvDir()
 	EnjenvDirName = ".enjenv"
 )
+
+func BinCheck() (absPath, buildBinHash string, err error) {
+	if absPath = path.Which(os.Args[0]); absPath == "" {
+		err = fmt.Errorf("could not find self: %v\n", os.Args[0])
+		return
+	}
+	if buildBinHash, err = sha.FileHash10(absPath); err != nil {
+		err = fmt.Errorf("enjenv sha256 error %v: %v\n", absPath, err)
+		return
+	}
+	_ = os.Setenv("ENJENV_BIN", absPath)
+	return
+}
 
 func EnjenvPresent() (present bool) {
 	present = path.IsDir(EnjenvPath)
