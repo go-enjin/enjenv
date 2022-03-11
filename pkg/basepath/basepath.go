@@ -29,6 +29,14 @@ var (
 	EnjenvDirName = ".enjenv"
 )
 
+func WhichBin() (enjenvBinPath string) {
+	if enjenvBinPath = os.Getenv("ENJENV_BIN"); enjenvBinPath != "" {
+		return
+	}
+	enjenvBinPath = path.Which(os.Args[0])
+	return
+}
+
 func BinCheck() (absPath, buildBinHash string, err error) {
 	if absPath = path.Which(os.Args[0]); absPath == "" {
 		err = fmt.Errorf("could not find self: %v\n", os.Args[0])
