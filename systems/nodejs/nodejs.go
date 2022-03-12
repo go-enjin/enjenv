@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strings"
 
+	beStrings "github.com/go-enjin/be/pkg/strings"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/cli/env"
@@ -411,42 +412,59 @@ func (s *System) YarnVersion() (version string) {
 var rxPackageScripts = regexp.MustCompile(`(?ms)"scripts"\s*:\s*{(.+?)},??`)
 var rxPackageScriptsLines = regexp.MustCompile(`(?ms)"([^"]+?)"\s*:\s*"\s*([^"]+?)\s*"\s*,??`)
 
+func (s *System) ListPackageDirs(path string) (dirs []string, err error) {
+	if paths, err := bePath.ListDirs("."); err == nil {
+		for _, dir := range paths {
+			if dir[0:2] == "./" {
+				dir = dir[2:]
+			}
+			switch dir {
+			case ".git", ".svn", "CVS":
+				continue
+			}
+			if dirPkg := dir + "/package.json"; bePath.IsFile(dirPkg) {
+				dirs = append(dirs, dir)
+			}
+		}
+	}
+	return
+}
+
+func (s *System) PackageJsonsPresent(dirs []string) (packageJsons []string) {
+	if bePath.IsFile("package.json") {
+		packageJsons = append(packageJsons, "package.json")
+	}
+	for _, dir := range dirs {
+		packageJsons = append(packageJsons, dir+"/package.json")
+	}
+	return
+}
+
+func (s *System) PackagesWithoutModules(dirs []string) (withoutModules []string) {
+	if bePath.IsFile("package.json") {
+		if !bePath.IsDir("node_modules") {
+			withoutModules = append(withoutModules, ".")
+		}
+	}
+	for _, dir := range dirs {
+		if !bePath.IsDir(dir + "/node_modules") {
+			withoutModules = append(withoutModules, dir)
+		}
+	}
+	return
+}
+
 func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 	if _, err := s.GetInstalledVersion(); err != nil {
 		return
 	}
 
 	var iniPaths []string
-
 	var pkgPaths []string
-	if bePath.IsFile("package.json") {
-		if bePath.IsDir("node_modules") {
-			pkgPaths = append(pkgPaths, "package.json")
-		} else {
-			iniPaths = append(iniPaths, ".")
-		}
-	}
-	if dirs, err := bePath.ListDirs("."); err == nil {
-		for _, dir := range dirs {
-			dir = strings.Replace(dir, "./", "", 1)
-			switch dir {
-			case ".git", ".svn", "CVS":
-				continue
-			}
-			dirPkg := dir + "/package.json"
-			if bePath.IsFile(dirPkg) {
-				if bePath.IsDir(dir + "/node_modules") {
-					pkgPaths = append(pkgPaths, dirPkg)
-				} else {
-					iniPaths = append(iniPaths, dir)
-				}
-			}
-		}
-	}
 
-	pm := "npm"
-	if s.YarnVersion() != "" {
-		pm = "yarn"
+	if dirs, err := s.ListPackageDirs("."); err == nil {
+		iniPaths = s.PackagesWithoutModules(dirs)
+		pkgPaths = s.PackageJsonsPresent(dirs)
 	}
 
 	packages := make(map[string]map[string]string)
@@ -456,6 +474,9 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 		if dir == "" {
 			dir, _ = bePath.Abs(pkg)
 			dir = bePath.Base(bePath.Dir(dir))
+		}
+		if beStrings.StringInStrings(dir, iniPaths...) {
+			continue
 		}
 		if contentBytes, err := bePath.ReadFile(pkg); err == nil {
 			content := string(contentBytes)
@@ -478,74 +499,81 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 		}
 	}
 
-	if len(iniPaths) > 0 {
-		for _, dir := range iniPaths {
-			dirName := dir
-			if dirName == "." {
-				absDir, _ := bePath.Abs(".")
-				dirName = bePath.Base(absDir)
-			}
-			cmdCategory := s.Name() + " " + system.SystemCategory + " " + dirName
-			commands = append(
-				commands,
-				&cli.Command{
-					Name:      pm + "-" + dirName + "--install",
-					Usage:     fmt.Sprintf("%v install node_modules for %v", pm, dirName),
-					UsageText: app.Name + " " + pm + "-" + dirName + "--install",
-					Category:  cmdCategory,
-					Action:    s.makePackageInstallFunc(pm, dir),
-				},
-			)
-		}
+	pms := []string{"npm"}
+	if s.YarnVersion() != "" {
+		pms = []string{"yarn"}
 	}
 
-	if len(packages) > 0 {
-		for dir, scripts := range packages {
-			cmdCategory := s.Name() + " " + system.SystemCategory + " " + dir
-
-			usageText := app.Name + " " + dir + " script [scripts...]"
-			var names []string
-			for n, _ := range scripts {
-				names = append(names, n)
-			}
-			if len(names) > 0 {
-				usageText = "\n\t" + usageText + "\n"
-				usageText += "\n\t# available script targets:"
-				sort.Strings(names)
-				for _, n := range names {
-					usageText += "\n\t" + app.Name + " " + dir + " " + n
+	for _, pm := range pms {
+		if len(iniPaths) > 0 {
+			for _, dir := range iniPaths {
+				dirName := dir
+				if dirName == "." {
+					absDir, _ := bePath.Abs(".")
+					dirName = bePath.Base(absDir)
 				}
-			}
-
-			commands = append(
-				commands,
-				&cli.Command{
-					Name:      pm + "-" + dir,
-					Usage:     fmt.Sprintf("run one or more %v scripts in sequence, aborting on first error", pm),
-					UsageText: usageText,
-					Category:  cmdCategory,
-					Action:    s.makePackageSystemFunc(pm, dir, scripts),
-				},
-			)
-
-			for name, script := range scripts {
-				cmdName := pm + "-" + dir + "-" + name
-				cmdUsage := fmt.Sprintf("run the %v %v (%v) script", dir, name, pm)
-				cmdUsageText := fmt.Sprintf(
-					"\n\t%v %v -- [%v options]\n\n\t# execute actual commands: %v\n\t%v %v",
-					app.Name, cmdName, name, script, app.Name, cmdName,
+				cmdCategory := s.Name() + " " + system.SystemCategory + " " + dirName
+				commands = append(
+					commands,
+					&cli.Command{
+						Name:      pm + "-" + dirName + "--install",
+						Usage:     fmt.Sprintf("%v install node_modules for %v", pm, dirName),
+						UsageText: app.Name + " " + pm + "-" + dirName + "--install",
+						Category:  cmdCategory,
+						Action:    s.makePackageInstallFunc(pm, dir),
+					},
 				)
+			}
+		}
+
+		if len(packages) > 0 {
+			for dir, scripts := range packages {
+				cmdCategory := s.Name() + " " + system.SystemCategory + " " + dir
+
+				usageText := app.Name + " " + dir + " script [scripts...]"
+				var names []string
+				for n, _ := range scripts {
+					names = append(names, n)
+				}
+				if len(names) > 0 {
+					usageText = "\n\t" + usageText + "\n"
+					usageText += "\n\t# available script targets:"
+					sort.Strings(names)
+					for _, n := range names {
+						usageText += "\n\t" + app.Name + " " + dir + " " + n
+					}
+				}
 
 				commands = append(
 					commands,
 					&cli.Command{
-						Name:      cmdName,
+						Name:      pm + "-" + dir,
+						Usage:     fmt.Sprintf("run one or more %v scripts in sequence, aborting on first error", pm),
+						UsageText: usageText,
 						Category:  cmdCategory,
-						Usage:     cmdUsage,
-						UsageText: cmdUsageText,
-						Action:    s.makePackageScriptFunc(pm, dir, name),
+						Action:    s.makePackageSystemFunc(pm, dir, scripts),
 					},
 				)
+
+				for name, script := range scripts {
+					cmdName := pm + "-" + dir + "-" + name
+					cmdUsage := fmt.Sprintf("run the %v %v (%v) script", dir, name, pm)
+					cmdUsageText := fmt.Sprintf(
+						"\n\t%v %v -- [%v options]\n\n\t# execute actual commands: %v\n\t%v %v",
+						app.Name, cmdName, name, script, app.Name, cmdName,
+					)
+
+					commands = append(
+						commands,
+						&cli.Command{
+							Name:      cmdName,
+							Category:  cmdCategory,
+							Usage:     cmdUsage,
+							UsageText: cmdUsageText,
+							Action:    s.makePackageScriptFunc(pm, dir, name),
+						},
+					)
+				}
 			}
 		}
 	}
