@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20220311211551-c5dc8924529f
+	github.com/go-enjin/be v0.0.0-20220312162652-fa553bcb7685
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.3.0
 )
@@ -26,7 +26,7 @@ require (
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/yookoala/realpath v1.0.0 // indirect
-	golang.org/x/crypto v0.0.0-20220307211146-efcb8507fb70 // indirect
+	golang.org/x/crypto v0.0.0-20220312131142-6068a2e6cfdc // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
