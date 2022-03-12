@@ -322,7 +322,14 @@ func (s *System) GetKnownSums() (sums map[string]string, err error) {
 }
 
 func (s *System) PostInitSystem(ctx *cli.Context) (err error) {
-	_, err = s.NpmBin("install", "--global", "yarn")
+	io.StdoutF("# npm install --global yarn\n")
+	if _, err = s.NpmBin("install", "--global", "yarn"); err == nil {
+		if bin := basepath.MakeEnjenvPath(s.Root, "lib/node_modules/yarn/bin/yarn"); bePath.IsFile(bin) {
+			io.StdoutF("# yarn version: %v\n", s.YarnVersion())
+		} else {
+			io.StderrF("# yarn not found, expected: %v\n", bin)
+		}
+	}
 	return
 }
 
