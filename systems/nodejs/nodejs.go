@@ -32,8 +32,8 @@ import (
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
-	system2 "github.com/go-enjin/enjenv/pkg/system"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
+	"github.com/go-enjin/enjenv/pkg/system"
 )
 
 var (
@@ -61,7 +61,7 @@ func init() {
 }
 
 type System struct {
-	system2.CSystem
+	system.CSystem
 }
 
 func New() (s *System) {
@@ -476,7 +476,7 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 				absDir, _ := bePath.Abs(".")
 				dirName = bePath.Base(absDir)
 			}
-			cmdCategory := s.Name() + " " + system2.SystemCategory + " " + dirName
+			cmdCategory := s.Name() + " " + system.SystemCategory + " " + dirName
 			commands = append(
 				commands,
 				&cli.Command{
@@ -492,7 +492,7 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 
 	if len(packages) > 0 {
 		for dir, scripts := range packages {
-			cmdCategory := s.Name() + " " + system2.SystemCategory + " " + dir
+			cmdCategory := s.Name() + " " + system.SystemCategory + " " + dir
 
 			usageText := app.Name + " " + dir + " script [scripts...]"
 			var names []string
