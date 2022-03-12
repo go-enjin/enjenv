@@ -217,10 +217,7 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 	env.Set("DISABLE_COLORS", "1")
 	env.Set("FORCE_COLOR", "0")
 
-	if binDir := basepath.MakeEnjenvPath(s.Root, "bin"); bePath.IsDir(binDir) {
-		pkgRun.AddPathToEnv(binDir)
-	}
-
+	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	return
 }
 
@@ -324,8 +321,8 @@ func (s *System) GetKnownSums() (sums map[string]string, err error) {
 func (s *System) PostInitSystem(ctx *cli.Context) (err error) {
 	io.StdoutF("# npm install --global yarn\n")
 	if _, err = s.NpmBin("install", "--global", "yarn"); err == nil {
-		if bin := basepath.MakeEnjenvPath(s.Root, "lib/node_modules/yarn/bin/yarn"); bePath.IsFile(bin) {
-			io.StdoutF("# yarn version: %v\n", s.YarnVersion())
+		if bin := basepath.MakeEnjenvPath(s.Root, "bin", "yarn"); bePath.IsFile(bin) {
+			io.StdoutF("# yarn version: %v, path: %v\n", s.YarnVersion(), bin)
 		} else {
 			io.StderrF("# yarn not found, expected: %v\n", bin)
 		}
@@ -334,6 +331,7 @@ func (s *System) PostInitSystem(ctx *cli.Context) (err error) {
 }
 
 func (s *System) NodeBin(name string, argv ...string) (status int, err error) {
+	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "node")
 	if !bePath.IsFile(bin) {
 		err = fmt.Errorf("node not present")
@@ -343,6 +341,7 @@ func (s *System) NodeBin(name string, argv ...string) (status int, err error) {
 }
 
 func (s *System) NpmBin(name string, argv ...string) (status int, err error) {
+	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "npm")
 	if !bePath.IsFile(bin) {
 		err = fmt.Errorf("npm not present")
@@ -362,6 +361,7 @@ func (s *System) NpmBin(name string, argv ...string) (status int, err error) {
 }
 
 func (s *System) NpxBin(name string, argv ...string) (status int, err error) {
+	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "npx")
 	if !bePath.IsFile(bin) {
 		err = fmt.Errorf("npx not present")
@@ -381,7 +381,8 @@ func (s *System) NpxBin(name string, argv ...string) (status int, err error) {
 }
 
 func (s *System) YarnBin(name string, argv ...string) (status int, err error) {
-	bin := basepath.MakeEnjenvPath(s.Root, "lib/node_modules/yarn/bin/yarn")
+	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
+	bin := basepath.MakeEnjenvPath(s.Root, "bin", "yarn")
 	if !bePath.IsFile(bin) {
 		err = fmt.Errorf("yarn not present")
 		return
@@ -390,7 +391,8 @@ func (s *System) YarnBin(name string, argv ...string) (status int, err error) {
 }
 
 func (s *System) YarnCmd(name string, argv ...string) (stdout, stderr string, status int, err error) {
-	bin := basepath.MakeEnjenvPath(s.Root, "lib/node_modules/yarn/bin/yarn")
+	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
+	bin := basepath.MakeEnjenvPath(s.Root, "bin", "yarn")
 	if !bePath.IsFile(bin) {
 		err = fmt.Errorf("yarn not present")
 		return

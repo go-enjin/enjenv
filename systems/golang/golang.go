@@ -170,9 +170,7 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 	}
 	env.Set("GOFLAGS", s.goFlagsWithModCacheRw())
 
-	if binDir := basepath.MakeEnjenvPath(s.Root, "go", "bin"); bePath.IsDir(binDir) {
-		pkgRun.AddPathToEnv(binDir)
-	}
+	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "go", "bin"))
 
 	return
 }
