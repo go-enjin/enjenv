@@ -46,7 +46,6 @@ func BinCheck() (absPath, buildBinHash string, err error) {
 		err = fmt.Errorf("enjenv sha256 error %v: %v\n", absPath, err)
 		return
 	}
-	_ = os.Setenv("ENJENV_BIN", absPath)
 	return
 }
 
