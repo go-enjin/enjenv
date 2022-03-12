@@ -17,10 +17,22 @@ package run
 import (
 	"fmt"
 
+	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/run"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 )
+
+func AddPathToEnv(path string) {
+	_ = env.SetPathRemoved(path)
+	_ = env.SetPathPrefixed(path)
+	return
+}
+
+func RemovePathFromEnv(path string) {
+	_ = env.SetPathRemoved(path)
+	return
+}
 
 func MakeExe(argv ...string) (err error) {
 	err = run.CheckExe("make", argv...)
