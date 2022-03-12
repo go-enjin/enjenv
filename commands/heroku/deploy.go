@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/cli/git"
 	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-enjin/enjenv/pkg/run"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -148,8 +149,12 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 		return
 	}
 
-	if _, err = git.Exe("clone", src, "."); err != nil {
-		err = fmt.Errorf("git clone %v . error: %v", src, err)
+	var status int
+	if status, err = git.Exe("clone", src, "."); err != nil {
+		err = fmt.Errorf("git clone %v error: %v", src, err)
+		return
+	} else if status != 0 {
+		err = fmt.Errorf("git clone %v exited with status: %d", src, status)
 		return
 	}
 
@@ -168,7 +173,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 			initArgs = append(initArgs, "--"+sysName, arg)
 		}
 		initArgs = append(initArgs, "--force")
-		if _, err = c.enjenvExe(initArgs...); err != nil {
+		if err = run.EnjenvExe(initArgs...); err != nil {
 			err = io.ErrorF("enjenv %v init error: %v", sysName, err)
 			return
 		}
@@ -177,7 +182,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	//	- run make "--release-targets"
 	targets := ctx.StringSlice("target")
 	io.NotifyF("deploy-slug", "making release targets: %v\n", targets)
-	if _, err = c.makeExe(targets...); err != nil {
+	if err = run.MakeExe(targets...); err != nil {
 		err = fmt.Errorf("make error: %v", err)
 		return
 	}
@@ -186,7 +191,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	//	- run enjenv clean --force
 	if basepath.EnjenvIsInPwd() {
 		io.StdoutF("# enjenv cleaning up\n")
-		if _, err = c.enjenvExe("clean", "--force"); err != nil {
+		if err = run.EnjenvExe("clean", "--force"); err != nil {
 			err = fmt.Errorf("enjenv clean error: %v", err)
 			return
 		}
@@ -199,7 +204,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 
 	//	- run enjenv finalize-slug --verbose --force
 	io.NotifyF("deploy-slug", "enjenv finalize-slug")
-	if _, err = c.enjenvExe("finalize-slug", "--verbose", "--force"); err != nil {
+	if err = run.EnjenvExe("finalize-slug", "--verbose", "--force"); err != nil {
 		err = fmt.Errorf("enjenv finalize-slug error: %v", err)
 		return
 	}
