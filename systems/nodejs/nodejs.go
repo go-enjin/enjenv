@@ -33,6 +33,7 @@ import (
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 	system2 "github.com/go-enjin/enjenv/pkg/system"
+	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 )
 
 var (
@@ -215,6 +216,11 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 	env.Set("NPM_DISABLE_COLORS", "1")
 	env.Set("DISABLE_COLORS", "1")
 	env.Set("FORCE_COLOR", "0")
+
+	if binDir := basepath.MakeEnjenvPath(s.Root, "bin"); bePath.IsDir(binDir) {
+		pkgRun.AddPathToEnv(binDir)
+	}
+
 	return
 }
 

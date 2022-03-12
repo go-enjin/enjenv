@@ -32,6 +32,7 @@ import (
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
+	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/system"
 )
 
@@ -168,6 +169,11 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 		env.Set(k, basepath.MakeEnjenvPath(v))
 	}
 	env.Set("GOFLAGS", s.goFlagsWithModCacheRw())
+
+	if binDir := basepath.MakeEnjenvPath(s.Root, "go", "bin"); bePath.IsDir(binDir) {
+		pkgRun.AddPathToEnv(binDir)
+	}
+
 	return
 }
 
