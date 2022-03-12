@@ -25,7 +25,7 @@ PREFIX ?= ${GOPATH}
 
 PWD = $(shell pwd)
 
-define _trimPath =
+define _trim_path =
 $(shell \
 if [ "${GOPATH}" != "" ]; then \
 	echo "${GOPATH};${PWD}"; \
@@ -60,7 +60,7 @@ clean:
 
 build: BUILD_VERSION=$(call _tag_ver)
 build: BUILD_RELEASE=$(call _rel_ver)
-build: TRIM_PATHS=$(call _trimPath)
+build: TRIM_PATHS=$(call _trim_path)
 build:
 	@echo "# building: ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"
 	@${CMD} go build -v \
