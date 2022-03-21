@@ -519,6 +519,53 @@ cases outside the Go-Enjin project.
 				return
 			},
 		},
+		&cli.Command{
+			Name:      "features",
+			Category:  GeneralCategory + " utilities",
+			Usage:     "query enjenv for which capabilities are present in the current environment",
+			UsageText: app.Name + " features [sub-commands]",
+			Subcommands: []*cli.Command{
+				{
+					Name:      "list",
+					Usage:     "list all available features, one per line",
+					UsageText: app.Name + " features list",
+					Action: func(ctx *cli.Context) (err error) {
+						for _, name := range ListFeatures(app.Commands) {
+							io.StdoutF("%v\n", name)
+						}
+						return
+					},
+				},
+				{
+					Name:      "has",
+					Usage:     "check if the given names are all present, errors on first missing",
+					UsageText: app.Name + " features has <name> [names...]",
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:  "not",
+							Usage: "invert the output, reports true if not present",
+						},
+					},
+					Action: func(ctx *cli.Context) (err error) {
+						not := ctx.Bool("not")
+						for _, arg := range ctx.Args().Slice() {
+							if not {
+								if HasFeature(arg, app.Commands) {
+									err = fmt.Errorf("%v is present", arg)
+									return
+								}
+								continue
+							}
+							if !HasFeature(arg, app.Commands) {
+								err = fmt.Errorf("%v not present", arg)
+								return
+							}
+						}
+						return
+					},
+				},
+			},
+		},
 	)
 
 	app.Commands = append(app.Commands, commands...)
