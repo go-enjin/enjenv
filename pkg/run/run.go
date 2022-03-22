@@ -47,3 +47,12 @@ func EnjenvExe(argv ...string) (err error) {
 	}
 	return
 }
+
+func EnjenvCmd(argv ...string) (o, e string, err error) {
+	if enjenvBin := basepath.WhichBin(); enjenvBin != "" {
+		o, e, err = run.CheckCmd(enjenvBin, argv...)
+	} else {
+		err = fmt.Errorf("enjenv not found")
+	}
+	return
+}
