@@ -131,13 +131,23 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 					Name:      "go-audit",
 					Usage:     "wrapper for 'go list mod -json -deps | nancy sleuth [nancy arguments]'",
 					UsageText: app.Name + " go-audit -- [nancy arguments]",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:  "tags",
+							Usage: "comma separated list of build -tags to include",
+						},
+					},
 					Action: func(ctx *cli.Context) (err error) {
 						goBin := basepath.MakeEnjenvPath(s.Root, "bin", "go")
+						goArgv := []string{"list", "-json", "-deps"}
+						if v := ctx.String("tags"); v != "" {
+							goArgv = append(goArgv, "-tags", v)
+						}
 						nancyBin := basepath.MakeEnjenvPath(s.Root, "bin", "nancy")
-						argv := append([]string{"sleuth"}, ctx.Args().Slice()...)
+						nancyArgv := append([]string{"sleuth"}, ctx.Args().Slice()...)
 						_, err = run.ExePipe(
-							run.NewPipe(goBin, "list", "-json", "-deps"),
-							run.NewPipe(nancyBin, argv...),
+							run.NewPipe(goBin, goArgv...),
+							run.NewPipe(nancyBin, nancyArgv...),
 						)
 						return
 					},
