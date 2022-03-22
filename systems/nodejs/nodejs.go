@@ -568,9 +568,9 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 						},
 					},
 					&cli.Command{
-						Name:      dir + "-" + pm + "-audit-report",
+						Name:      dir + "-audit-report",
 						Usage:     fmt.Sprintf("run %v audit (from %v) and report the results", pm, dir),
-						UsageText: app.Name + " " + dir + "-" + pm + "-audit-report",
+						UsageText: app.Name + " " + dir + "-audit-report",
 						Category:  cmdCategory,
 						Action: func(ctx *cli.Context) (err error) {
 							if err = s.Prepare(ctx); err != nil {
