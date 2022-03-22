@@ -553,6 +553,45 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 						Category:  cmdCategory,
 						Action:    s.makePackageSystemFunc(pm, dir, scripts),
 					},
+					&cli.Command{
+						Name:      dir + "-" + pm,
+						Usage:     fmt.Sprintf("run %v (from %v)", pm, dir),
+						UsageText: app.Name + " " + dir + "-" + pm + " -- [yarn arguments]",
+						Category:  cmdCategory,
+						Action: func(ctx *cli.Context) (err error) {
+							if err = s.Prepare(ctx); err != nil {
+								return
+							}
+							argv := ctx.Args().Slice()
+							err = s.runPackageCommand("yarn", dir, argv[0], argv[1:]...)
+							return
+						},
+					},
+					&cli.Command{
+						Name:      dir + "-" + pm + "-audit-report",
+						Usage:     fmt.Sprintf("run %v audit (from %v) and report the results", pm, dir),
+						UsageText: app.Name + " " + dir + "-" + pm + "-audit-report",
+						Category:  cmdCategory,
+						Action: func(ctx *cli.Context) (err error) {
+							if err = s.Prepare(ctx); err != nil {
+								return
+							}
+							o, _, _ := pkgRun.EnjenvCmd(dir+"-"+pm, "audit")
+							msg := ""
+							for _, line := range strings.Split(o, "\n") {
+								if strings.Contains(line, "Packages audited") {
+									msg += strings.TrimSpace(line)
+								} else if strings.Contains(line, "Severity:") {
+									if msg != "" {
+										msg += "; "
+									}
+									msg += strings.TrimSpace(line)
+								}
+							}
+							io.NotifyF(dir+"-"+pm+"-audit", msg)
+							return
+						},
+					},
 				)
 
 				for name, script := range scripts {
@@ -618,6 +657,27 @@ func (s *System) makePackageScriptFunc(p, d, n string) func(ctx *cli.Context) (e
 	}
 }
 
+func (s *System) runPackageCommand(pm, dir, name string, argv ...string) (err error) {
+	wd := bePath.Pwd()
+	switch dir {
+	case "npm", "yarn":
+	default:
+		_ = os.Chdir(dir)
+	}
+	if pm == "yarn" {
+		_, err = s.YarnBin(name, argv...)
+	} else {
+		argv = append([]string{name}, argv...)
+		_, err = s.NpmBin("run", argv...)
+	}
+	switch dir {
+	case "npm", "yarn":
+	default:
+		_ = os.Chdir(wd)
+	}
+	return
+}
+
 func (s *System) runPackageScript(pm, dir, name string, argv ...string) (err error) {
 	wd := bePath.Pwd()
 	switch dir {
@@ -641,10 +701,6 @@ func (s *System) runPackageScript(pm, dir, name string, argv ...string) (err err
 }
 
 func (s *System) makePackageSystemFunc(p, d string, scripts map[string]string) func(ctx *cli.Context) (err error) {
-	// wtf go lol, when embedding these funcs within a loop making the *cli.Command instances,
-	// go uses the same function address each time, thus though there have been multiple commands
-	// created, they all amount to invoking just the last one added regardless of which one was
-	// actually invoked, the solution is to "make" the return func middleware way used in net/http
 	return func(ctx *cli.Context) (err error) {
 		if err = s.Prepare(ctx); err != nil {
 			return
