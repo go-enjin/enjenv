@@ -167,7 +167,9 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 						},
 					},
 					Action: func(ctx *cli.Context) (err error) {
-						_ = io.SetupSlackIfPresent(ctx)
+						if err = s.Prepare(ctx); err != nil {
+							return
+						}
 						var o, e string
 						argv := []string{"go-audit"}
 						if tags := ctx.String("tags"); tags != "" {
