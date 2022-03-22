@@ -15,6 +15,9 @@
 package golang
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 
@@ -22,6 +25,7 @@ import (
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
+	eRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/system"
 )
 
@@ -149,6 +153,42 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 							run.NewPipe(goBin, goArgv...),
 							run.NewPipe(nancyBin, nancyArgv...),
 						)
+						return
+					},
+				},
+				&cli.Command{
+					Name:      "go-audit-report",
+					Usage:     "wrapper for go-audit, reports simple text to stdout and notifies slack if present",
+					UsageText: app.Name + " go-audit-report",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:  "tags",
+							Usage: "comma separated list of build -tags to include",
+						},
+					},
+					Action: func(ctx *cli.Context) (err error) {
+						_ = io.SetupSlackIfPresent(ctx)
+						var o, e string
+						argv := []string{"go-audit"}
+						if tags := ctx.String("tags"); tags != "" {
+							argv = append(argv, "--tags", tags)
+						}
+						argv = append(argv, "--", "--quiet", "--no-color", "--output", "csv", "--skip-update-check")
+						o, e, err = eRun.EnjenvCmd(argv...)
+						if err != nil {
+							io.StderrF("%v\n", e)
+							err = fmt.Errorf("go-audit error: %v", err)
+							return
+						}
+						lines := strings.Split(o, "\n")
+						ll := len(lines)
+						if ll > 0 {
+							values := strings.Split(lines[ll-2], ",")
+							io.NotifyF("go-audit report", "audited: %v, vulnerable: %v, ignored: %v\n", values[0], values[1], values[2])
+						} else {
+							io.StderrF("%v\n", e)
+							err = fmt.Errorf("go-audit error: parse output error")
+						}
 						return
 					},
 				},
