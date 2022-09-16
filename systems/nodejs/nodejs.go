@@ -44,7 +44,7 @@ var (
 )
 
 var (
-	DefaultVersion = "16.14.0"
+	DefaultVersion = "16.17.0"
 )
 
 var (
