@@ -22,8 +22,9 @@ import (
 	"sort"
 	"strings"
 
-	beStrings "github.com/go-enjin/be/pkg/strings"
 	"github.com/urfave/cli/v2"
+
+	beStrings "github.com/go-enjin/be/pkg/strings"
 
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/run"
@@ -63,6 +64,9 @@ func init() {
 
 type System struct {
 	system.CSystem
+
+	OS   string
+	Arch string
 }
 
 func New() (s *System) {
@@ -77,7 +81,9 @@ func (s *System) Init(this interface{}) {
 	s.TagName = Name
 	s.Version = DefaultVersion
 	s.Url = "https://nodejs.org/dist"
-	s.Root = fmt.Sprintf("%v/node-v%v-%v-x64", s.TagName, s.Version, runtime.GOOS)
+	s.OS = CheckOS(runtime.GOOS)
+	s.Arch = CheckArch(runtime.GOARCH)
+	s.Root = fmt.Sprintf("%v/node-v%v-%v-%v", s.TagName, s.Version, s.OS, s.Arch)
 	s.CSystem.Root = s.Root
 	s.CSystem.TagName = s.TagName
 	s.CSystem.Ctx = s.Ctx
@@ -191,10 +197,10 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 		return
 	}
 
-	s.Root = fmt.Sprintf("%v/node-v%v-%v-x64", s.TagName, s.Version, runtime.GOOS)
+	s.Root = fmt.Sprintf("%v/node-v%v-%v-%v", s.TagName, s.Version, s.OS, s.Arch)
 	s.CSystem.Root = s.Root
 
-	s.TarGz = fmt.Sprintf("node-v%v-%v-x64.tar.gz", s.Version, runtime.GOOS)
+	s.TarGz = fmt.Sprintf("node-v%v-%v-%v.tar.gz", s.Version, s.OS, s.Arch)
 	s.TarGzPath = basepath.MakeEnjenvPath(s.TagName, s.TarGz)
 	s.TarGzUrl = fmt.Sprintf("%v/v%v/%v", s.Url, s.Version, s.TarGz)
 	/*
