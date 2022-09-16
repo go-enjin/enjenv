@@ -24,6 +24,10 @@ BIN_NAME ?= enjenv
 PREFIX ?= ${GOPATH}
 
 PWD = $(shell pwd)
+SHELL = /bin/bash
+
+BUILD_ALL_GOOS = linux darwin
+BUILD_ALL_GOARCH = amd64 arm64
 
 define _trim_path =
 $(shell \
@@ -52,6 +56,34 @@ $(shell \
 )
 endef
 
+# 1: bin-name, 2: goos, 3: goarch
+define _build_target =
+	echo "# building (release): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"; \
+	${CMD} GOOS="$(2)" GOARCH="$(3)" go build -v \
+		-o "$(1)" \
+		-ldflags="-w -s -buildid='' -X 'main.BuildVersion=${BUILD_VERSION}' -X 'main.BuildRelease=${BUILD_RELEASE}'" \
+		-gcflags="-trimpath='${TRIM_PATHS}'" \
+		-asmflags="-trimpath='${TRIM_PATHS}'" \
+		-trimpath \
+		./cmd/enjenv
+endef
+
+define _build_debug =
+	@echo "# building (debug): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"
+	@${CMD} GOOS="$(2)" GOARCH="$(3)" go build -v \
+		-o "$(1)" \
+		-gcflags="all=-N -l" \
+		-ldflags="\
+-buildid='' \
+-X 'main.BuildVersion=${BUILD_VERSION}' \
+-X 'main.BuildRelease=${BUILD_RELEASE}' \
+" \
+		-gcflags="-trimpath='${TRIM_PATHS}'" \
+		-asmflags="-trimpath='${TRIM_PATHS}'" \
+		-trimpath \
+		./cmd/enjenv
+endef
+
 .PHONY: all help clean build install local unlocal tidy
 
 help:
@@ -59,19 +91,19 @@ help:
 
 clean:
 	@if [ -f "${BIN_NAME}" ]; then rm -fv "${BIN_NAME}"; fi
+	@rm -fv ${BIN_NAME}.*.*
 
 build: BUILD_VERSION=$(call _tag_ver)
 build: BUILD_RELEASE=$(call _rel_ver)
 build: TRIM_PATHS=$(call _trim_path)
 build:
-	@echo "# building: ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"
-	@${CMD} go build -v \
-		-o "${BIN_NAME}" \
-		-ldflags="-w -s -buildid='' -X 'main.BuildVersion=${BUILD_VERSION}' -X 'main.BuildRelease=${BUILD_RELEASE}'" \
-		-gcflags="-trimpath='${TRIM_PATHS}'" \
-		-asmflags="-trimpath='${TRIM_PATHS}'" \
-		-trimpath \
-		./cmd/enjenv
+	@$(call _build_target,"${BIN_NAME}",`go env GOOS`,`go env GOARCH`)
+
+debug: BUILD_VERSION=$(call _tag_ver)
+debug: BUILD_RELEASE=$(call _rel_ver)
+debug: TRIM_PATHS=$(call _trim_path)
+debug:
+	@$(call _build_debug,"${BIN_NAME}",`go env GOOS`,`go env GOARCH`)
 
 install:
 	@if [ ! -f enjenv ]; then \
@@ -99,3 +131,13 @@ tidy:
 be-update: export GOPROXY=direct
 be-update:
 	@go get -tags all -u github.com/go-enjin/be
+
+build-all: BUILD_VERSION=$(call _tag_ver)
+build-all: BUILD_RELEASE=$(call _rel_ver)
+build-all: TRIM_PATHS=$(call _trim_path)
+build-all:
+	@for THIS_OS in ${BUILD_ALL_GOOS}; do \
+		for THIS_ARCH in ${BUILD_ALL_GOARCH}; do \
+			$(call _build_target,"${BIN_NAME}.$${THIS_OS}.$${THIS_ARCH}",$${THIS_OS},$${THIS_ARCH}); \
+		done; \
+	done
