@@ -94,97 +94,6 @@ func (s *System) GetDefaultVersion() (version string) {
 	return DefaultVersion
 }
 
-func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
-	commands = []*cli.Command{
-		&cli.Command{
-			HideHelpCommand: true,
-			Name:            "node",
-			Usage:           "wrapper for local bin/node",
-			UsageText:       app.Name + " node -- [node arguments]",
-			Action: func(ctx *cli.Context) (err error) {
-				if err = s.Prepare(ctx); err != nil {
-					return
-				}
-				argv := ctx.Args().Slice()
-				if len(argv) > 0 {
-					name := argv[0]
-					args := argv[1:]
-					_, err = s.NodeBin(name, args...)
-					return
-				}
-				_, err = s.NodeBin("--help")
-				return
-			},
-		},
-		&cli.Command{
-			HideHelpCommand: true,
-			Name:            "npm",
-			Usage:           "wrapper for local bin/npm",
-			UsageText:       app.Name + " npm -- [npm arguments]",
-			Action: func(ctx *cli.Context) (err error) {
-				if err = s.Prepare(ctx); err != nil {
-					return
-				}
-				argv := ctx.Args().Slice()
-				if len(argv) > 0 {
-					name := argv[0]
-					args := argv[1:]
-					_, err = s.NpmBin(name, args...)
-					return
-				}
-				_, err = s.NpmBin("--help")
-				return
-			},
-		},
-		&cli.Command{
-			HideHelpCommand: true,
-			Name:            "npx",
-			Usage:           "wrapper for local bin/npx",
-			UsageText:       app.Name + " npx -- [npx arguments]",
-			Action: func(ctx *cli.Context) (err error) {
-				if err = s.Prepare(ctx); err != nil {
-					return
-				}
-				argv := ctx.Args().Slice()
-				if len(argv) > 0 {
-					name := argv[0]
-					args := argv[1:]
-					_, err = s.NpxBin(name, args...)
-					return
-				}
-				_, err = s.NpxBin("--help")
-				return
-			},
-		},
-		&cli.Command{
-			HideHelpCommand: true,
-			Name:            "yarn",
-			Usage:           "wrapper for local yarn",
-			UsageText:       app.Name + " yarn -- [yarn arguments]",
-			Action: func(ctx *cli.Context) (err error) {
-				if err = s.Prepare(ctx); err != nil {
-					return
-				}
-				argv := ctx.Args().Slice()
-				if len(argv) > 0 {
-					name := argv[0]
-					args := argv[1:]
-					_, err = s.YarnBin(name, args...)
-					return
-				}
-				_, err = s.YarnBin("--help")
-				return
-			},
-		},
-	}
-	if scripts := s.MakeScriptCommands(app); scripts != nil {
-		for _, script := range scripts {
-			commands = append(commands, script)
-		}
-	}
-	return
-}
-
 func (s *System) Prepare(ctx *cli.Context) (err error) {
 	_ = io.SetupCustomIndent(ctx)
 
@@ -385,6 +294,16 @@ func (s *System) NpxBin(name string, argv ...string) (status int, err error) {
 		name,
 	}
 	return run.Exe(bin, append(args, argv...)...)
+}
+
+func (s *System) HerokuBin(name string, argv ...string) (status int, err error) {
+	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
+	bin := basepath.MakeEnjenvPath(s.Root, "bin", "heroku")
+	if !bePath.IsFile(bin) {
+		err = fmt.Errorf("heroku not present")
+		return
+	}
+	return run.Exe(bin, append([]string{name}, argv...)...)
 }
 
 func (s *System) YarnBin(name string, argv ...string) (status int, err error) {
