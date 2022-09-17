@@ -28,6 +28,7 @@ import (
 	"github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
 	"github.com/go-enjin/enjenv/systems/golang"
+	"github.com/go-enjin/enjenv/systems/ngrok"
 	"github.com/go-enjin/enjenv/systems/nodejs"
 )
 
@@ -76,6 +77,7 @@ func main() {
 		AddCommand(herokuCmd.New()).
 		AddSystem(golang.New()).
 		AddSystem(nodejs.New()).
+		AddSystem(ngrok.New()).
 		Setup(app); err == nil {
 		err = app.Run(os.Args)
 		system.Manager().Shutdown()
