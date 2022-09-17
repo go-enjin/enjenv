@@ -116,8 +116,8 @@ github.com/go-curses/cdk v0.5.12/go.mod h1:XHzib+vIgVRsBvpK3zeGbjxSXr3VNyqtfS+5o
 github.com/go-curses/ctk v0.5.3/go.mod h1:bxHwXcbdrz4RZ297TjeePPtboazk89vLYMvKXfrl2B8=
 github.com/go-curses/term v1.2.2-gocurses.1/go.mod h1:ZuwRe9U+iLY2qTuhzg/kg0Pc9bZdfcJCtfHrjGvZtVA=
 github.com/go-curses/terminfo v1.0.0/go.mod h1:3cAGarEfP6wdhHYmUI2xAx14cu+cfIIQYXehy2q/zUg=
-github.com/go-enjin/be v0.0.0-20220911185245-2827b461fdbf h1:TGspfyguTUzFstJ8clTqiydcxQY/oZ2RqP06PLOn/uc=
-github.com/go-enjin/be v0.0.0-20220911185245-2827b461fdbf/go.mod h1:m3dGInq79GHOh8u+4DCg+dzgxALD8/cwUfzhoB5mx4I=
+github.com/go-enjin/be v0.0.0-20220917153636-c0ff0e66d7d5 h1:gL6qAiiUlEAnjqIQSx5r7b+NuCPsNbpjlB8/l31aheE=
+github.com/go-enjin/be v0.0.0-20220917153636-c0ff0e66d7d5/go.mod h1:m3dGInq79GHOh8u+4DCg+dzgxALD8/cwUfzhoB5mx4I=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200222043503-6f7a984d4dc4/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
