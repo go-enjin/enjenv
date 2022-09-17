@@ -261,10 +261,13 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 	if sums, err = s.Self().GetKnownSums(); err != nil {
 		return
 	}
+	hasSums := len(sums) > 0
 
-	if _, ok := sums[s.TarGz]; !ok {
-		err = fmt.Errorf("%v shasum not found", s.TarGz)
-		return
+	if hasSums {
+		if _, ok := sums[s.TarGz]; !ok {
+			err = fmt.Errorf("%v shasum not found", s.TarGz)
+			return
+		}
 	}
 
 	if useFile != "" && bePath.IsFile(useFile) {
@@ -282,9 +285,11 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 		}
 	}
 
-	io.StdoutF("# checking shasum: %v\n", s.TarGzPath)
-	if err = sha.VerifyFile64(sums[s.TarGz], s.TarGzPath); err != nil {
-		return
+	if hasSums {
+		io.StdoutF("# checking shasum: %v\n", s.TarGzPath)
+		if err = sha.VerifyFile64(sums[s.TarGz], s.TarGzPath); err != nil {
+			return
+		}
 	}
 
 	if bePath.IsDir(sRootPath) {
