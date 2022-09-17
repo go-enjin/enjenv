@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/tar"
+	"github.com/go-enjin/be/pkg/cli/zip"
 	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/net"
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -70,6 +71,7 @@ type CSystem struct {
 	TarGz     string
 	TarGzPath string
 	TarGzUrl  string
+	TarUnzip  bool
 }
 
 func (s *CSystem) Init(this interface{}) {
@@ -290,8 +292,14 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 	} else {
 		sRootPath = basepath.MakeEnjenvPath(s.TagName)
 		io.StdoutF("# extracting to: %v\n", sRootPath)
-		if _, err = tar.UnTarGz(s.TarGzPath, sRootPath); err != nil {
-			return
+		if s.TarUnzip {
+			if _, err = zip.UnZip(s.TarGzPath, sRootPath); err != nil {
+				return
+			}
+		} else {
+			if _, err = tar.UnTarGz(s.TarGzPath, sRootPath); err != nil {
+				return
+			}
 		}
 	}
 
