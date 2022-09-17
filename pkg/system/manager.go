@@ -295,10 +295,13 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 				Action: func(ctx *cli.Context) (err error) {
 					// activate
 					content := fmt.Sprintf("export ENJENV_PATH=\"%v\"\n", basepath.EnjenvPath)
+					systems := make([]System, 0)
 					for _, s := range m.systems {
-						if err = s.Self().Prepare(ctx); err != nil {
-							return
+						if e := s.Self().Prepare(ctx); e != nil {
+							io.ErrorF("error preparing %v: %v\n", s.Self().Name(), e)
+							continue
 						}
+						systems = append(systems, s)
 						if v, e := s.Self().ExportString(ctx); e == nil {
 							content += v
 						}
@@ -308,13 +311,14 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 					content += fmt.Sprintf("export PATH=\"%v\"\n", strings.Join(env.GetPaths(), ":"))
 					script := basepath.MakeEnjenvPath("activate")
 					if err = os.WriteFile(script, []byte(content), 0660); err != nil {
+						err = fmt.Errorf("error writing %v: %v", script, err)
 						return
 					}
 					io.StdoutF("# wrote: %v\n", script)
 
 					// deactivate
 					content = fmt.Sprintf("unset ENJENV_PATH;\n")
-					for _, s := range m.systems {
+					for _, s := range systems {
 						if v, e := s.Self().UnExportString(ctx); e == nil {
 							content += v
 						}
@@ -324,6 +328,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 					content += fmt.Sprintf("export PATH=\"%v\"\n", strings.Join(env.GetPaths(), ":"))
 					script = basepath.MakeEnjenvPath("deactivate")
 					if err = os.WriteFile(script, []byte(content), 0660); err != nil {
+						err = fmt.Errorf("error writing %v: %v", script, err)
 						return
 					}
 					io.StdoutF("# wrote: %v\n", script)
@@ -331,6 +336,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 					// bash_completion
 					script = basepath.MakeEnjenvPath("bash_completion")
 					if err = os.WriteFile(script, []byte(BashCompletionScript), 0660); err != nil {
+						err = fmt.Errorf("error writing %v: %v", script, err)
 						return
 					}
 					io.StdoutF("# wrote: %v\n", script)
