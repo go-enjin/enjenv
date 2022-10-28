@@ -23,6 +23,7 @@ import (
 	"github.com/go-enjin/be/pkg/log"
 	bePath "github.com/go-enjin/be/pkg/path"
 
+	"github.com/go-enjin/enjenv/commands/enjin"
 	herokuCmd "github.com/go-enjin/enjenv/commands/heroku"
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -74,6 +75,7 @@ func main() {
 	}
 	var err error
 	if err = system.Manager().
+		AddCommand(enjin.New()).
 		AddCommand(herokuCmd.New()).
 		AddSystem(golang.New()).
 		AddSystem(nodejs.New()).
