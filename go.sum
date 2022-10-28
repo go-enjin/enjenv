@@ -95,8 +95,8 @@ github.com/go-curses/term v1.2.2-gocurses.1 h1:wUi7qtaZQO9q7+YpX8nGBDoFJd7aWZeo2
 github.com/go-curses/term v1.2.2-gocurses.1/go.mod h1:ZuwRe9U+iLY2qTuhzg/kg0Pc9bZdfcJCtfHrjGvZtVA=
 github.com/go-curses/terminfo v1.0.0 h1:vU1G+oYsvSwmywZe6ZsoRQ8a8XDrzlM3rPeejUmpzc4=
 github.com/go-curses/terminfo v1.0.0/go.mod h1:3cAGarEfP6wdhHYmUI2xAx14cu+cfIIQYXehy2q/zUg=
-github.com/go-enjin/be v0.0.0-20221028183807-9521ec2f0170 h1:jPAVbzjIFoKAKJrwTTWJtCMgGDium7RQgFl2u/+1yV4=
-github.com/go-enjin/be v0.0.0-20221028183807-9521ec2f0170/go.mod h1:CvhBc3wFaOfGZM2RC1++sdQSF8qy1Z7O23HnEd84H8w=
+github.com/go-enjin/be v0.0.0-20221028185410-ddd575cd5337 h1:EwSDeA9dKRJDfPavsb4PPaa09vhb4kWMNFwW2kD5Pis=
+github.com/go-enjin/be v0.0.0-20221028185410-ddd575cd5337/go.mod h1:CvhBc3wFaOfGZM2RC1++sdQSF8qy1Z7O23HnEd84H8w=
 github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27 h1:aDbd1N1mD8V225rsaYCd7kbt7WFVaDCWwVPpEZscAs0=
 github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27/go.mod h1:drs2gdlsfKSimrkS5j//UTGEMEWcLyX9M3frtW/dP+k=
 github.com/go-kit/log v0.1.0/go.mod h1:zbhenjAZHb184qTLMA9ZjW7ThYL0H2mk7Q6pNt4vbaY=
