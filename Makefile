@@ -126,11 +126,11 @@ unlocal:
 	@go mod edit -dropreplace="github.com/go-enjin/be"
 
 tidy:
-	@go mod tidy -go=1.16 && go mod tidy -go=1.17
+	@go mod tidy
 
 be-update: export GOPROXY=direct
 be-update:
-	@go get -tags all -u github.com/go-enjin/be
+	@go get github.com/go-enjin/be@latest
 
 build-all: BUILD_VERSION=$(call _tag_ver)
 build-all: BUILD_RELEASE=$(call _rel_ver)
