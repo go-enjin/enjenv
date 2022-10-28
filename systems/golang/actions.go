@@ -93,7 +93,7 @@ func (s *System) ActionGoBuild(ctx *cli.Context) (err error) {
 	if moreGcFlags := ctx.String("gcflags"); moreGcFlags != "" {
 		gcFlags = append(gcFlags, moreGcFlags)
 	}
-	if moreLdFlags := ctx.String("ldFlags"); moreLdFlags != "" {
+	if moreLdFlags := ctx.String("ldflags"); moreLdFlags != "" {
 		ldFlags = append(ldFlags, moreLdFlags)
 	}
 
