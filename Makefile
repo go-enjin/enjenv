@@ -65,7 +65,7 @@ define _build_target =
 		-gcflags="-trimpath='${TRIM_PATHS}'" \
 		-asmflags="-trimpath='${TRIM_PATHS}'" \
 		-trimpath \
-		./cmd/enjenv
+		./cmd/enjenv || exit 1
 endef
 
 define _build_debug =
