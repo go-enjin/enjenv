@@ -119,6 +119,9 @@ func (s *System) ActionGoBuild(ctx *cli.Context) (err error) {
 
 		ldFlags = append(ldFlags, "-buildid=''", "-w", "-s")
 		extra = append([]string{"-trimpath"}, extra...)
+	} else {
+		io.StdoutF("# optimizing for debug build\n")
+		gcFlags = append(gcFlags, `-N -l`)
 	}
 
 	if len(asmFlags) > 0 {
