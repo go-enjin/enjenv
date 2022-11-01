@@ -15,12 +15,8 @@
 package enjin
 
 import (
-	"strings"
-
-	"github.com/go-enjin/be"
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
 )
 
@@ -50,39 +46,4 @@ func (c *Command) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 		c.makeBePkgListCommand(app.Name),
 	)
 	return
-}
-
-func (c *Command) makeBePkgListCommand(appNamePrefix string) *cli.Command {
-	return &cli.Command{
-		Name:      "be-pkg-list",
-		Category:  c.TagName,
-		Usage:     "print all github.com/go-enjin/be packages",
-		UsageText: appNamePrefix + " be-pkg-list [-l]",
-		Description: `
-Print a space-separated list of all Go-Enjin package names, useful for
-generating translation locales using the github.com/go-enjin/golang-org-x-text
-version of gotext (which supports go modules).
-`,
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:    "list",
-				Usage:   "output one line per pkg name",
-				Aliases: []string{"l"},
-			},
-		},
-		Action: func(ctx *cli.Context) (err error) {
-			if err = c.Prepare(ctx); err != nil {
-				return
-			}
-			list := be.GoEnjinPackageList()
-			if !ctx.Bool("list") {
-				io.StdoutF("%v\n", strings.Join(list, " "))
-			} else {
-				for _, pkg := range list {
-					io.StdoutF("%v\n", pkg)
-				}
-			}
-			return
-		},
-	}
 }
