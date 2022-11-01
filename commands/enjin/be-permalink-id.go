@@ -15,36 +15,31 @@
 package enjin
 
 import (
+	"github.com/gofrs/uuid"
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/enjenv/pkg/system"
+	"github.com/go-enjin/enjenv/pkg/io"
 )
 
-const (
-	Name = "enjin-cli"
-)
-
-type Command struct {
-	system.CCommand
-}
-
-func New() (s *Command) {
-	s = new(Command)
-	s.Init(s)
-	return
-}
-
-func (c *Command) Init(this interface{}) {
-	c.CCommand.Init(this)
-	c.TagName = Name
-	return
-}
-
-func (c *Command) ExtraCommands(app *cli.App) (commands []*cli.Command) {
-	commands = append(
-		commands,
-		c.makeBePkgListCommand(app.Name),
-		c.makeBePermalinkIdCommand(app.Name),
-	)
-	return
+func (c *Command) makeBePermalinkIdCommand(appNamePrefix string) *cli.Command {
+	return &cli.Command{
+		Name:      "be-permalink-id",
+		Category:  c.TagName,
+		Usage:     "Generate a new page permalink id",
+		UsageText: appNamePrefix + " be-permalink-id",
+		Description: `
+Prints a new permalink id.
+`,
+		Action: func(ctx *cli.Context) (err error) {
+			if err = c.Prepare(ctx); err != nil {
+				return
+			}
+			var id uuid.UUID
+			if id, err = uuid.NewV4(); err != nil {
+				return
+			}
+			io.StdoutF("%v\n", id)
+			return
+		},
+	}
 }
