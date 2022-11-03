@@ -22,15 +22,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func tagInTags(tag language.Tag, tags ...language.Tag) (found bool) {
-	for _, check := range tags {
-		if found = language.Compare(tag, check); found {
-			return
-		}
-	}
-	return
-}
-
 func parseLangOutArgv(ctx *cli.Context) (outDir string, tags []language.Tag, err error) {
 	if languageTags := ctx.String("lang"); languageTags == "" {
 		err = fmt.Errorf("error: --lang argument requires at least one locale tag\n")
