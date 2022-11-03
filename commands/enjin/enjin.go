@@ -45,6 +45,9 @@ func (c *Command) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 		commands,
 		c.makeBePkgListCommand(app.Name),
 		c.makeBePermalinkIdCommand(app.Name),
+		c.makeBeMergeLocalesCommand(app.Name),
+		c.makeBeUpdateLocalesCommand(app.Name),
+		c.makeBeExtractLocalesCommand(app.Name),
 	)
 	return
 }
