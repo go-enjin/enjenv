@@ -5,6 +5,9 @@ go 1.19
 require (
 	github.com/fvbommel/sortorder v1.0.2
 	github.com/go-enjin/be v0.0.0-20221028185410-ddd575cd5337
+	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
+	github.com/goccy/go-json v0.9.11
+	github.com/gofrs/uuid v4.3.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
 	github.com/urfave/cli/v2 v2.19.2
 )
@@ -45,13 +48,10 @@ require (
 	github.com/go-curses/ctk v0.5.3 // indirect
 	github.com/go-curses/term v1.2.2-gocurses.1 // indirect
 	github.com/go-curses/terminfo v1.0.0 // indirect
-	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
-	github.com/goccy/go-json v0.9.11 // indirect
-	github.com/gofrs/uuid v4.3.0+incompatible // indirect
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
