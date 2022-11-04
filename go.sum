@@ -95,8 +95,8 @@ github.com/go-curses/term v1.2.2-gocurses.1 h1:wUi7qtaZQO9q7+YpX8nGBDoFJd7aWZeo2
 github.com/go-curses/term v1.2.2-gocurses.1/go.mod h1:ZuwRe9U+iLY2qTuhzg/kg0Pc9bZdfcJCtfHrjGvZtVA=
 github.com/go-curses/terminfo v1.0.0 h1:vU1G+oYsvSwmywZe6ZsoRQ8a8XDrzlM3rPeejUmpzc4=
 github.com/go-curses/terminfo v1.0.0/go.mod h1:3cAGarEfP6wdhHYmUI2xAx14cu+cfIIQYXehy2q/zUg=
-github.com/go-enjin/be v0.0.0-20221104163209-511775459362 h1:8O47S3lCPc6uWIzZajWuKpYSIroRlAEg7B5ZxZ1ACUc=
-github.com/go-enjin/be v0.0.0-20221104163209-511775459362/go.mod h1:JPB3iN6mNwKsIp6l51v8ahyiuGzXBGMKuEmo83nuaCY=
+github.com/go-enjin/be v0.0.0-20221104195607-e4bcfb119307 h1:KpTIIVNj8VaUUvq1MjagbFLU+7rUfge7Ti7kRnqGHWs=
+github.com/go-enjin/be v0.0.0-20221104195607-e4bcfb119307/go.mod h1:JPB3iN6mNwKsIp6l51v8ahyiuGzXBGMKuEmo83nuaCY=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a h1:Qr7FpRTxEBnNJtyYj6TyVPs12bn45xSLFkygcSby1g4=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a/go.mod h1:hId0+St26leJQkTRaFYATZHMGja4wrv0hzf5SwKs3hA=
 github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27 h1:aDbd1N1mD8V225rsaYCd7kbt7WFVaDCWwVPpEZscAs0=
