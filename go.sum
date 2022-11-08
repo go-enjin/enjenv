@@ -85,8 +85,11 @@ github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm
 github.com/gin-gonic/gin v1.7.4/go.mod h1:jD2toBW3GZUr5UMcdrwQA10I7RuaFOl/SGeDjXkfUtY=
 github.com/gin-gonic/gin v1.8.1 h1:4+fr/el88TOO3ewCmQr8cx/CtZ/umlIRIs5M4NTNjf8=
 github.com/gin-gonic/gin v1.8.1/go.mod h1:ji8BvRH1azfM+SYow9zQ6SZMvR8qOMZHmsCuWR9tTTk=
+github.com/go-chi/chi/v5 v5.0.0/go.mod h1:BBug9lr0cqtdAhsu6R4AAdvufI0/XBzAQSsUqJpoZOs=
 github.com/go-chi/chi/v5 v5.0.7 h1:rDTPXLDHGATaeHvVlLcR4Qe0zftYethFucbjVQ1PxU8=
 github.com/go-chi/chi/v5 v5.0.7/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
+github.com/go-chi/hostrouter v0.2.0 h1:GwC7TZz8+SlJN/tV/aeJgx4F+mI5+sp+5H1PelQUjHM=
+github.com/go-chi/hostrouter v0.2.0/go.mod h1:pJ49vWVmtsKRKZivQx0YMYv4h0aX+Gcn6V23Np9Wf1s=
 github.com/go-curses/cdk v0.5.12 h1:k9/h4LwEpflJW6Pw9b/73H6UZ9lkp+xI6z7DNMfbDo0=
 github.com/go-curses/cdk v0.5.12/go.mod h1:XHzib+vIgVRsBvpK3zeGbjxSXr3VNyqtfS+5o2jSBK0=
 github.com/go-curses/ctk v0.5.3 h1:kB8hCw8H2UedIsaFr0fDP6vGd4MxNgbAZvKsaXOxG9U=
@@ -95,8 +98,8 @@ github.com/go-curses/term v1.2.2-gocurses.1 h1:wUi7qtaZQO9q7+YpX8nGBDoFJd7aWZeo2
 github.com/go-curses/term v1.2.2-gocurses.1/go.mod h1:ZuwRe9U+iLY2qTuhzg/kg0Pc9bZdfcJCtfHrjGvZtVA=
 github.com/go-curses/terminfo v1.0.0 h1:vU1G+oYsvSwmywZe6ZsoRQ8a8XDrzlM3rPeejUmpzc4=
 github.com/go-curses/terminfo v1.0.0/go.mod h1:3cAGarEfP6wdhHYmUI2xAx14cu+cfIIQYXehy2q/zUg=
-github.com/go-enjin/be v0.0.0-20221107212833-a651145eaee0 h1:Ft3l5CDHhdIR1JFEjNJ3jrv2nYh5/D0oInFcoq6NwmQ=
-github.com/go-enjin/be v0.0.0-20221107212833-a651145eaee0/go.mod h1:JPB3iN6mNwKsIp6l51v8ahyiuGzXBGMKuEmo83nuaCY=
+github.com/go-enjin/be v0.0.0-20221108175501-9e897957e9d6 h1:qTleaKOE7nn4/7MSt/qf/Teimh4xvErc0Fz7fAF7hHE=
+github.com/go-enjin/be v0.0.0-20221108175501-9e897957e9d6/go.mod h1:+Oc9M6NAQzS5ZaZcvgBxBWtNK8+KCyeTEQt3H84e9wM=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a h1:Qr7FpRTxEBnNJtyYj6TyVPs12bn45xSLFkygcSby1g4=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a/go.mod h1:hId0+St26leJQkTRaFYATZHMGja4wrv0hzf5SwKs3hA=
 github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27 h1:aDbd1N1mD8V225rsaYCd7kbt7WFVaDCWwVPpEZscAs0=

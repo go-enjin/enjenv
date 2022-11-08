@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20221107212833-a651145eaee0
+	github.com/go-enjin/be v0.0.0-20221108175501-9e897957e9d6
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
 	github.com/goccy/go-json v0.9.11
 	github.com/gofrs/uuid v4.3.0+incompatible
@@ -44,6 +44,7 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.8.1 // indirect
 	github.com/go-chi/chi/v5 v5.0.7 // indirect
+	github.com/go-chi/hostrouter v0.2.0 // indirect
 	github.com/go-curses/cdk v0.5.12 // indirect
 	github.com/go-curses/ctk v0.5.3 // indirect
 	github.com/go-curses/term v1.2.2-gocurses.1 // indirect
