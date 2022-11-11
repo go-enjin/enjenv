@@ -44,6 +44,7 @@ func (c *Command) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 	commands = append(
 		commands,
 		c.makeBePkgListCommand(app.Name),
+		c.makeBeHtpasswdCommand(app.Name),
 		c.makeBePermalinkIdCommand(app.Name),
 		c.makeBeMergeLocalesCommand(app.Name),
 		c.makeBeUpdateLocalesCommand(app.Name),
