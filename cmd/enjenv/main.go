@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/log"
 	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-enjin/enjenv/commands/niseroku"
 
 	"github.com/go-enjin/enjenv/commands/enjin"
 	herokuCmd "github.com/go-enjin/enjenv/commands/heroku"
@@ -75,6 +76,7 @@ func main() {
 	}
 	var err error
 	if err = system.Manager().
+		AddCommand(niseroku.New()).
 		AddCommand(enjin.New()).
 		AddCommand(herokuCmd.New()).
 		AddSystem(golang.New()).
