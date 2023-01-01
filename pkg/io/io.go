@@ -28,11 +28,12 @@ import (
 	"github.com/go-enjin/be/pkg/notify"
 )
 
-var SlackChannel string
-
-var CustomIndent = ""
-
-var BinName = filepath.Base(os.Args[0])
+var (
+	SlackChannel string
+	CustomIndent = ""
+	BinName      = filepath.Base(os.Args[0])
+	LogFile      string
+)
 
 func GitTagRelVer() (gitTag, relVer string) {
 	if gitTag, _ = git.Describe(); gitTag == "" {
@@ -122,20 +123,21 @@ func SetupCustomIndent(ctx *cli.Context) (err error) {
 
 func NotifyF(tag, format string, argv ...interface{}) {
 	msg := fmt.Sprintf(fmt.Sprintf("%v\n", strings.TrimSpace(format)), argv...)
-	fmt.Printf(CustomIndent + "# " + tag + ": " + msg)
+	stdout(CustomIndent + "# " + tag + ": " + msg)
 	notifySlack(tag, msg)
 }
 
 func StdoutF(format string, argv ...interface{}) {
-	fmt.Printf(CustomIndent+format, argv...)
+	stdout(CustomIndent+format, argv...)
 }
 
 func StderrF(format string, argv ...interface{}) {
-	_, _ = fmt.Fprintf(os.Stderr, CustomIndent+format, argv...)
+	stderr(CustomIndent+format, argv...)
 }
 
 func FatalF(format string, argv ...interface{}) {
-	_, _ = fmt.Fprintf(os.Stderr, CustomIndent+format, argv...)
+	// _, _ = fmt.Fprintf(os.Stderr, CustomIndent+format, argv...)
+	stderr(CustomIndent+format, argv...)
 	os.Exit(1)
 }
 
@@ -143,5 +145,37 @@ func FatalF(format string, argv ...interface{}) {
 func ErrorF(format string, argv ...interface{}) (err error) {
 	err = fmt.Errorf(format, argv...)
 	NotifyF("error", err.Error())
+	return
+}
+
+func stdout(format string, argv ...interface{}) {
+	if LogFile == "" {
+		_, _ = fmt.Fprintf(os.Stdout, format, argv...)
+		return
+	}
+	var err error
+	var fh *os.File
+	if fh, err = os.OpenFile(LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "error opening %v: %v\n", LogFile, err)
+		return
+	}
+	_, _ = fh.WriteString(fmt.Sprintf(format, argv...))
+	_ = fh.Close()
+	return
+}
+
+func stderr(format string, argv ...interface{}) {
+	if LogFile == "" {
+		_, _ = fmt.Fprintf(os.Stderr, format, argv...)
+		return
+	}
+	var err error
+	var fh *os.File
+	if fh, err = os.OpenFile(LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "error opening %v: %v\n", LogFile, err)
+		return
+	}
+	_, _ = fh.WriteString(fmt.Sprintf("ERR "+format, argv...))
+	_ = fh.Close()
 	return
 }
