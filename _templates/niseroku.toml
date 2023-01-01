@@ -1,0 +1,20 @@
+# simple, default system-wide niseroku.toml
+
+#buildpack-path = "/path/to/custom-enjenv-heroku-buildpack"
+
+run-as.user = "www-data"
+run-as.group = "www-data"
+log-file = "/var/log/niseroku.log"
+
+#enable-ssl = false
+#account-email = ""
+
+ports.git = 2222
+ports.http = 80
+#ports.https = 443
+
+timeouts.slug-startup = "60s"
+
+paths.etc-dir = "/etc/niseroku"
+paths.tmp-dir = "/var/niseroku/tmp"
+paths.var-dir = "/var/niseroku"

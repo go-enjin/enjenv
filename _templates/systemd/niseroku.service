@@ -1,0 +1,12 @@
+[Unit]
+Description="enjenv niseroku"
+After=network-online.target
+
+[Service]
+Type=exec
+ExecStart={ENJENV_PATH} niseroku start
+ExecStop={ENJENV_PATH} niseroku stop
+Restart=on-success
+
+[Install]
+WantedBy=network-online.target
