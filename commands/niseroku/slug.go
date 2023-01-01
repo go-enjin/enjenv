@@ -1,0 +1,285 @@
+// Copyright (c) 2022  The Go-Enjin Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package niseroku
+
+import (
+	"fmt"
+	"os"
+	"regexp"
+	"strconv"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/go-enjin/be/pkg/cli/run"
+	bePath "github.com/go-enjin/be/pkg/path"
+	beIo "github.com/go-enjin/enjenv/pkg/io"
+)
+
+type Slug struct {
+	App     *Application
+	Name    string
+	Archive string
+	RunPath string
+	PidFile string
+
+	Port int `toml:"-"`
+
+	sync.RWMutex
+}
+
+func NewSlugFromZip(app *Application, archive string) (slug *Slug, err error) {
+	if !bePath.IsFile(archive) {
+		err = fmt.Errorf("slug not found: %v", archive)
+		return
+	}
+	slugName := bePath.Base(archive)
+	runPath := app.Config.Paths.TmpRun + "/" + slugName
+	pidFile := app.Config.Paths.TmpRun + "/" + slugName + ".pid"
+
+	slug = &Slug{
+		App:     app,
+		Name:    slugName,
+		Archive: archive,
+		RunPath: runPath,
+		PidFile: pidFile,
+	}
+	return
+}
+
+func (s *Slug) Compare(other *Slug) (sameSlug, samePort bool) {
+	sameSlug = s.Name == other.Name &&
+		s.App.Name == other.App.Name &&
+		s.Archive == other.Archive &&
+		s.PidFile == other.PidFile &&
+		s.RunPath == other.RunPath
+	samePort = s.Port == other.Port
+	return
+}
+
+func (s *Slug) Unpack() (err error) {
+	if bePath.IsDir(s.RunPath) {
+		if err = os.RemoveAll(s.RunPath); err != nil {
+			beIo.StderrF("error removing run path: %v - %v\n", s.RunPath, err)
+			return
+		}
+		beIo.StdoutF("removed %v\n", s.RunPath)
+	}
+	if err = bePath.Mkdir(s.RunPath); err != nil {
+		beIo.StderrF("error making run path: %v - %v\n", s.RunPath, err)
+		return
+	}
+	beIo.StdoutF("unzipping: %v - %v\n", s.RunPath, s.Archive)
+	var status int
+	if status, err = run.ExeWithChdir(s.RunPath, "unzip", s.Archive); err != nil {
+		return
+	} else if status != 0 {
+		err = fmt.Errorf("unzip exited with status %d", status)
+		return
+	}
+	return
+}
+
+var RxSlugProcfileWebEntry = regexp.MustCompile(`(?ms)^web:\s*(.+?)\s*$`)
+
+func (s *Slug) ReadProcfile() (web string, err error) {
+	if bePath.IsDir(s.RunPath) {
+		procfile := s.RunPath + "/Procfile"
+		if bePath.IsFile(procfile) {
+			var data []byte
+			if data, err = os.ReadFile(procfile); err != nil {
+				return
+			}
+			procdata := string(data)
+			if RxSlugProcfileWebEntry.MatchString(procdata) {
+				m := RxSlugProcfileWebEntry.FindAllStringSubmatch(procdata, 1)
+				web = m[0][1]
+			} else {
+				err = fmt.Errorf("slug procfile missing web entry:\n%v", procdata)
+			}
+		} else {
+			err = fmt.Errorf("slug missing Procfile: %v", s.Name)
+		}
+	} else {
+		err = fmt.Errorf("slug is not unpacked yet")
+	}
+	return
+}
+
+func (s *Slug) IsReady() (ready bool) {
+	if s.IsRunning() && s.Port > 0 {
+		ready = isAddressPortOpen(s.App.Host, s.Port)
+	}
+	return
+}
+
+func (s *Slug) IsRunning() (running bool) {
+	s.RLock()
+	defer s.RUnlock()
+	if proc, err := getProcessFromPidFile(s.PidFile); err == nil && proc != nil {
+		running = proc.Pid > 0
+	}
+	return
+}
+
+func (s *Slug) IsRunningReady() (running, ready bool) {
+	s.RLock()
+	defer s.RUnlock()
+	if proc, ee := getProcessFromPidFile(s.PidFile); ee == nil && proc != nil {
+		running = proc.Pid > 0
+		ready = isAddressPortOpen(s.App.Host, s.Port)
+	}
+	return
+}
+
+func (s *Slug) Start(port int) (err error) {
+	if running, ready := s.IsRunningReady(); ready {
+		s.Port = port
+		beIo.StdoutF("slug already running and ready: %v on port %d\n", s.Name, s.Port)
+		return
+	} else if running {
+		err = fmt.Errorf("slug already running and not ready: %v\n", s.Name)
+		return
+	}
+
+	if isAddressPortOpen(s.App.Host, port) {
+		err = fmt.Errorf("port already open by another process")
+		return
+	}
+	s.Port = port
+
+	var web string
+	if web, err = s.ReadProcfile(); err != nil {
+		return
+	}
+	beIo.StdoutF("starting slug: PORT=%d %v (%v)\n", port, web, s.Name)
+
+	environ := append(s.App.OsEnviron(), fmt.Sprintf("PORT=%d", port))
+	logfile := s.App.Config.Paths.VarLogs + "/" + s.App.Name + ".log"
+	var webCmd string
+	var webArgv []string
+	var parsedArgs []string
+	if parsedArgs, err = parseArgv(web); err != nil {
+		err = fmt.Errorf("error parsing Procfile web entry argv: \"%v\"", web)
+		return
+	}
+	switch len(parsedArgs) {
+	case 0:
+		err = fmt.Errorf("error parsing Procfile web arguments: \"%v\"", web)
+	case 1:
+		webCmd = parsedArgs[0]
+	default:
+		webCmd = parsedArgs[0]
+		webArgv = parsedArgs[1:]
+	}
+
+	beIo.StdoutF("%v using log file: %v\n", s.App.Name, logfile)
+	beIo.StdoutF("%v using pid file: %v\n", s.App.Name, s.PidFile)
+	beIo.StdoutF("%v environment: %v\n", s.App.Name, environ)
+
+	if pid, ee := run.Daemonize(s.RunPath, webCmd, webArgv, logfile, logfile, environ); ee != nil {
+		err = fmt.Errorf("error daemonizing slug: %v", ee)
+		return
+	} else {
+		if err = os.WriteFile(s.PidFile, []byte(strconv.Itoa(pid)), 0660); err != nil {
+			err = fmt.Errorf("error writing pidfile: %v - %v", s.PidFile, err)
+			return
+		} else {
+			beIo.StdoutF("started process %d: %v on port %d\n", pid, s.Name, s.Port)
+		}
+	}
+
+	return
+}
+
+func (s *Slug) Stop() {
+	if proc, err := getProcessFromPidFile(s.PidFile); err == nil && proc != nil {
+		if err = proc.SendSignal(syscall.SIGTERM); err != nil {
+			beIo.StderrF("error sending SIGTERM to process: %d\n", proc.Pid)
+		} else {
+			beIo.StdoutF("sent SIGTERM to process %d: %v\n", proc.Pid, s.Name)
+		}
+	}
+	if bePath.IsDir(s.RunPath) {
+		if err := os.RemoveAll(s.RunPath); err != nil {
+			beIo.StderrF("error removing slug run path: %v - %v\n", s.RunPath, err)
+		} else {
+			beIo.StdoutF("removed slug run path: %v\n", s.RunPath)
+		}
+	}
+	if bePath.IsFile(s.PidFile) {
+		if err := os.Remove(s.PidFile); err != nil {
+			beIo.StderrF("error removing slug pid file: %v - %v\n", s.PidFile, err)
+		} else {
+			beIo.StdoutF("removed slug pid file: %v\n", s.PidFile)
+		}
+	}
+}
+
+func (s *Slug) Destroy() (err error) {
+	s.Stop()
+	if bePath.IsDir(s.RunPath) {
+		if err = os.RemoveAll(s.RunPath); err != nil {
+			return
+		}
+	}
+	if bePath.IsFile(s.PidFile) {
+		if err = os.Remove(s.PidFile); err != nil {
+			return
+		}
+	}
+	if bePath.IsFile(s.Archive) {
+		if err = os.Remove(s.Archive); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (s *Slug) GetSlugStartupTimeout() (timeout time.Duration) {
+	switch {
+	case s.App.Timeouts.SlugStartup != nil:
+		timeout = *s.App.Timeouts.SlugStartup
+	case s.App.Config.Timeouts.SlugStartup > 0:
+		timeout = s.App.Config.Timeouts.SlugStartup
+	default:
+		timeout = DefaultSlugStartupTimeout
+	}
+	return
+}
+
+func (s *Slug) GetOriginRequestTimeout() (timeout time.Duration) {
+	switch {
+	case s.App.Timeouts.OriginRequest != nil:
+		timeout = *s.App.Timeouts.OriginRequest
+	case s.App.Config.Timeouts.OriginRequest > 0:
+		timeout = s.App.Config.Timeouts.OriginRequest
+	default:
+		timeout = DefaultOriginRequestTimeout
+	}
+	return
+}
+
+func (s *Slug) GetReadyIntervalTimeout() (timeout time.Duration) {
+	switch {
+	case s.App.Timeouts.ReadyInterval != nil:
+		timeout = *s.App.Timeouts.ReadyInterval
+	case s.App.Config.Timeouts.ReadyInterval > 0:
+		timeout = s.App.Config.Timeouts.ReadyInterval
+	default:
+		timeout = DefaultReadyIntervalTimeout
+	}
+	return
+}
