@@ -34,9 +34,11 @@ BIN_PATH ?= ${DESTDIR}${prefix}/bin
 ETC_PATH ?= ${DESTDIR}${prefix}/etc
 SYSTEMD_PATH ?= ${ETC_PATH}/systemd/system
 NISEROKU_PATH ?= ${ETC_PATH}/niseroku
+LOGROTATE_PATH ?= ${ETC_PATH}/logrotate.d
 
 NISEROKU_TOML_FILE ?= ${NISEROKU_PATH}/niseroku.toml
 NISEROKU_SERVICE_FILE ?= ${SYSTEMD_PATH}/niseroku.service
+NISEROKU_LOGROTATE_FILE ?= ${LOGROTATE_PATH}/niseroku
 
 define _trim_path =
 $(shell \
@@ -142,30 +144,29 @@ install:
 		false; \
 	fi
 	@if [ -d "${BIN_PATH}" ]; then \
-			echo "# installing enjenv to: ${BIN_PATH}"; \
-			${CMD} /usr/bin/install -t ${BIN_PATH} -v enjenv; \
-			${CMD} sha256sum "${BIN_PATH}/enjenv"; \
+		echo "# installing enjenv to: ${BIN_PATH}"; \
+		${CMD} /usr/bin/install -v -m 0775 -T "./enjenv" "${BIN_PATH}/enjenv"; \
+		${CMD} sha256sum "${BIN_PATH}/enjenv"; \
 	fi
 
-install-niseroku-systemd: install
-	@if [ ! -d "${SYSTEMD_PATH}" ]; then \
-		echo "# error: SYSTEMD_PATH not found - ${SYSTEMD_PATH}"; \
-		false; \
+install-niseroku: install
+	@if [ ! -f "${NISEROKU_TOML_FILE}" ]; then \
+		echo "# installing ${NISEROKU_TOML_FILE}"; \
+		if [ ! -d "${NISEROKU_PATH}" ]; then mkdir -p "${NISEROKU_PATH}"; fi; \
+		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
+		sha256sum "${NISEROKU_TOML_FILE}"; \
 	fi
-	@echo "# installing niseroku service configs and paths"
-	@echo "#   niseroku cfg: ${NISEROKU_TOML_FILE}"
-	@echo "#   service file: ${NISEROKU_SERVICE_FILE}"
-	@if [ ! -d "${NISEROKU_PATH}" ]; then \
-		mkdir -vp "${NISEROKU_PATH}"; \
+	@if [ -d "${LOGROTATE_PATH}" -a ! -f "${NISEROKU_LOGROTATE_FILE}" ]; then \
+		echo "# installing ${NISEROKU_LOGROTATE_FILE}"; \
+		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"; \
+		sha256sum "${NISEROKU_LOGROTATE_FILE}"; \
 	fi
-	@${CMD} /usr/bin/install -t ${NISEROKU_PATH} -m 0664 \
-		-v _templates/niseroku.toml
-	@cat _templates/systemd/niseroku.service \
-		| perl -pe "s!{ENJENV_PATH}!${BIN_PATH}/enjenv!msg" \
-		> "${NISEROKU_SERVICE_FILE}"
-	@sha256sum "${NISEROKU_SERVICE_FILE}"
-	@sha256sum "${NISEROKU_PATH}/niseroku.toml"
-	@systemctl daemon-reload
+	@if [ -d "${SYSTEMD_PATH}" ]; then \
+		echo "# installing niseroku.service file"; \
+		cat _templates/niseroku.service | perl -pe "s!{ENJENV_PATH}!${BIN_PATH}/enjenv!msg" > "${NISEROKU_SERVICE_FILE}"; \
+		sha256sum "${NISEROKU_SERVICE_FILE}"; \
+		systemctl daemon-reload; \
+	fi
 
 local:
 	@if [ -d "${BE_PATH}" ]; then \
