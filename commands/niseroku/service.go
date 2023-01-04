@@ -88,6 +88,20 @@ func NewServer(config *Config) (s *Server, err error) {
 	return
 }
 
+func (s *Server) LogInfoF(format string, argv ...interface{}) {
+	format = strings.TrimSpace(format)
+	beIo.StdoutF("# [%v] %v\n", s.Name, fmt.Sprintf(format, argv...))
+}
+
+func (s *Server) LogError(err error) {
+	beIo.StdoutF("# [%v] ERROR %v\n", s.Name, err)
+}
+
+func (s *Server) LogErrorF(format string, argv ...interface{}) {
+	format = strings.TrimSpace(format)
+	beIo.StdoutF("# [%v] ERROR %v\n", s.Name, fmt.Sprintf(format, argv...))
+}
+
 func (s *Server) LoadApplications() (err error) {
 	var appConfigs []string
 	if appConfigs, err = bePath.ListFiles(s.Config.Paths.EtcApps); err != nil {
