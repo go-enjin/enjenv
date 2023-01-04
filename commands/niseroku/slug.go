@@ -82,7 +82,7 @@ func (s *Slug) Unpack() (err error) {
 	}
 	s.App.LogInfoF("unzipping: %v - %v\n", s.RunPath, s.Archive)
 	var status int
-	if status, err = run.ExeWithChdir(s.RunPath, "unzip", s.Archive); err != nil {
+	if status, err = run.ExeWithChdir(s.RunPath, "unzip", "-qq", s.Archive); err != nil {
 		return
 	} else if status != 0 {
 		err = fmt.Errorf("unzip exited with status %d", status)
