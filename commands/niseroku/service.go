@@ -74,11 +74,14 @@ type Server struct {
 	sighup chan os.Signal
 	sigusr chan os.Signal
 
+	Name string
+
 	sync.RWMutex
 }
 
 func NewServer(config *Config) (s *Server, err error) {
 	s = &Server{
+		Name:   bePath.Base(config.Source),
 		Config: config,
 	}
 	err = s.LoadApplications()
