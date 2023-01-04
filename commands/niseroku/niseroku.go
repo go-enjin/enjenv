@@ -30,6 +30,7 @@ import (
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
 )
@@ -273,7 +274,7 @@ func (c *Command) actionGitPreReceiveHook(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
-	beIo.StdoutF("git pre-receive hook\n")
+	// beIo.StdoutF("git pre-receive hook\n")
 
 	// authenticate git repo endpoint (and branch) with ssh-key
 	// early error during a git-push
@@ -304,7 +305,7 @@ func (c *Command) actionGitPostReceiveHook(ctx *cli.Context) (err error) {
 		return
 	}
 
-	beIo.StdoutF("git post-receive hook\n")
+	// beIo.StdoutF("git post-receive hook\n")
 
 	// validate git repo endpoint (and branch) with ssh-key
 	// detect, build and archive a new app slug
@@ -373,7 +374,7 @@ func (c *Command) enjinRepoPreReceiveHandler(app *Application, config *Config, i
 }
 
 func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, info *gitkit.HookInfo, tmpPath string) (err error) {
-	beIo.StdoutF("# post-receive handler:\n%+#v\n", info)
+	// beIo.StdoutF("# post-receive handler:\n%+#v\n", info)
 
 	tmpName := bePath.Base(tmpPath)
 	buildDir := config.Paths.TmpBuild + "/" + tmpName
@@ -449,13 +450,14 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 
-	beIo.StdoutF("# BUILD_DIR: %v\n", buildDir)
-	beIo.StdoutF("# CACHE_DIR: %v\n", cacheDir)
-	beIo.StdoutF("# ENV_DIR: %v\n", envDir)
-	beIo.StdoutF("# app.NextSlug: %v\n", app.NextSlug)
+	// beIo.StdoutF("# BUILD_DIR: %v\n", buildDir)
+	// beIo.StdoutF("# CACHE_DIR: %v\n", cacheDir)
+	// beIo.StdoutF("# ENV_DIR: %v\n", envDir)
+	// beIo.StdoutF("# app.NextSlug: %v\n", app.NextSlug)
 
+	beIo.StdoutF("# build completed, signaling for slug deployment")
 	if err = sendSignalToPidFromFile(c.config.Paths.PidFile, syscall.SIGUSR1); err != nil {
-		beIo.StderrF("error sending SIGUSR1 to pid from file: %v - %v\n", c.config.Paths.PidFile, err)
+		beIo.StderrF("# error signaling for slug deployment: %v\n", err)
 		return
 	}
 	return
