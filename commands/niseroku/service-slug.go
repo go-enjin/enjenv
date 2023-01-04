@@ -17,9 +17,8 @@ package niseroku
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
-
-	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 /*
@@ -33,8 +32,9 @@ import (
 
 func (s *Server) startAppSlugs() (err error) {
 	for _, app := range s.Applications() {
-		if ee := s.startAppSlug(app); ee != nil {
-			beIo.StderrF("error starting app slug: %v\n", ee)
+		if ee := s.startAppSlug(app); ee != nil && !strings.Contains(ee.Error(), "app slugs not found") {
+			err = ee
+			return
 		}
 	}
 	return
@@ -60,8 +60,8 @@ func (s *Server) startAppSlug(app *Application) (err error) {
 		return
 	}
 
-	beIo.StdoutF("starting: %v on port %d\n", slug.Name, app.Port)
-	slug.Port = app.Port
+	s.LogInfoF("starting: %v on port %d\n", slug.Name, app.Origin.Port)
+	slug.Port = app.Origin.Port
 	go s.handleAppSlugStart(slug)
 	go s.awaitAppSlugReady(slug)
 	return
@@ -94,7 +94,7 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 			if thisSlug.IsRunning() {
 				nextSlug.Port = s.getNextAvailablePort()
 			} else {
-				nextSlug.Port = app.Port
+				nextSlug.Port = app.Origin.Port
 			}
 			if ee := s.migrateAppSlug(nextSlug); ee != nil {
 				s.LogErrorF("error migrating to next slug: %v - %v\n", nextSlug.Name, app.Origin.Port)
@@ -103,7 +103,7 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 		} else if thisSlug == nil && nextSlug != nil {
 			// setting to next
 			if !nextSlug.IsRunning() {
-				nextSlug.Port = app.Port
+				nextSlug.Port = app.Origin.Port
 				if ee := s.migrateAppSlug(nextSlug); ee != nil {
 					s.LogErrorF("error starting next slug: %v - %v\n", nextSlug.Name, app.Origin.Port)
 					continue
@@ -112,8 +112,8 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 		} else if thisSlug != nil && nextSlug == nil {
 			// restarting this
 			if !thisSlug.IsRunning() {
-				if ee := thisSlug.Start(app.Port); ee != nil {
-					beIo.StderrF("error starting this slug: %v - %v\n", thisSlug.Name, app.Port)
+				if ee := thisSlug.Start(app.Origin.Port); ee != nil {
+					s.LogErrorF("error starting this slug: %v - %v\n", thisSlug.Name, app.Origin.Port)
 				}
 			} else {
 				s.LogInfoF("this slug already running: %v\n", thisSlug.Name)
@@ -184,8 +184,8 @@ func (s *Server) awaitAppSlugReady(slug *Slug) {
 	s.LogInfoF("awaiting slug startup: %v - %v\n", slug.Name, slugStartupTimeout)
 	start := time.Now()
 	for now := time.Now(); now.Sub(start) < slugStartupTimeout; now = time.Now() {
-		if isAddressPortOpenWithTimeout(slug.App.Host, slug.Port, readyIntervalTimeout) {
-			beIo.StdoutF("slug ready: %v on port %d (%v)\n", slug.Name, slug.Port, time.Now().Sub(start))
+		if isAddressPortOpenWithTimeout(slug.App.Origin.Host, slug.Port, readyIntervalTimeout) {
+			s.LogInfoF("slug ready: %v on port %d (%v)\n", slug.Name, slug.Port, time.Now().Sub(start))
 			if err := s.transitionAppToNextSlug(slug.App); err != nil {
 				s.LogErrorF("error transitioning app to next slug: %v\n", err)
 			}
@@ -205,7 +205,7 @@ func (s *Server) transitionAppToNextSlug(app *Application) (err error) {
 
 		nextSlug.App.ThisSlug = nextSlug.App.NextSlug
 		nextSlug.App.NextSlug = ""
-		nextSlug.App.Port = nextSlug.Port
+		nextSlug.App.Origin.Port = nextSlug.Port
 
 		if err = nextSlug.App.Save(); err != nil {
 			err = fmt.Errorf("error saving app after transitioning: %v - %v\n", app.Name, err)
