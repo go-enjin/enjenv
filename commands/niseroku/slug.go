@@ -25,7 +25,6 @@ import (
 
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
-	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 type Slug struct {
@@ -72,16 +71,16 @@ func (s *Slug) Compare(other *Slug) (sameSlug, samePort bool) {
 func (s *Slug) Unpack() (err error) {
 	if bePath.IsDir(s.RunPath) {
 		if err = os.RemoveAll(s.RunPath); err != nil {
-			beIo.StderrF("error removing run path: %v - %v\n", s.RunPath, err)
+			s.App.LogErrorF("error removing run path: %v - %v\n", s.RunPath, err)
 			return
 		}
-		beIo.StdoutF("removed %v\n", s.RunPath)
+		s.App.LogInfoF("removed %v\n", s.RunPath)
 	}
 	if err = bePath.Mkdir(s.RunPath); err != nil {
-		beIo.StderrF("error making run path: %v - %v\n", s.RunPath, err)
+		s.App.LogErrorF("error making run path: %v - %v\n", s.RunPath, err)
 		return
 	}
-	beIo.StdoutF("unzipping: %v - %v\n", s.RunPath, s.Archive)
+	s.App.LogInfoF("unzipping: %v - %v\n", s.RunPath, s.Archive)
 	var status int
 	if status, err = run.ExeWithChdir(s.RunPath, "unzip", s.Archive); err != nil {
 		return
@@ -147,7 +146,7 @@ func (s *Slug) IsRunningReady() (running, ready bool) {
 func (s *Slug) Start(port int) (err error) {
 	if running, ready := s.IsRunningReady(); ready {
 		s.Port = port
-		beIo.StdoutF("slug already running and ready: %v on port %d\n", s.Name, s.Port)
+		s.App.LogInfoF("slug already running and ready: %v on port %d\n", s.Name, s.Port)
 		return
 	} else if running {
 		err = fmt.Errorf("slug already running and not ready: %v\n", s.Name)
@@ -164,7 +163,7 @@ func (s *Slug) Start(port int) (err error) {
 	if web, err = s.ReadProcfile(); err != nil {
 		return
 	}
-	beIo.StdoutF("starting slug: PORT=%d %v (%v)\n", port, web, s.Name)
+	s.App.LogInfoF("starting slug: PORT=%d %v (%v)\n", port, web, s.Name)
 
 	environ := append(s.App.OsEnviron(), fmt.Sprintf("PORT=%d", port))
 	logfile := s.App.Config.Paths.VarLogs + "/" + s.App.Name + ".log"
@@ -185,9 +184,9 @@ func (s *Slug) Start(port int) (err error) {
 		webArgv = parsedArgs[1:]
 	}
 
-	beIo.StdoutF("%v using log file: %v\n", s.App.Name, logfile)
-	beIo.StdoutF("%v using pid file: %v\n", s.App.Name, s.PidFile)
-	beIo.StdoutF("%v environment: %v\n", s.App.Name, environ)
+	// s.App.LogInfoF("%v using log file: %v\n", s.App.Name, logfile)
+	// s.App.LogInfoF("%v using pid file: %v\n", s.App.Name, s.PidFile)
+	// s.App.LogInfoF("%v environment: %v\n", s.App.Name, environ)
 
 	if pid, ee := run.Daemonize(s.RunPath, webCmd, webArgv, logfile, logfile, environ); ee != nil {
 		err = fmt.Errorf("error daemonizing slug: %v", ee)
@@ -197,7 +196,7 @@ func (s *Slug) Start(port int) (err error) {
 			err = fmt.Errorf("error writing pidfile: %v - %v", s.PidFile, err)
 			return
 		} else {
-			beIo.StdoutF("started process %d: %v on port %d\n", pid, s.Name, s.Port)
+			s.App.LogInfoF("started process %d: %v on port %d\n", pid, s.Name, s.Port)
 		}
 	}
 
@@ -207,23 +206,23 @@ func (s *Slug) Start(port int) (err error) {
 func (s *Slug) Stop() {
 	if proc, err := getProcessFromPidFile(s.PidFile); err == nil && proc != nil {
 		if err = proc.SendSignal(syscall.SIGTERM); err != nil {
-			beIo.StderrF("error sending SIGTERM to process: %d\n", proc.Pid)
+			s.App.LogErrorF("error sending SIGTERM to process: %d\n", proc.Pid)
 		} else {
-			beIo.StdoutF("sent SIGTERM to process %d: %v\n", proc.Pid, s.Name)
+			s.App.LogInfoF("sent SIGTERM to process %d: %v\n", proc.Pid, s.Name)
 		}
 	}
 	if bePath.IsDir(s.RunPath) {
 		if err := os.RemoveAll(s.RunPath); err != nil {
-			beIo.StderrF("error removing slug run path: %v - %v\n", s.RunPath, err)
+			s.App.LogErrorF("error removing slug run path: %v - %v\n", s.RunPath, err)
 		} else {
-			beIo.StdoutF("removed slug run path: %v\n", s.RunPath)
+			s.App.LogInfoF("removed slug run path: %v\n", s.RunPath)
 		}
 	}
 	if bePath.IsFile(s.PidFile) {
 		if err := os.Remove(s.PidFile); err != nil {
-			beIo.StderrF("error removing slug pid file: %v - %v\n", s.PidFile, err)
+			s.App.LogErrorF("error removing slug pid file: %v - %v\n", s.PidFile, err)
 		} else {
-			beIo.StdoutF("removed slug pid file: %v\n", s.PidFile)
+			s.App.LogInfoF("removed slug pid file: %v\n", s.PidFile)
 		}
 	}
 }
