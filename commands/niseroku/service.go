@@ -33,6 +33,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -132,11 +133,11 @@ func (s *Server) LoadApplications() (err error) {
 		} else {
 			appLookup[app.Name] = app
 		}
-		if _, exists := portLookup[app.Port]; exists {
-			err = fmt.Errorf("port %d duplicated by: %v", app.Port, app.Source)
+		if _, exists := portLookup[app.Origin.Port]; exists {
+			err = fmt.Errorf("port %d duplicated by: %v", app.Origin.Port, app.Source)
 			return
 		} else {
-			portLookup[app.Port] = app
+			portLookup[app.Origin.Port] = app
 		}
 		for _, domain := range app.Domains {
 			if _, exists := domainLookup[domain]; exists {
