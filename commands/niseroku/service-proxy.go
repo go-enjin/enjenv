@@ -20,10 +20,11 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	beNet "github.com/go-enjin/be/pkg/net"
-	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 func (s *Server) httpServe() (err error) {
@@ -47,7 +48,21 @@ func (s *Server) httpsServe() (err error) {
 }
 
 func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
-	domain := r.Host
+	var domain string
+	if strings.Contains(r.Host, ":") {
+		if h, p, err := net.SplitHostPort(r.Host); err == nil {
+			switch {
+			case s.Config.EnableSSL && strconv.Itoa(s.Config.Ports.Https) == p:
+				domain = h
+			case strconv.Itoa(s.Config.Ports.Http) == p:
+				domain = h
+			}
+		} else {
+			s.LogErrorF("error parsing request.Host: \"%v\" - %v\n", r.Host, err)
+		}
+	} else {
+		domain = r.Host
+	}
 	s.RLock()
 	if origin, exists := s.LookupDomain[domain]; exists {
 		s.RUnlock()
