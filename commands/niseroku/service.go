@@ -482,6 +482,10 @@ func (s *Server) dropPrivileges() (err error) {
 			}
 		}
 
+		if err = os.Chown(s.Config.Paths.PidFile, uid, gid); err != nil {
+			beIo.StderrF("error changing ownership of: %v - %v\n", s.Config.Paths.PidFile, err)
+		}
+
 		if cerr, errno := C.setgid(C.__gid_t(gid)); cerr != 0 {
 			err = fmt.Errorf("set GID error: %v", errno)
 			return
