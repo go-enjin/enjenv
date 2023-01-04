@@ -75,9 +75,9 @@ type PortsConfig struct {
 }
 
 type PathsConfig struct {
-	Etc string `toml:"etc-dir"`
-	Var string `toml:"var-dir"`
-	Tmp string `toml:"tmp-dir"`
+	Etc string `toml:"etc"`
+	Var string `toml:"var"`
+	Tmp string `toml:"tmp"`
 
 	EtcApps      string `toml:"-"` // EtcApps contains all app.toml files
 	TmpRun       string `toml:"-"` // TmpRun is used when running enjenv slugs
@@ -267,7 +267,6 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 		},
 	}
 
-	// beIo.StdoutF("[config]\n%+#v\n[/config]\n", config)
 	return
 }
 
@@ -289,7 +288,6 @@ func (c *Config) PrepareDirectories() (err error) {
 		c.Paths.RepoSecrets,
 		c.Paths.ProxySecrets,
 	} {
-		// beIo.StdoutF("making directory: %v\n", p)
 		if err = bePath.Mkdir(p); err != nil {
 			err = fmt.Errorf("error preparing directory: %v - %v", p, err)
 			return
