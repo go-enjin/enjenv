@@ -436,7 +436,7 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 
-	if status, err = run.Exe("zip", "-r", slugZip, "."); err != nil {
+	if status, err = run.Exe("zip", "--quiet", "--recurse-paths", slugZip, "."); err != nil {
 		return
 	} else if status != 0 {
 		return
