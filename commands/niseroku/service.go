@@ -174,7 +174,7 @@ func (s *Server) InitPidFile() (err error) {
 			} else if stale = err.Error() == "pid not found"; stale {
 			}
 			if stale {
-				beIo.StdoutF("# removing stale pid file: %v\n", s.Config.Paths.PidFile)
+				s.LogInfoF("removing stale pid file: %v", s.Config.Paths.PidFile)
 				err = os.Remove(s.Config.Paths.PidFile)
 			}
 		} else if proc != nil {
@@ -209,17 +209,17 @@ func (s *Server) handleSIGUSR1() {
 				}
 			}
 		}
-		beIo.StdoutF("SIGUSR1: reload all configurations\n")
+		s.LogInfoF("SIGUSR1: reload all configurations")
 		if err := s.LoadApplications(); err != nil {
-			beIo.StderrF("error reloading applications: %v\n", err)
+			s.LogErrorF("error reloading applications: %v", err)
 		}
-		beIo.StdoutF("SIGUSR1: migrating all app slugs\n")
+		s.LogInfoF("SIGUSR1: migrating app slugs")
 		if err := s.migrateAppSlugs(runningSlugs); err != nil {
-			beIo.StderrF("critical error migrating all app slugs: %v\n", err)
+			s.LogErrorF("critical error migrating all app slugs: %v", err)
 			s.Stop()
-		} else {
-			beIo.StdoutF("SIGUSR1: reloading complete\n")
+			return
 		}
+		s.LogInfoF("SIGUSR1: reloading complete\n")
 	}
 }
 
@@ -230,7 +230,7 @@ func (s *Server) handleSIGHUP() {
 	signal.Notify(s.sighup, syscall.SIGHUP)
 	for {
 		<-s.sighup
-		beIo.StdoutF("SIGHUP: restart not implemented\n")
+		s.LogErrorF("SIGHUP: restart not implemented\n")
 	}
 }
 
@@ -248,34 +248,34 @@ func (s *Server) handleSIGINT() {
 
 	if s.sock != nil {
 		if ee := s.sock.Close(); ee != nil {
-			beIo.StderrF("error closing sock: %v\n", ee)
+			s.LogErrorF("error closing sock: %v\n", ee)
 		}
 	}
 	if bePath.Exists(s.Config.Paths.Control) {
 		if ee := os.Remove(s.Config.Paths.Control); ee != nil {
-			beIo.StderrF("error removing control file: %v\n", ee)
+			s.LogErrorF("error removing control file: %v\n", ee)
 		}
 	}
 
 	if s.repo != nil {
 		if ee := s.repo.Stop(); ee != nil {
-			beIo.StderrF("error stopping git: %v\n", ee)
+			s.LogErrorF("error stopping git: %v\n", ee)
 		}
 	}
 
 	if s.http != nil {
 		if ee := s.http.Shutdown(context.Background()); ee != nil {
-			beIo.StderrF("error shutting down http: %v\n", ee)
+			s.LogErrorF("error shutting down http: %v\n", ee)
 		}
 	}
 	if s.https != nil {
 		if ee := s.https.Shutdown(context.Background()); ee != nil {
-			beIo.StderrF("error shutting down https: %v\n", ee)
+			s.LogErrorF("error shutting down https: %v\n", ee)
 		}
 	}
 	if bePath.IsFile(s.Config.Paths.PidFile) {
 		if ee := os.Remove(s.Config.Paths.PidFile); ee != nil {
-			beIo.StderrF("error removing pid file: %v", ee)
+			s.LogErrorF("error removing pid file: %v", ee)
 		}
 	}
 
@@ -364,27 +364,27 @@ func (s *Server) Start() (err error) {
 
 	go func() {
 		wg.Add(1)
-		beIo.StdoutF("starting control service: %v\n", s.Config.Paths.Control)
+		s.LogInfoF("starting control service: %v\n", s.Config.Paths.Control)
 		if ee := s.sockServe(); ee != nil {
-			beIo.StderrF("%v\n", ee)
+			s.LogErrorF("error running control service: %v\n", ee)
 		}
 		wg.Done()
 	}()
 
 	go func() {
 		wg.Add(1)
-		beIo.StdoutF("starting git service: %v\n", s.Config.Ports.Git)
+		s.LogInfoF("starting git service: %v\n", s.Config.Ports.Git)
 		if ee := s.gitServe(); ee != nil {
-			beIo.StderrF("%v\n", ee)
+			s.LogErrorF("error running git service: %v\n", ee)
 		}
 		wg.Done()
 	}()
 
 	go func() {
 		wg.Add(1)
-		beIo.StdoutF("starting http service: %d\n", s.Config.Ports.Http)
+		s.LogInfoF("starting http service: %d\n", s.Config.Ports.Http)
 		if err = s.httpServe(); err != nil {
-			beIo.StderrF("%v\n", err)
+			s.LogErrorF("error running http service: %v\n", err)
 		}
 		wg.Done()
 	}()
@@ -392,9 +392,9 @@ func (s *Server) Start() (err error) {
 	if s.Config.EnableSSL {
 		go func() {
 			wg.Add(1)
-			beIo.StdoutF("starting https service: %d\n", s.Config.Ports.Https)
+			s.LogInfoF("starting https service: %d\n", s.Config.Ports.Https)
 			if err = s.httpsServe(); err != nil {
-				beIo.StderrF("%v\n", err)
+				s.LogErrorF("error running https service: %v\n", err)
 			}
 			wg.Done()
 		}()
@@ -404,8 +404,12 @@ func (s *Server) Start() (err error) {
 	s.running = true
 	s.Unlock()
 
+	for _, app := range s.Applications() {
+		s.LogInfoF("application present: %v", app.Name)
+	}
+
 	if err = s.startAppSlugs(); err != nil {
-		beIo.StderrF("error starting app slugs: %v\n", err)
+		s.LogErrorF("error starting app slugs: %v\n", err)
 		err = nil
 		s.Stop()
 	}
@@ -425,7 +429,7 @@ func (s *Server) Stop() {
 
 func (s *Server) dropPrivileges() (err error) {
 	if syscall.Getuid() == 0 {
-		beIo.StdoutF("dropping root privileges to %v:%v\n", s.Config.RunAs.User, s.Config.RunAs.Group)
+		s.LogInfoF("dropping root privileges to %v:%v\n", s.Config.RunAs.User, s.Config.RunAs.Group)
 		var u *user.User
 		if u, err = user.Lookup(s.Config.RunAs.User); err != nil {
 			return
