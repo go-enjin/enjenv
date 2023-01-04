@@ -122,6 +122,7 @@ func SetupCustomIndent(ctx *cli.Context) (err error) {
 }
 
 func NotifyF(tag, format string, argv ...interface{}) {
+	format = strings.TrimSpace(format)
 	msg := fmt.Sprintf(fmt.Sprintf("%v\n", strings.TrimSpace(format)), argv...)
 	stdout(CustomIndent + "# " + tag + ": " + msg)
 	notifySlack(tag, msg)
@@ -143,7 +144,7 @@ func FatalF(format string, argv ...interface{}) {
 
 // ErrorF wraps fmt.Errorf and also issues a NotifyF with the error message
 func ErrorF(format string, argv ...interface{}) (err error) {
-	err = fmt.Errorf(format, argv...)
+	err = fmt.Errorf(strings.TrimSpace(format), argv...)
 	NotifyF("error", err.Error())
 	return
 }
@@ -156,7 +157,8 @@ func stdout(format string, argv ...interface{}) {
 	var err error
 	var fh *os.File
 	if fh, err = os.OpenFile(LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "error opening %v: %v\n", LogFile, err)
+		// _, _ = fmt.Fprintf(os.Stderr, "[stdout] error opening %v: %v\n", LogFile, err)
+		_, _ = fmt.Fprintf(os.Stdout, "[stdout] "+format, argv...)
 		return
 	}
 	_, _ = fh.WriteString(fmt.Sprintf(format, argv...))
@@ -172,10 +174,24 @@ func stderr(format string, argv ...interface{}) {
 	var err error
 	var fh *os.File
 	if fh, err = os.OpenFile(LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "error opening %v: %v\n", LogFile, err)
+		// _, _ = fmt.Fprintf(os.Stderr, "[stderr] error opening %v: %v\n", LogFile, err)
+		_, _ = fmt.Fprintf(os.Stderr, "[stderr] "+format, argv...)
 		return
 	}
 	_, _ = fh.WriteString(fmt.Sprintf("ERR "+format, argv...))
 	_ = fh.Close()
 	return
+}
+
+func AppendF(logfile, format string, argv ...interface{}) {
+	format = strings.TrimSpace(format)
+	var err error
+	var fh *os.File
+	if fh, err = os.OpenFile(logfile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+		// _, _ = fmt.Fprintf(os.Stderr, "error opening %v: %v\n", LogFile, err)
+		_, _ = fmt.Fprintf(os.Stdout, "ERR "+format+"\n", argv...)
+		return
+	}
+	_, _ = fh.WriteString(fmt.Sprintf(format+"\n", argv...))
+	_ = fh.Close()
 }
