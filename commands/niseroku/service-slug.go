@@ -82,7 +82,7 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 
 	for _, app := range s.Applications() {
 		if ee := app.LoadAllSlugs(); ee != nil {
-			beIo.StderrF("error loading all app slugs: %v - %v\n", app.Name, ee)
+			s.LogErrorF("error loading all app slugs: %v - %v\n", app.Name, ee)
 			continue
 		}
 
@@ -97,7 +97,7 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 				nextSlug.Port = app.Port
 			}
 			if ee := s.migrateAppSlug(nextSlug); ee != nil {
-				beIo.StderrF("error migrating to next slug: %v - %v\n", nextSlug.Name, app.Port)
+				s.LogErrorF("error migrating to next slug: %v - %v\n", nextSlug.Name, app.Origin.Port)
 				continue
 			}
 		} else if thisSlug == nil && nextSlug != nil {
@@ -105,7 +105,7 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 			if !nextSlug.IsRunning() {
 				nextSlug.Port = app.Port
 				if ee := s.migrateAppSlug(nextSlug); ee != nil {
-					beIo.StderrF("error starting next slug: %v - %v\n", nextSlug.Name, app.Port)
+					s.LogErrorF("error starting next slug: %v - %v\n", nextSlug.Name, app.Origin.Port)
 					continue
 				}
 			}
@@ -116,7 +116,7 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 					beIo.StderrF("error starting this slug: %v - %v\n", thisSlug.Name, app.Port)
 				}
 			} else {
-				beIo.StdoutF("this slug already running: %v\n", thisSlug.Name)
+				s.LogInfoF("this slug already running: %v\n", thisSlug.Name)
 			}
 		} else {
 			// app has no known slugs
@@ -148,7 +148,10 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 		if !slugInSlugs(slug, keep) {
 			if slug.IsRunning() {
 				slug.Stop()
-				beIo.StdoutF("maybe destroy? %v\n", slug.Archive)
+				s.LogInfoF("slug was running previously and is not running now: %v\n", slug.Archive)
+				// if ee := slug.Destroy(); ee != nil {
+				// 	s.LogErrorF("error destroying old slug: %v - %v", slug.Archive, ee)
+				// }
 			}
 		}
 	}
@@ -161,7 +164,7 @@ func (s *Server) migrateAppSlug(slug *Slug) (err error) {
 		err = fmt.Errorf("error unpacking this slug: %v - %v", slug.Name, err)
 		return
 	}
-	beIo.StdoutF("starting: %v on port %d\n", slug.Name, slug.Port)
+	s.LogInfoF("starting: %v on port %d\n", slug.Name, slug.Port)
 	go s.handleAppSlugStart(slug)
 	go s.awaitAppSlugReady(slug)
 	return
@@ -169,7 +172,7 @@ func (s *Server) migrateAppSlug(slug *Slug) (err error) {
 
 func (s *Server) handleAppSlugStart(slug *Slug) {
 	if err := slug.Start(slug.Port); err != nil {
-		beIo.StderrF("error starting slug: %v - %v\n", slug.Name, err)
+		s.LogErrorF("error starting slug: %v - %v\n", slug.Name, err)
 	}
 	return
 }
@@ -178,18 +181,18 @@ func (s *Server) awaitAppSlugReady(slug *Slug) {
 	slugStartupTimeout := slug.GetSlugStartupTimeout()
 	readyIntervalTimeout := slug.GetReadyIntervalTimeout()
 
-	beIo.StdoutF("awaiting slug startup: %v - %v\n", slug.Name, slugStartupTimeout)
+	s.LogInfoF("awaiting slug startup: %v - %v\n", slug.Name, slugStartupTimeout)
 	start := time.Now()
 	for now := time.Now(); now.Sub(start) < slugStartupTimeout; now = time.Now() {
 		if isAddressPortOpenWithTimeout(slug.App.Host, slug.Port, readyIntervalTimeout) {
 			beIo.StdoutF("slug ready: %v on port %d (%v)\n", slug.Name, slug.Port, time.Now().Sub(start))
 			if err := s.transitionAppToNextSlug(slug.App); err != nil {
-				beIo.StderrF("error transitioning app to next slug: %v\n", err)
+				s.LogErrorF("error transitioning app to next slug: %v\n", err)
 			}
 			return
 		}
 	}
-	beIo.StdoutF("slug startup timeout reached: %v on port %d\n", slug.Name, slug.Port)
+	s.LogInfoF("slug startup timeout reached: %v on port %d\n", slug.Name, slug.Port)
 	slug.Stop()
 	return
 }
@@ -207,7 +210,7 @@ func (s *Server) transitionAppToNextSlug(app *Application) (err error) {
 		if err = nextSlug.App.Save(); err != nil {
 			err = fmt.Errorf("error saving app after transitioning: %v - %v\n", app.Name, err)
 		} else {
-			beIo.StdoutF("app transitioned to slug: %v\n", nextSlug.Name)
+			s.LogInfoF("app transitioned to slug: %v\n", nextSlug.Name)
 		}
 
 		s.Lock()

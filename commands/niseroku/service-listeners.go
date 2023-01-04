@@ -25,8 +25,8 @@ import (
 
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
-	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 func (s *Server) bindControlListener() (err error) {
@@ -124,10 +124,10 @@ func (s *Server) publicKeyLookupFunc(inputPubKey string) (pubkey *gitkit.PublicK
 		err = fmt.Errorf("unable to parse SSH key: %v", inputPubKey)
 		return
 	}
-	beIo.StdoutF("validating public key: %v\n", inputPubKey)
+	// s.LogInfoF("validating public key: %v\n", inputPubKey)
 	for _, app := range s.Applications() {
 		if app.SshKeyPresent(inputKeyId) {
-			beIo.StdoutF("validated app pubkey: %v (%v)\n", app.Name, inputPubKey)
+			s.LogInfoF("validated app pubkey: %v (%v)\n", app.Name, inputPubKey)
 			pubkey = &gitkit.PublicKey{
 				Id: inputKeyId,
 			}
@@ -135,7 +135,7 @@ func (s *Server) publicKeyLookupFunc(inputPubKey string) (pubkey *gitkit.PublicK
 		}
 	}
 	err = fmt.Errorf("pubkey not found")
-	beIo.StderrF("app with pubkey not found: %v\n", inputPubKey)
+	s.LogErrorF("app with pubkey not found: %v\n", inputPubKey)
 	return
 }
 
@@ -155,23 +155,23 @@ cat - | %v niseroku --config=%v app git-post-receive-hook`,
 
 	for _, app := range s.Applications() {
 		if app.RepoPath == "" {
-			beIo.StdoutF("no hook updates possible, app repo path missing: %v\n", app.Name)
+			s.LogInfoF("no hook updates possible, app repo path missing: %v\n", app.Name)
 			continue
 		}
 		hookDir := app.RepoPath + "/hooks"
 		if bePath.IsDir(hookDir) {
 			if preReceiveHookPath := hookDir + "/pre-receive"; !bePath.IsFile(preReceiveHookPath) {
 				if err = os.WriteFile(preReceiveHookPath, []byte(preReceiveHookSource), 0660); err != nil {
-					beIo.StderrF("error writing git pre-receive hook: %v - %v\n", preReceiveHookPath, err)
+					s.LogErrorF("error writing git pre-receive hook: %v - %v\n", preReceiveHookPath, err)
 				} else if err = os.Chmod(preReceiveHookPath, 0770); err != nil {
-					beIo.StderrF("error changing mode of git pre-receive hook: %v - %v\n", preReceiveHookPath, err)
+					s.LogErrorF("error changing mode of git pre-receive hook: %v - %v\n", preReceiveHookPath, err)
 				}
 			}
 			if postReceiveHookPath := hookDir + "/post-receive"; !bePath.IsFile(postReceiveHookPath) {
 				if err = os.WriteFile(postReceiveHookPath, []byte(postReceiveHookSource), 0660); err != nil {
-					beIo.StderrF("error writing git post-receive hook: %v - %v\n", postReceiveHookPath, err)
+					s.LogErrorF("error writing git post-receive hook: %v - %v\n", postReceiveHookPath, err)
 				} else if err = os.Chmod(postReceiveHookPath, 0770); err != nil {
-					beIo.StderrF("error changing mode of git post-receive hook: %v - %v\n", postReceiveHookPath, err)
+					s.LogErrorF("error changing mode of git post-receive hook: %v - %v\n", postReceiveHookPath, err)
 				}
 			}
 		}

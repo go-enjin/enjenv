@@ -52,11 +52,11 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	if origin, exists := s.LookupDomain[domain]; exists {
 		s.RUnlock()
 		if err := s.Handle(origin, w, r); err != nil {
-			beIo.StderrF("error handling origin request: %v\n", err)
+			s.LogErrorF("error handling origin request: %v\n", err)
 		}
 	} else {
 		s.RUnlock()
-		beIo.StderrF("domain not found: %v\n", domain)
+		s.LogErrorF("host not found: %v\n", r.Host)
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte("404 - Not Found\n"))
 	}
@@ -104,15 +104,16 @@ func (s *Server) Handle(origin *Application, w http.ResponseWriter, r *http.Requ
 
 	var status int
 	defer func() {
-		beIo.StdoutF(
-			"[%v] %v - %v - (%d) - %v %v\n",
-			time.Now().Format("20060102-150405"),
-			remoteAddr,
-			r.Host,
-			status,
-			r.Method,
-			r.URL.Path,
-		)
+		app.LogAccessF(status, remoteAddr, r)
+		// app.LogAccessF(
+		// 	"[%v] %v - %v - (%d) - %v %v\n",
+		// 	time.Now().Format("20060102-150405"),
+		// 	remoteAddr,
+		// 	r.Host,
+		// 	status,
+		// 	r.Method,
+		// 	r.URL.Path,
+		// )
 	}()
 
 	var response *http.Response
@@ -120,6 +121,7 @@ func (s *Server) Handle(origin *Application, w http.ResponseWriter, r *http.Requ
 		status = http.StatusServiceUnavailable
 		w.WriteHeader(http.StatusServiceUnavailable)
 		_, _ = fmt.Fprintf(w, "503 - Service Unavailable")
+		s.LogErrorF("origin request error: %v\n", err)
 		return
 	}
 

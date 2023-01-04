@@ -20,8 +20,6 @@ import (
 	"net"
 	"regexp"
 	"strings"
-
-	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 var (
@@ -59,7 +57,7 @@ func (s *Server) HandleSock(conn net.Conn) {
 	var bufRead int
 	buf := make([]byte, 1024)
 	if bufRead, err = conn.Read(buf); err != nil {
-		beIo.StderrF("error reading enjin-proxy sock request: %v\n", err)
+		s.LogErrorF("error reading control socket: %v\n", err)
 		return
 	}
 
@@ -80,13 +78,13 @@ func (s *Server) HandleSock(conn net.Conn) {
 		r := csv.NewReader(strings.NewReader(m[0][2]))
 		r.Comma = ' '
 		if argv, err = r.Read(); err != nil {
-			beIo.StderrF("ERR: invalid input - \"%v\" - %v", m[0][2], err)
+			s.LogErrorF("invalid input - \"%v\" - %v", m[0][2], err)
 			_, _ = conn.Write([]byte("ERR: invalid input\n"))
 			return
 		}
 
 	} else {
-		beIo.StderrF("ERR: invalid input - \"%v\"\n", request)
+		s.LogErrorF("invalid input - \"%v\"\n", request)
 		_, _ = conn.Write([]byte("ERR: invalid input\n"))
 		return
 	}
@@ -106,12 +104,12 @@ func (s *Server) sockProcessInput(cmd string, argv []string) (out string, err er
 	switch cmd {
 
 	case "nop":
-		beIo.StdoutF("processed command: %v %v\n", cmd, argv)
+		s.LogInfoF("[control] processed command: %v %v\n", cmd, argv)
 		return
 
 	default:
 		err = fmt.Errorf("unknown command")
-		beIo.StdoutF("unknown command: %v %v\n", cmd, argv)
+		s.LogInfoF("[control] unknown command: %v %v\n", cmd, argv)
 	}
 	return
 }
