@@ -212,6 +212,8 @@ func (s *Server) handleSIGUSR1() {
 		s.LogInfoF("SIGUSR1: reload all configurations")
 		if err := s.LoadApplications(); err != nil {
 			s.LogErrorF("error reloading applications: %v", err)
+			s.Stop()
+			return
 		}
 		s.LogInfoF("SIGUSR1: migrating app slugs")
 		if err := s.migrateAppSlugs(runningSlugs); err != nil {
