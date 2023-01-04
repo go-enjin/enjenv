@@ -40,20 +40,6 @@ func parseSshKey(input string) (prefix, data, comment, id string, ok bool) {
 	return
 }
 
-// func parseSshKey(input string) (prefix, data, comment, key string, ok bool) {
-// 	parts := strings.Split(input, " ")
-// 	numParts := len(parts)
-// 	if ok = numParts >= 3; ok {
-// 		prefix, data, comment = parts[0], parts[1], parts[2]
-// 	} else if ok = numParts == 2; ok {
-// 		prefix, data = parts[0], parts[1]
-// 	}
-// 	if prefix != "" && data != "" {
-// 		key = prefix + " " + data
-// 	}
-// 	return
-// }
-
 func parseArgv(input string) (argv []string, err error) {
 	r := csv.NewReader(strings.NewReader(input))
 	r.Comma = ' '
