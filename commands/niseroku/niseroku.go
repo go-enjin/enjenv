@@ -414,6 +414,7 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 	defer func() {
+		_ = os.RemoveAll(envDir)
 		_ = os.RemoveAll(buildPackClonePath)
 	}()
 
