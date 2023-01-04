@@ -139,19 +139,15 @@ func (s *Server) publicKeyLookupFunc(inputPubKey string) (pubkey *gitkit.PublicK
 	return
 }
 
+const (
+	gPreReceiveHookTemplate  = "#!/bin/bash\ncat - | %v niseroku --config=%v app git-pre-receive-hook"
+	gPostReceiveHookTemplate = "#!/bin/bash\ncat - | %v niseroku --config=%v app git-post-receive-hook"
+)
+
 func (s *Server) updateGitHookScripts() (err error) {
 
-	preReceiveHookSource := fmt.Sprintf(`#!/bin/bash
-cat - | %v niseroku --config=%v app git-pre-receive-hook`,
-		basepath.WhichBin(),
-		s.Config.Source,
-	)
-
-	postReceiveHookSource := fmt.Sprintf(`#!/bin/bash
-cat - | %v niseroku --config=%v app git-post-receive-hook`,
-		basepath.WhichBin(),
-		s.Config.Source,
-	)
+	preReceiveHookSource := fmt.Sprintf(gPreReceiveHookTemplate, basepath.WhichBin(), s.Config.Source)
+	postReceiveHookSource := fmt.Sprintf(gPostReceiveHookTemplate, basepath.WhichBin(), s.Config.Source)
 
 	for _, app := range s.Applications() {
 		if app.RepoPath == "" {
