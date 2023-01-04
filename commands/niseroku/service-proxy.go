@@ -78,7 +78,7 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *Server) Handle(origin *Application, w http.ResponseWriter, r *http.Request) (err error) {
+func (s *Server) Handle(app *Application, w http.ResponseWriter, r *http.Request) (err error) {
 	var remoteAddr string
 	if remoteAddr, err = beNet.GetIpFromRequest(r); err != nil {
 		return
@@ -87,14 +87,14 @@ func (s *Server) Handle(origin *Application, w http.ResponseWriter, r *http.Requ
 	req := r.Clone(r.Context())
 	req.Host = r.Host
 	req.URL.Host = r.Host
-	req.URL.Scheme = origin.Scheme
+	req.URL.Scheme = app.Origin.Scheme
 	req.RequestURI = ""
 	req.Header.Set("X-Proxy", "niseroku")
 	req.Header.Set("X-Forwarded-For", remoteAddr)
 
 	var originRequestTimeout time.Duration
-	if slug := origin.GetThisSlug(); slug == nil {
-		err = fmt.Errorf("origin missing this slug: %v\n", origin.Name)
+	if slug := app.GetThisSlug(); slug == nil {
+		err = fmt.Errorf("origin missing this slug: %v\n", app.Name)
 		return
 	} else {
 		originRequestTimeout = slug.GetOriginRequestTimeout()
@@ -105,13 +105,7 @@ func (s *Server) Handle(origin *Application, w http.ResponseWriter, r *http.Requ
 			MaxConnsPerHost: 0,
 			IdleConnTimeout: originRequestTimeout,
 			DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
-				dialer := &net.Dialer{
-					LocalAddr: &net.TCPAddr{
-						IP:   net.ParseIP(origin.Host),
-						Port: 0,
-					},
-				}
-				conn, err = dialer.Dial("tcp", fmt.Sprintf("%s:%d", origin.Host, origin.Port))
+				conn, err = app.Origin.Dial()
 				return
 			},
 		},
