@@ -17,6 +17,7 @@ package niseroku
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -27,15 +28,13 @@ import (
 
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 type Application struct {
-	Name     string                 `toml:"name"`
-	Binary   string                 `toml:"binary,omitempty"`
-	Scheme   string                 `toml:"scheme,omitempty"`
-	Host     string                 `toml:"host,omitempty"`
-	Port     int                    `toml:"port,omitempty,omitempty"`
+	Name     string                 `toml:"-"`
+	Origin   AppOrigin              `toml:"origin"`
 	Domains  []string               `toml:"domains,omitempty"`
 	SshKeys  []string               `toml:"ssh-keys,omitempty"`
 	Settings map[string]interface{} `toml:"settings,omitempty"`
@@ -45,17 +44,14 @@ type Application struct {
 
 	Timeouts AppTimeouts `toml:"timeouts,omitempty"`
 
-	Source     string           `toml:"-"`
-	RepoPath   string           `toml:"-"`
-	Repository *git.Repository  `toml:"-"`
-	Config     *Config          `toml:"-"`
-	Slugs      map[string]*Slug `toml:"-"`
-}
-
-type AppTimeouts struct {
-	SlugStartup   *time.Duration `toml:"slug-startup,omitempty"`
-	ReadyInterval *time.Duration `toml:"ready-interval,omitempty"`
-	OriginRequest *time.Duration `toml:"origin-request,omitempty"`
+	Slugs     map[string]*Slug `toml:"-"`
+	Config    *Config          `toml:"-"`
+	Source    string           `toml:"-"`
+	GitRepo   *git.Repository  `toml:"-"`
+	RepoPath  string           `toml:"-"`
+	ErrorLog  string           `toml:"-"`
+	AccessLog string           `toml:"-"`
+	NoticeLog string           `toml:"-"`
 }
 
 func NewApplication(source string, config *Config) (app *Application, err error) {
@@ -63,9 +59,7 @@ func NewApplication(source string, config *Config) (app *Application, err error)
 		Source: source,
 		Config: config,
 	}
-	if err = app.Load(); err == nil {
-		beIo.StdoutF("loaded application: %v\n", app.Name)
-	}
+	err = app.Load()
 	return
 }
 
@@ -74,12 +68,16 @@ func (a *Application) Load() (err error) {
 		return
 	}
 
+	a.Name = bePath.Base(a.Source)
+	a.RepoPath = fmt.Sprintf("%v/%v.git", a.Config.Paths.VarRepos, a.Name)
+	a.ErrorLog = fmt.Sprintf("%s/%v.error.log", a.Config.Paths.VarLogs, a.Name)
+	a.AccessLog = fmt.Sprintf("%s/%v.access.log", a.Config.Paths.VarLogs, a.Name)
+	a.NoticeLog = fmt.Sprintf("%s/%v.info.log", a.Config.Paths.VarLogs, a.Name)
+
 	switch {
-	case a.Binary == "":
-		err = fmt.Errorf("binary setting not found")
-	case a.Scheme == "":
+	case a.Origin.Scheme == "":
 		err = fmt.Errorf("scheme setting not found")
-	case a.Host == "":
+	case a.Origin.Host == "":
 		err = fmt.Errorf("host setting not found")
 	case len(a.Domains) == 0:
 		err = fmt.Errorf("domains setting not found")
@@ -87,12 +85,10 @@ func (a *Application) Load() (err error) {
 		err = fmt.Errorf("ssh-keys setting not found")
 	case a.ThisSlug != "":
 		if !bePath.IsFile(a.ThisSlug) {
-			beIo.StderrF("slug setting found, slug file not found, clearing setting\n")
+			// a.LogErrorF("ignoring slug setting - slug file not found\n")
 			a.ThisSlug = ""
 		}
 	}
-
-	a.RepoPath = fmt.Sprintf("%v/%v.git", a.Config.Paths.VarRepos, a.Name)
 
 	return
 }
@@ -107,11 +103,11 @@ func (a *Application) Save() (err error) {
 }
 
 func (a *Application) String() string {
-	return fmt.Sprintf("*%s{\"%s://%s:%d\":[%v]}", a.Name, a.Scheme, a.Host, a.Port, strings.Join(a.Domains, ","))
+	return fmt.Sprintf("*%s{\"%s\":[%v]}", a.Name, a.Origin.String(), strings.Join(a.Domains, ","))
 }
 
 func (a *Application) SetupRepo() (err error) {
-	if a.Repository != nil {
+	if a.GitRepo != nil {
 		return
 	}
 	if !bePath.IsDir(a.RepoPath) {
@@ -125,8 +121,8 @@ func (a *Application) SetupRepo() (err error) {
 			return
 		}
 	}
-	if a.Repository, err = git.PlainInit(a.RepoPath, true); err != nil && err == git.ErrRepositoryAlreadyExists {
-		a.Repository, err = git.PlainOpen(a.RepoPath)
+	if a.GitRepo, err = git.PlainInit(a.RepoPath, true); err != nil && err == git.ErrRepositoryAlreadyExists {
+		a.GitRepo, err = git.PlainOpen(a.RepoPath)
 	}
 	return
 }
@@ -141,7 +137,7 @@ func (a *Application) LoadAllSlugs() (err error) {
 		name := bePath.Base(file)
 		if strings.HasPrefix(name, a.Name+"-") {
 			if slug, ee := NewSlugFromZip(a, file); ee != nil {
-				beIo.StderrF("error making slug from %v: %v\n", file, ee)
+				a.LogErrorF("error making slug from %v: %v\n", file, ee)
 			} else {
 				a.Slugs[slug.Name] = slug
 			}
@@ -169,7 +165,7 @@ func (a *Application) GetNextSlug() (slug *Slug) {
 func (a *Application) SshKeyPresent(input string) (present bool) {
 	var err error
 	if present, err = a.HasSshKey(input); err != nil {
-		beIo.StderrF("error checking ssh key: %v - %v - %v\n", a.Name, input, err)
+		a.LogErrorF("error checking ssh key: %v - %v - %v\n", a.Name, input, err)
 	}
 	return
 }
@@ -194,14 +190,13 @@ func (a *Application) HasSshKey(input string) (present bool, err error) {
 }
 
 func (a *Application) ApplySettings(envDir string) (err error) {
-	beIo.StdoutF("applying settings to: %v\n", envDir)
+	// a.LogInfoF("applying settings to: %v\n", envDir)
 	for _, k := range maps.SortedKeys(a.Settings) {
 		key := strcase.ToScreamingSnake(k)
 		value := fmt.Sprintf("%v", a.Settings[k])
 		if err = os.WriteFile(envDir+"/"+key, []byte(value), 0660); err != nil {
 			return
 		}
-		beIo.StdoutF("wrote: %v=\"%v\"\n", key, value)
 	}
 	return
 }
@@ -212,4 +207,31 @@ func (a *Application) OsEnviron() (environment []string) {
 		environment = append(environment, fmt.Sprintf("%v=%v", key, a.Settings[k]))
 	}
 	return
+}
+
+func (a *Application) LogInfoF(format string, argv ...interface{}) {
+	prefix := fmt.Sprintf("[%v] ", a.Name)
+	beIo.AppendF(a.NoticeLog, prefix+format, argv...)
+}
+
+func (a *Application) LogAccessF(status int, remoteAddr string, r *http.Request) {
+	beIo.AppendF(a.AccessLog,
+		"[%v] [%v] %v - %v - (%d) - %v %v\n",
+		a.Name,
+		time.Now().Format("20060102-150405"),
+		remoteAddr,
+		r.Host,
+		status,
+		r.Method,
+		r.URL.Path,
+	)
+}
+
+func (a *Application) LogError(err error) {
+	beIo.AppendF(a.ErrorLog, "[%v] %v", a.Name, err.Error())
+}
+
+func (a *Application) LogErrorF(format string, argv ...interface{}) {
+	prefix := fmt.Sprintf("[%v] ", a.Name)
+	beIo.AppendF(a.ErrorLog, prefix+format, argv...)
 }
