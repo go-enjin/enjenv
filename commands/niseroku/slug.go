@@ -119,7 +119,7 @@ func (s *Slug) ReadProcfile() (web string, err error) {
 
 func (s *Slug) IsReady() (ready bool) {
 	if s.IsRunning() && s.Port > 0 {
-		ready = isAddressPortOpen(s.App.Host, s.Port)
+		ready = isAddressPortOpen(s.App.Origin.Host, s.Port)
 	}
 	return
 }
@@ -138,7 +138,7 @@ func (s *Slug) IsRunningReady() (running, ready bool) {
 	defer s.RUnlock()
 	if proc, ee := getProcessFromPidFile(s.PidFile); ee == nil && proc != nil {
 		running = proc.Pid > 0
-		ready = isAddressPortOpen(s.App.Host, s.Port)
+		ready = isAddressPortOpen(s.App.Origin.Host, s.Port)
 	}
 	return
 }
@@ -153,7 +153,7 @@ func (s *Slug) Start(port int) (err error) {
 		return
 	}
 
-	if isAddressPortOpen(s.App.Host, port) {
+	if isAddressPortOpen(s.App.Origin.Host, port) {
 		err = fmt.Errorf("port already open by another process")
 		return
 	}
