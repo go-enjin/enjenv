@@ -1,0 +1,7 @@
+/var/lib/niseroku/logs.d/*.log {
+    rotate 7
+    size 10M
+    compress
+    delaycompress
+    sharedscripts
+}
