@@ -460,7 +460,7 @@ func (s *Server) dropPrivileges() (err error) {
 				continue
 			}
 			var allFiles []string
-			if allFiles, err = bePath.ListAllDirs(p); err != nil {
+			if allFiles, err = bePath.ListAllFiles(p); err != nil {
 				beIo.StderrF("error listing all files: %v - %v\n", p, err)
 				continue
 			}
