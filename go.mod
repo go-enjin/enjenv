@@ -15,7 +15,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.22.10
 	github.com/sosedoff/gitkit v0.3.0
 	github.com/urfave/cli/v2 v2.19.2
-	golang.org/x/crypto v0.3.0
+	golang.org/x/crypto v0.5.0
 )
 
 require (
@@ -127,10 +127,10 @@ require (
 	github.com/yookoala/realpath v1.0.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
-	golang.org/x/net v0.2.0 // indirect
-	golang.org/x/sys v0.2.0 // indirect
-	golang.org/x/term v0.2.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
