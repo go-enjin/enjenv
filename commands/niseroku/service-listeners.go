@@ -47,9 +47,6 @@ func (s *Server) bindBothHttpListeners() (err error) {
 	s.Lock()
 	defer s.Unlock()
 
-	httpAddr := fmt.Sprintf("%v:%d", s.Config.BindAddr, s.Config.Ports.Http)
-	httpsAddr := fmt.Sprintf("%v:%d", s.Config.BindAddr, s.Config.Ports.Https)
-
 	lookupDomains := maps.Keys(s.LookupDomain)
 
 	s.autocert = &autocert.Manager{
@@ -59,22 +56,24 @@ func (s *Server) bindBothHttpListeners() (err error) {
 		HostPolicy: autocert.HostWhitelist(lookupDomains...),
 	}
 
+	// default serve mux
+	http.HandleFunc("/", s.Handler)
+
+	httpAddr := fmt.Sprintf("%v:%d", s.Config.BindAddr, s.Config.Ports.Http)
 	s.http = &http.Server{
 		Addr:    httpAddr,
-		Handler: http.HandlerFunc(s.Handler),
+		Handler: s.autocert.HTTPHandler(nil),
 	}
-	s.http.Handler = s.autocert.HTTPHandler(http.HandlerFunc(s.Handler))
-
-	s.https = &http.Server{
-		Addr:      httpsAddr,
-		Handler:   s.autocert.HTTPHandler(http.HandlerFunc(s.Handler)),
-		TLSConfig: s.autocert.TLSConfig(),
-	}
-
 	if s.httpListener, err = net.Listen("tcp", httpAddr); err != nil {
 		return
 	}
-	s.httpsListener, err = net.Listen("tcp", httpsAddr)
+
+	httpsAddr := fmt.Sprintf("%v:%d", s.Config.BindAddr, s.Config.Ports.Https)
+	s.https = &http.Server{
+		Addr:      httpsAddr,
+		TLSConfig: s.autocert.TLSConfig(),
+	}
+	s.httpsListener = s.autocert.Listener()
 
 	return
 }
