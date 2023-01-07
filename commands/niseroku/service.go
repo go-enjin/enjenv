@@ -113,6 +113,9 @@ func (s *Server) LoadApplications() (err error) {
 	}
 	foundApps := make(map[string]*Application)
 	for _, appConfig := range appConfigs {
+		if !strings.HasSuffix(appConfig, ".toml") {
+			continue
+		}
 		var app *Application
 		if app, err = NewApplication(appConfig, s.Config); err != nil {
 			return
