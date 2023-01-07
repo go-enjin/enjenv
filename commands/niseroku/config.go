@@ -223,11 +223,16 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 		appEndPort = 4400
 	}
 
+	var bindAddr string
+	if bindAddr = cfg.BindAddr; bindAddr == "" {
+		bindAddr = "0.0.0.0"
+	}
+
 	config = &Config{
 		Source:       niserokuConfig,
 		LogFile:      cfg.LogFile,
 		NeedRoot:     needRootUser,
-		BindAddr:     cfg.BindAddr,
+		BindAddr:     bindAddr,
 		EnableSSL:    cfg.EnableSSL,
 		BuildPack:    cfg.BuildPack,
 		AccountEmail: cfg.AccountEmail,
