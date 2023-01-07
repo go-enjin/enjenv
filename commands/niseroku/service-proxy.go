@@ -85,6 +85,9 @@ func (s *Server) Handle(app *Application, w http.ResponseWriter, r *http.Request
 	}
 
 	var status int
+	defer func() {
+		app.LogAccessF(status, remoteAddr, r)
+	}()
 
 	if app.Maintenance {
 		status = http.StatusServiceUnavailable
@@ -119,25 +122,11 @@ func (s *Server) Handle(app *Application, w http.ResponseWriter, r *http.Request
 		},
 	}
 
-	defer func() {
-		app.LogAccessF(status, remoteAddr, r)
-		// app.LogAccessF(
-		// 	"[%v] %v - %v - (%d) - %v %v\n",
-		// 	time.Now().Format("20060102-150405"),
-		// 	remoteAddr,
-		// 	r.Host,
-		// 	status,
-		// 	r.Method,
-		// 	r.URL.Path,
-		// )
-	}()
-
 	var response *http.Response
 	if response, err = client.Do(req); err != nil {
-		status = http.StatusServiceUnavailable
-		w.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = fmt.Fprintf(w, "503 - Service Unavailable")
 		s.LogErrorF("origin request error: %v\n", err)
+		status = http.StatusServiceUnavailable
+		s.Serve503(w, r)
 		return
 	}
 
