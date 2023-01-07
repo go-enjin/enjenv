@@ -71,9 +71,9 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		s.RUnlock()
-		s.LogErrorF("host not found: %v\n", r.Host)
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("404 - Not Found\n"))
+		remoteAddr, _ := beNet.GetIpFromRequest(r)
+		s.LogErrorF("host not found: %v - %v\n", r.Host, r.URL.String(), remoteAddr)
+		s.Serve404(w, r)
 	}
 	return
 }
@@ -81,6 +81,14 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Handle(app *Application, w http.ResponseWriter, r *http.Request) (err error) {
 	var remoteAddr string
 	if remoteAddr, err = beNet.GetIpFromRequest(r); err != nil {
+		return
+	}
+
+	var status int
+
+	if app.Maintenance {
+		status = http.StatusServiceUnavailable
+		s.Serve503(w, r)
 		return
 	}
 
@@ -111,7 +119,6 @@ func (s *Server) Handle(app *Application, w http.ResponseWriter, r *http.Request
 		},
 	}
 
-	var status int
 	defer func() {
 		app.LogAccessF(status, remoteAddr, r)
 		// app.LogAccessF(

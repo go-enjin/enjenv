@@ -32,6 +32,9 @@ import (
 
 func (s *Server) startAppSlugs() (err error) {
 	for _, app := range s.Applications() {
+		if app.Maintenance {
+			continue
+		}
 		if ee := s.startAppSlug(app); ee != nil && !strings.Contains(ee.Error(), "app slugs not found") {
 			err = ee
 			return

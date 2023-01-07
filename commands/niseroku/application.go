@@ -39,6 +39,8 @@ type Application struct {
 	SshKeys  []string               `toml:"ssh-keys,omitempty"`
 	Settings map[string]interface{} `toml:"settings,omitempty"`
 
+	Maintenance bool `toml:"maintenance,omitempty"`
+
 	ThisSlug string `toml:"this-slug,omitempty"`
 	NextSlug string `toml:"next-slug,omitempty"`
 

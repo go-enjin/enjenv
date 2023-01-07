@@ -144,6 +144,10 @@ func (s *Slug) IsRunningReady() (running, ready bool) {
 }
 
 func (s *Slug) Start(port int) (err error) {
+	if s.App.Maintenance {
+		s.App.LogInfoF("slug app maintenance mode: %v on port %d\n", s.Name, s.Port)
+		return
+	}
 	if running, ready := s.IsRunningReady(); ready {
 		s.Port = port
 		s.App.LogInfoF("slug already running and ready: %v on port %d\n", s.Name, s.Port)
