@@ -149,6 +149,14 @@ func ErrorF(format string, argv ...interface{}) (err error) {
 	return
 }
 
+func STDOUT(format string, argv ...interface{}) {
+	_, _ = fmt.Fprintf(os.Stdout, format, argv...)
+}
+
+func STDERR(format string, argv ...interface{}) {
+	_, _ = fmt.Fprintf(os.Stderr, format, argv...)
+}
+
 func stdout(format string, argv ...interface{}) {
 	if LogFile == "" {
 		_, _ = fmt.Fprintf(os.Stdout, format, argv...)
