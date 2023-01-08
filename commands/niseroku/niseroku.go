@@ -373,26 +373,40 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 	buildPackClonePath := config.Paths.TmpClone + "/" + app.Name
 	envDir := config.Paths.VarSettings + "/" + app.Name
 
+	beIo.STDOUT("# preparing ENV_DIR...\n")
+	if bePath.IsDir(envDir) {
+		if err = os.RemoveAll(envDir); err != nil {
+			err = fmt.Errorf("error removing enjin env path: %v - %v", envDir, err)
+			return
+		}
+	}
+	if err = bePath.Mkdir(envDir); err != nil {
+		err = fmt.Errorf("error making enjin deployment path: %v - %v", envDir, err)
+		return
+	}
+	if err = app.ApplySettings(envDir); err != nil {
+		err = fmt.Errorf("error applying enjin settings: %v - %v", envDir, err)
+		return
+	}
+
+	beIo.STDOUT("# preparing CACHE_DIR...\n")
+	if !bePath.IsDir(cacheDir) {
+		if err = bePath.Mkdir(cacheDir); err != nil {
+			err = fmt.Errorf("error making enjin deployment path: %v - %v", cacheDir, err)
+			return
+		}
+	}
+
+	beIo.STDOUT("# preparing BUILD_DIR...\n")
 	if err = cp.Copy(tmpPath, buildDir); err != nil {
+		err = fmt.Errorf("error copying to enjin build path: %v - %v", buildDir, err)
 		return
 	}
 	defer func() {
 		// cleanup build dir, if success, zip is all that is needed
+		beIo.STDOUT("# cleaning BUILD_DIR...\n")
 		_ = os.RemoveAll(buildDir)
 	}()
-
-	for _, dir := range []string{envDir, cacheDir /*, buildPackClonePath*/} {
-		if !bePath.IsDir(dir) {
-			if err = bePath.Mkdir(dir); err != nil {
-				err = fmt.Errorf("error making enjin deployment path: %v - %v", dir, err)
-				return
-			}
-		}
-	}
-
-	if err = app.ApplySettings(envDir); err != nil {
-		return
-	}
 
 	beIo.STDOUT("# preparing enjenv buildpack...\n")
 	if bePath.IsDir(config.BuildPack) {
