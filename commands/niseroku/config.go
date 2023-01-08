@@ -45,6 +45,8 @@ type Config struct {
 	AccountEmail string `toml:"account-email,omitempty"`
 	LogFile      string `toml:"log-file,omitempty"`
 
+	IncludeSlugs IncludeSlugsConfig `toml:"include-slugs"`
+
 	Timeouts TimeoutsConfig `toml:"timeouts,omitempty"`
 
 	RunAs RunAsConfig `toml:"run-as,omitempty"`
@@ -53,6 +55,11 @@ type Config struct {
 
 	Source   string `toml:"-"`
 	NeedRoot bool   `toml:"-"`
+}
+
+type IncludeSlugsConfig struct {
+	OnStart bool `toml:"on-start,omitempty"`
+	OnStop  bool `toml:"on-stop,omitempty"`
 }
 
 type TimeoutsConfig struct {
@@ -236,6 +243,7 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 		EnableSSL:    cfg.EnableSSL,
 		BuildPack:    cfg.BuildPack,
 		AccountEmail: cfg.AccountEmail,
+		IncludeSlugs: cfg.IncludeSlugs,
 		Timeouts: TimeoutsConfig{
 			SlugStartup:   slugStartupTimeout,
 			ReadyInterval: readyIntervalTimeout,
