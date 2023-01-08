@@ -104,10 +104,11 @@ help:
 	@echo "       make <install|install-niseroku>"
 
 clean:
-	@if [ -f "${BIN_NAME}" ]; then rm -fv "${BIN_NAME}"; fi
+	@rm -fv "${BIN_NAME}"
 	@rm -fv ${BIN_NAME}.*.*
 
 distclean: clean
+	@rm -rfv _dist
 
 debug: BUILD_VERSION=$(call _tag_ver)
 debug: BUILD_RELEASE=$(call _rel_ver)
