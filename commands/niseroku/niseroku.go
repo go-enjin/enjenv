@@ -241,7 +241,7 @@ func (c *Command) actionReload(ctx *cli.Context) (err error) {
 	// if pid is a running process: send SIGUSR1
 
 	if !bePath.IsFile(c.config.Paths.PidFile) {
-		err = fmt.Errorf("pid file not found, nothing to stop")
+		err = fmt.Errorf("pid file not found, nothing to signal")
 		return
 	}
 
@@ -261,12 +261,7 @@ func (c *Command) actionRestart(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
-
-	// if pid-file exists, read pid from file
-	// if pid is a running process: send SIGHUP
-
-	err = fmt.Errorf("restart command unimplemented\n")
-
+	err = fmt.Errorf("niseroku restart not implemented")
 	return
 }
 
@@ -274,7 +269,8 @@ func (c *Command) actionGitPreReceiveHook(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
-	// beIo.StdoutF("git pre-receive hook\n")
+
+	beIo.STDOUT("# initializing slug building process\n")
 
 	// authenticate git repo endpoint (and branch) with ssh-key
 	// early error during a git-push
@@ -305,8 +301,6 @@ func (c *Command) actionGitPostReceiveHook(ctx *cli.Context) (err error) {
 		return
 	}
 
-	// beIo.StdoutF("git post-receive hook\n")
-
 	// validate git repo endpoint (and branch) with ssh-key
 	// detect, build and archive a new app slug
 	// notify slug runner to "try" the new slug (destroyed on error)
@@ -334,9 +328,6 @@ func (c *Command) actionGitPostReceiveHook(ctx *cli.Context) (err error) {
 
 func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo) (app *Application, err error) {
 	if envSshId := env.Get("GITKIT_KEY", ""); envSshId != "" {
-		// beIo.StdoutF("key: %v\n", envSshId)
-		// beIo.StdoutF("pwd: %v\n", bePath.Pwd())
-		// beIo.StdoutF("cfg: %+#v\n", config)
 		var s *Server
 		if s, err = NewServer(config); err != nil {
 			return
@@ -352,7 +343,7 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 					err = fmt.Errorf("invalid git repository for ssh-id")
 					return
 				}
-				beIo.StdoutF("# valid git repository for ssh-id: %v\n", a.Name)
+				beIo.StdoutF("# validated git repository for ssh-id: %v\n", a.Name)
 				app = a
 				break
 			}
@@ -374,7 +365,6 @@ func (c *Command) enjinRepoPreReceiveHandler(app *Application, config *Config, i
 }
 
 func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, info *gitkit.HookInfo, tmpPath string) (err error) {
-	// beIo.StdoutF("# post-receive handler:\n%+#v\n", info)
 
 	tmpName := bePath.Base(tmpPath)
 	buildDir := config.Paths.TmpBuild + "/" + tmpName
@@ -404,6 +394,7 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 
+	beIo.STDOUT("# preparing enjenv buildpack...\n")
 	if bePath.IsDir(config.BuildPack) {
 		if err = cp.Copy(config.BuildPack, buildPackClonePath); err != nil {
 			return
@@ -414,33 +405,40 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 	defer func() {
+		beIo.STDOUT("# cleaning enjenv buildpack...\n")
 		_ = os.RemoveAll(envDir)
 		_ = os.RemoveAll(buildPackClonePath)
 	}()
 
 	var status int
+	beIo.STDOUT("# buildpack: detecting... ")
 	if status, err = run.Exe(buildPackClonePath+"/bin/detect", buildDir); err != nil {
+		err = fmt.Errorf("error detecting buildpack: %v", err)
+		beIo.STDOUT("\n")
 		return
 	} else if status != 0 {
+		beIo.STDOUT("\n")
 		return
 	}
 
+	beIo.STDOUT("# buildpack: compiling...\n")
 	if status, err = run.Exe(buildPackClonePath+"/bin/compile", buildDir, cacheDir, envDir); err != nil {
 		return
 	} else if status != 0 {
 		return
 	}
 
+	beIo.STDOUT("# starting slug compression\n")
 	pwd := bePath.Pwd()
 	if err = os.Chdir(buildDir); err != nil {
 		return
 	}
-
 	if status, err = run.Exe("zip", "--quiet", "--recurse-paths", slugZip, "."); err != nil {
 		return
 	} else if status != 0 {
 		return
 	}
+	beIo.STDOUT("# finished slug compression\n")
 
 	if err = os.Chdir(pwd); err != nil {
 		return
@@ -451,12 +449,7 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 
-	// beIo.StdoutF("# BUILD_DIR: %v\n", buildDir)
-	// beIo.StdoutF("# CACHE_DIR: %v\n", cacheDir)
-	// beIo.StdoutF("# ENV_DIR: %v\n", envDir)
-	// beIo.StdoutF("# app.NextSlug: %v\n", app.NextSlug)
-
-	beIo.StdoutF("# build completed, signaling for slug deployment")
+	beIo.STDOUT("# build completed, signaling for slug deployment\n")
 	if err = sendSignalToPidFromFile(c.config.Paths.PidFile, syscall.SIGUSR1); err != nil {
 		beIo.StderrF("# error signaling for slug deployment: %v\n", err)
 		return
