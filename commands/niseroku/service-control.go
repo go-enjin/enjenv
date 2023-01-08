@@ -103,6 +103,39 @@ func (s *Server) sockProcessInput(cmd string, argv []string) (out string, err er
 	cmd = strings.ToLower(cmd)
 	switch cmd {
 
+	case "app-start":
+		for _, arg := range argv {
+			if app, ok := s.LookupApp[arg]; ok {
+				if err = s.startAppSlug(app); err != nil {
+					return
+				} else {
+					s.LogInfoF("[control] started app slug: %v\n", arg)
+				}
+			} else {
+				s.LogInfoF("[control] app not found: %v\n", arg)
+			}
+		}
+		return
+
+	case "app-stop":
+		for _, arg := range argv {
+			if app, ok := s.LookupApp[arg]; ok {
+				if slug := app.GetThisSlug(); slug != nil {
+					if slug.IsReady() {
+						slug.Stop()
+						s.LogInfoF("[control] stopped app slug: %v\n", arg)
+					} else {
+						s.LogInfoF("[control] app slug already stopped: %v\n", arg)
+					}
+				} else {
+					s.LogInfoF("[control] app slug not found: %v\n", arg)
+				}
+			} else {
+				s.LogInfoF("[control] app not found: %v\n", arg)
+			}
+		}
+		return
+
 	case "nop":
 		s.LogInfoF("[control] processed command: %v %v\n", cmd, argv)
 		return
