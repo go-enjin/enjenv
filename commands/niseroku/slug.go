@@ -177,22 +177,23 @@ func (s *Slug) GetBinProcess() (proc *process.Process, err error) {
 	return
 }
 
-func (s *Slug) Start(port int) (err error) {
+func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string, err error) {
 	if s.App.Maintenance {
 		s.App.LogInfoF("slug app maintenance mode: %v on port %d\n", s.Name, s.Port)
 		return
 	}
 	if running, ready := s.IsRunningReady(); ready {
 		s.Port = port
-		s.App.LogInfoF("slug already running and ready: %v on port %d\n", s.Name, s.Port)
+		err = fmt.Errorf("slug already running and ready: %v (PORT=%d)", s.Name, s.Port)
 		return
 	} else if running {
-		err = fmt.Errorf("slug already running and not ready: %v\n", s.Name)
+		err = fmt.Errorf("slug already running and not ready: %v", s.Name)
 		return
 	}
 
 	if isAddressPortOpen(s.App.Origin.Host, port) {
 		err = fmt.Errorf("port already open by another process")
+		s.App.LogErrorF("%v\n", err)
 		return
 	}
 	s.Port = port
@@ -203,13 +204,10 @@ func (s *Slug) Start(port int) (err error) {
 	}
 	s.App.LogInfoF("starting slug: PORT=%d %v (%v)\n", port, web, s.Name)
 
-	environ := append(s.App.OsEnviron(), fmt.Sprintf("PORT=%d", port))
-	logfile := s.App.Config.Paths.VarLogs + "/" + s.App.Name + ".log"
-	var webCmd string
-	var webArgv []string
+	environ = append(s.App.OsEnviron(), fmt.Sprintf("PORT=%d", port))
 	var parsedArgs []string
 	if parsedArgs, err = parseArgv(web); err != nil {
-		err = fmt.Errorf("error parsing Procfile web entry argv: \"%v\"", web)
+		err = fmt.Errorf("error parsing Procfile web entry argv: %v \"%v\"", s.Name, web)
 		return
 	}
 	switch len(parsedArgs) {
@@ -221,13 +219,32 @@ func (s *Slug) Start(port int) (err error) {
 		webCmd = parsedArgs[0]
 		webArgv = parsedArgs[1:]
 	}
+	if found, _ := exec.LookPath(webCmd); found != "" {
+		webCmd = found
+	}
 
 	// s.App.LogInfoF("%v using log file: %v\n", s.App.Name, logfile)
 	// s.App.LogInfoF("%v using pid file: %v\n", s.App.Name, s.PidFile)
 	// s.App.LogInfoF("%v environment: %v\n", s.App.Name, environ)
+	return
+}
 
-	if pid, ee := run.Daemonize(s.RunPath, webCmd, webArgv, logfile, logfile, environ); ee != nil {
-		err = fmt.Errorf("error daemonizing slug: %v", ee)
+func (s *Slug) Start(port int) (err error) {
+	var webCmd string
+	var webArgv, environ []string
+	if webCmd, webArgv, environ, err = s.PrepareStart(port); err != nil {
+		if strings.Contains(err.Error(), "slug already running") {
+			s.App.LogInfoF("%v", err)
+			err = nil
+			return
+		}
+		s.App.LogErrorF("error preparing slug: %v (port=%d)\n", s.Name, port)
+		return
+	}
+
+	s.App.LogInfoF("backgrounding slug web process: %v - %v %v\n", s.App.Name, webCmd, webArgv)
+	if pid, ee := run.BackgroundWith(&run.Options{Path: s.RunPath, Name: webCmd, Argv: webArgv, Stdout: s.LogFile, Stderr: s.LogFile, Environ: environ}); ee != nil {
+		err = fmt.Errorf("error backgrounding slug: %v %v - %v", webCmd, webArgv, ee)
 		return
 	} else {
 		if err = os.WriteFile(s.PidFile, []byte(strconv.Itoa(pid)), 0660); err != nil {
