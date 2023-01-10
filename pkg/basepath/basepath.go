@@ -17,6 +17,7 @@ package basepath
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/go-enjin/be/pkg/cli/env"
@@ -27,10 +28,21 @@ import (
 var (
 	EnjenvPath    = FindEnjenvDir()
 	EnjenvDirName = ".enjenv"
+	EnjenvBinPath = ""
+	EnjenvBinHash = ""
 )
 
 func WhichBin() (enjenvBinPath string) {
-	if enjenvBinPath = os.Getenv("ENJENV_BIN"); enjenvBinPath != "" {
+	// TODO: figure out if ENJENV_BIN is necessary
+	// if enjenvBinPath = os.Getenv("ENJENV_BIN"); enjenvBinPath != "" {
+	// 	return
+	// }
+	if EnjenvBinPath != "" {
+		enjenvBinPath = EnjenvBinPath
+		return
+	}
+	var err error
+	if enjenvBinPath, err = exec.LookPath(os.Args[0]); err == nil {
 		return
 	}
 	enjenvBinPath = path.Which(os.Args[0])
