@@ -111,7 +111,7 @@ func (s *Server) sockProcessInput(cmd string, argv []string) (out string, err er
 	case "app-start":
 		for _, arg := range argv {
 			if app, ok := s.LookupApp[arg]; ok {
-				if err = s.startAppSlug(app); err != nil {
+				if err = s.StartAppSlug(app); err != nil {
 					return
 				} else {
 					s.LogInfoF("[control] started app slug: %v\n", arg)
