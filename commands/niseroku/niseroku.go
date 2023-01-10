@@ -210,25 +210,15 @@ func (c *Command) actionStop(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
-
-	// if pid-file exists, read pid from file
-	// if pid is a running process: send SIGINT
-
 	if !bePath.IsFile(c.config.Paths.PidFile) {
-		err = fmt.Errorf("pid file not found, nothing to stop")
+		beIo.STDERR("pid file not found: %v\n", c.config.Paths.PidFile)
 		return
 	}
-
-	var proc *process.Process
-	if proc, err = getProcessFromPidFile(c.config.Paths.PidFile); err == nil && proc != nil {
-		if err = proc.SendSignal(syscall.SIGINT); err != nil {
-			err = fmt.Errorf("error sending SIGINT to process: %d - %v", proc.Pid, err)
-		}
-	} else if err = os.Remove(c.config.Paths.PidFile); err != nil {
-		err = fmt.Errorf("error removing stale pid file: %v", err)
+	var resp string
+	if resp, err = c.CallControlCommand("shutdown"); err != nil {
 		return
 	}
-
+	beIo.STDOUT("%v", resp)
 	return
 }
 
