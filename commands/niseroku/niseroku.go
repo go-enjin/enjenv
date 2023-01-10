@@ -503,6 +503,32 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 	}
 	appName := ctx.Args().Get(0)
 
+	var s *Server
+	var ok bool
+	var app *Application
+	var slug *Slug
+
+	if s, err = NewServer(c.config); err != nil {
+		return
+	}
+
+	if app, ok = s.LookupApp[appName]; !ok {
+		err = fmt.Errorf("app not found: %v", appName)
+		return
+	}
+
+	if slug, err = s.PrepareAppSlug(app); err != nil {
+		return
+	}
+
+	if running, ready := slug.IsRunningReady(); running && ready {
+		err = fmt.Errorf("slug is already running and ready")
+		return
+	} else if running {
+		err = fmt.Errorf("slug is already running though not ready")
+		return
+	}
+
 	if !ctx.Bool("slug-process") {
 		binPath := basepath.EnjenvBinPath
 		argv := []string{binPath, "niseroku", "app", "start", "--slug-process", appName}
@@ -528,34 +554,8 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 		}()
 	}
 
-	var s *Server
-	var ok bool
-	var app *Application
-	var slug *Slug
-
 	if err = c.dropPrivileges(); err != nil {
 		err = fmt.Errorf("error dropping root privileges: %v", err)
-		return
-	}
-
-	if s, err = NewServer(c.config); err != nil {
-		return
-	}
-
-	if app, ok = s.LookupApp[appName]; !ok {
-		err = fmt.Errorf("app not found: %v", appName)
-		return
-	}
-
-	if slug, err = s.PrepareAppSlug(app); err != nil {
-		return
-	}
-
-	if running, ready := slug.IsRunningReady(); running && ready {
-		err = fmt.Errorf("slug is already running and ready")
-		return
-	} else if running {
-		err = fmt.Errorf("slug is already running though not ready")
 		return
 	}
 
@@ -608,7 +608,11 @@ func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
 	}
 
 	if slug = app.GetThisSlug(); slug != nil {
-		slug.Stop()
+		if slug.Stop() {
+			beIo.STDOUT("slug process stopped: %v\n", app.Name)
+		} else {
+			beIo.STDOUT("slug process already stopped: %v\n", app.Name)
+		}
 	} else {
 		err = fmt.Errorf("error getting this slug for app: %v", app.Name)
 	}
