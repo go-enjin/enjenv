@@ -77,22 +77,21 @@ func (s *Slug) Compare(other *Slug) (sameSlug, samePort bool) {
 
 func (s *Slug) Unpack() (err error) {
 	if bePath.IsDir(s.RunPath) {
-		if err = os.RemoveAll(s.RunPath); err != nil {
-			s.App.LogErrorF("error removing run path: %v - %v\n", s.RunPath, err)
-			return
-		}
-		s.App.LogInfoF("removed %v\n", s.RunPath)
+		s.App.LogInfoF("slug already unpacked: %v\n", s.Name)
+		return
 	}
 	if err = bePath.Mkdir(s.RunPath); err != nil {
 		s.App.LogErrorF("error making run path: %v - %v\n", s.RunPath, err)
 		return
 	}
 	s.App.LogInfoF("unzipping: %v - %v\n", s.RunPath, s.Archive)
-	var status int
-	if status, err = run.ExeWithChdir(s.RunPath, "unzip", "-qq", s.Archive); err != nil {
+	var unzipBin string
+	if unzipBin, err = exec.LookPath("unzip"); err != nil {
+		s.App.LogErrorF("error finding unzip program: %v\n", err)
 		return
-	} else if status != 0 {
-		err = fmt.Errorf("unzip exited with status %d", status)
+	}
+	if err = run.ExeWith(&run.Options{Path: s.RunPath, Name: unzipBin, Argv: []string{"-qq", s.Archive}}); err != nil {
+		s.App.LogErrorF("error executing unzip: %v - %v\n", unzipBin, err)
 		return
 	}
 	return
