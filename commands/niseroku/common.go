@@ -18,13 +18,14 @@ import (
 	"encoding/csv"
 	"fmt"
 	"net"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
+
+	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 )
 
 var (
@@ -55,15 +56,6 @@ func sendSignalToPidFromFile(pidFile string, sig process.Signal) (err error) {
 	return
 }
 
-func getIntFromFile(pidFile string) (pid int, err error) {
-	var data []byte
-	if data, err = os.ReadFile(pidFile); err != nil {
-		return
-	}
-	pid, err = strconv.Atoi(string(data))
-	return
-}
-
 func getProcessFromPid(pid int) (proc *process.Process, err error) {
 	var running bool
 	if proc, err = process.NewProcess(int32(pid)); err != nil {
@@ -81,7 +73,7 @@ func getProcessFromPid(pid int) (proc *process.Process, err error) {
 
 func getProcessFromPidFile(pidFile string) (proc *process.Process, err error) {
 	var pid int
-	if pid, err = getIntFromFile(pidFile); err != nil {
+	if pid, err = pkgRun.GetPidFromFile(pidFile); err != nil {
 		return
 	}
 	proc, err = getProcessFromPid(pid)
