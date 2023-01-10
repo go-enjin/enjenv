@@ -103,6 +103,11 @@ func (s *Server) sockProcessInput(cmd string, argv []string) (out string, err er
 	cmd = strings.ToLower(cmd)
 	switch cmd {
 
+	case "shutdown":
+		s.LogInfoF("[control] shutting down\n")
+		s.Stop()
+		return
+
 	case "app-start":
 		for _, arg := range argv {
 			if app, ok := s.LookupApp[arg]; ok {
