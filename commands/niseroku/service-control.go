@@ -122,6 +122,21 @@ func (s *Server) sockProcessInput(cmd string, argv []string) (out string, err er
 		}
 		return
 
+	case "app-stop-all":
+		for _, app := range s.LookupApp {
+			if slug := app.GetThisSlug(); slug != nil {
+				if slug.IsReady() {
+					slug.Stop()
+					s.LogInfoF("[control] stopped app slug: %v\n", app.Name)
+				} else {
+					s.LogInfoF("[control] app slug already stopped: %v\n", app.Name)
+				}
+			} else {
+				s.LogInfoF("[control] app slug not found: %v\n", app.Name)
+			}
+		}
+		return
+
 	case "app-stop":
 		for _, arg := range argv {
 			if app, ok := s.LookupApp[arg]; ok {
