@@ -100,6 +100,7 @@ func (s *Slug) Unpack() (err error) {
 var RxSlugProcfileWebEntry = regexp.MustCompile(`(?ms)^web:\s*(.+?)\s*$`)
 
 func (s *Slug) ReadProcfile() (web string, err error) {
+	// TODO: ReadProcfile needs to return a map[string]string containing all Procfile entries
 	if bePath.IsDir(s.RunPath) {
 		procfile := s.RunPath + "/Procfile"
 		if bePath.IsFile(procfile) {
@@ -259,11 +260,15 @@ func (s *Slug) Start(port int) (err error) {
 }
 
 func (s *Slug) Stop() {
-	if proc, err := getProcessFromPidFile(s.PidFile); err == nil && proc != nil {
-		if err = proc.SendSignal(syscall.SIGTERM); err != nil {
-			s.App.LogErrorF("error sending SIGTERM to process: %d\n", proc.Pid)
-		} else {
-			s.App.LogInfoF("sent SIGTERM to process %d: %v\n", proc.Pid, s.Name)
+	if bePath.IsFile(s.PidFile) {
+		if proc, err := s.GetBinProcess(); err == nil && proc != nil {
+			if err = proc.SendSignal(syscall.SIGTERM); err != nil {
+				s.App.LogErrorF("error sending SIGTERM to process: %d\n", proc.Pid)
+			} else {
+				s.App.LogInfoF("sent SIGTERM to process %d: %v\n", proc.Pid, s.Name)
+			}
+		} else if err != nil {
+			s.App.LogErrorF("error getting process from pid file: %v - %v\n", s.PidFile, err)
 		}
 	}
 	if bePath.IsDir(s.RunPath) {
