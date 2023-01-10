@@ -17,11 +17,15 @@ package niseroku
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/process"
 
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -33,6 +37,7 @@ type Slug struct {
 	Archive string
 	RunPath string
 	PidFile string
+	LogFile string
 
 	Port int `toml:"-"`
 
@@ -46,7 +51,8 @@ func NewSlugFromZip(app *Application, archive string) (slug *Slug, err error) {
 	}
 	slugName := bePath.Base(archive)
 	runPath := app.Config.Paths.TmpRun + "/" + slugName
-	pidFile := app.Config.Paths.TmpRun + "/" + slugName + ".pid"
+	pidFile := runPath + ".pid"
+	logFile := app.Config.Paths.VarLogs + "/" + app.Name + ".log"
 
 	slug = &Slug{
 		App:     app,
@@ -54,6 +60,7 @@ func NewSlugFromZip(app *Application, archive string) (slug *Slug, err error) {
 		Archive: archive,
 		RunPath: runPath,
 		PidFile: pidFile,
+		LogFile: logFile,
 	}
 	return
 }
