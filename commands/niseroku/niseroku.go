@@ -448,9 +448,12 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 
-	app.NextSlug = slugZip
-	if err = app.Save(); err != nil {
-		return
+	if app.ThisSlug != slugZip {
+		app.NextSlug = slugZip
+		beIo.STDOUT("# updating niseroku application config for next slug\n")
+		if err = app.Save(); err != nil {
+			return
+		}
 	}
 
 	beIo.STDOUT("# build completed, signaling for slug deployment\n")
