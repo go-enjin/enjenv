@@ -35,7 +35,7 @@ func (s *Server) startAppSlugs() (err error) {
 		if app.Maintenance {
 			continue
 		}
-		if ee := s.startAppSlug(app); ee != nil && !strings.Contains(ee.Error(), "app slugs not found") {
+		if ee := s.StartAppSlug(app); ee != nil && !strings.Contains(ee.Error(), "app slugs not found") {
 			err = ee
 			return
 		}
@@ -43,9 +43,18 @@ func (s *Server) startAppSlugs() (err error) {
 	return
 }
 
-func (s *Server) startAppSlug(app *Application) (err error) {
+func (s *Server) StartAppSlug(app *Application) (err error) {
 	var slug *Slug
+	if slug, err = s.PrepareAppSlug(app); err != nil {
+		return
+	}
+	s.LogInfoF("starting: %v on port %d\n", slug.Name, app.Origin.Port)
+	go s.handleAppSlugStart(slug)
+	go s.awaitAppSlugReady(slug)
+	return
+}
 
+func (s *Server) PrepareAppSlug(app *Application) (slug *Slug, err error) {
 	if err = app.LoadAllSlugs(); err != nil {
 		err = fmt.Errorf("error setting up app slugs: %v - %v", app.Name, err)
 		return
@@ -63,10 +72,7 @@ func (s *Server) startAppSlug(app *Application) (err error) {
 		return
 	}
 
-	s.LogInfoF("starting: %v on port %d\n", slug.Name, app.Origin.Port)
 	slug.Port = app.Origin.Port
-	go s.handleAppSlugStart(slug)
-	go s.awaitAppSlugReady(slug)
 	return
 }
 
