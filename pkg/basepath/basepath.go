@@ -50,14 +50,39 @@ func WhichBin() (enjenvBinPath string) {
 }
 
 func BinCheck() (absPath, buildBinHash string, err error) {
-	if absPath = path.Which(os.Args[0]); absPath == "" {
-		err = fmt.Errorf("could not find self: %v\n", os.Args[0])
+	if EnjenvBinPath != "" && EnjenvBinHash != "" {
+		absPath = EnjenvBinPath
+		buildBinHash = EnjenvBinHash
 		return
 	}
+	argv0 := os.Args[0]
+
+	if strings.HasPrefix(argv0, "./") {
+		if absPath, err = path.Abs(argv0); err != nil {
+			err = fmt.Errorf("error finding absolute path to: %v - %v", argv0, err)
+			return
+		}
+	} else if strings.HasPrefix(argv0, "/") {
+		absPath = argv0
+	} else {
+		binPaths := env.GetPaths()
+		for _, binPath := range binPaths {
+			if path.IsFile(binPath + "/" + argv0) {
+				absPath = binPath + "/" + argv0
+			}
+		}
+		if absPath == "" {
+			err = fmt.Errorf("error finding program: %v - not in any of: %v", argv0, binPaths)
+			return
+		}
+	}
+
 	if buildBinHash, err = sha.FileHash10(absPath); err != nil {
 		err = fmt.Errorf("enjenv sha256 error %v: %v\n", absPath, err)
 		return
 	}
+	EnjenvBinPath = absPath
+	EnjenvBinHash = buildBinHash
 	return
 }
 
