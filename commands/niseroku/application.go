@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -55,18 +56,24 @@ type Application struct {
 	ErrorLog  string           `toml:"-"`
 	AccessLog string           `toml:"-"`
 	NoticeLog string           `toml:"-"`
+
+	sync.RWMutex
 }
 
 func NewApplication(source string, config *Config) (app *Application, err error) {
 	app = &Application{
 		Source: source,
 		Config: config,
+		Slugs:  make(map[string]*Slug),
 	}
 	err = app.Load()
 	return
 }
 
 func (a *Application) Load() (err error) {
+	a.Lock()
+	defer a.Unlock()
+
 	if _, err = toml.DecodeFile(a.Source, &a); err != nil {
 		return
 	}
@@ -93,7 +100,6 @@ func (a *Application) Load() (err error) {
 		err = fmt.Errorf("ssh-keys setting not found")
 	case a.ThisSlug != "":
 		if !bePath.IsFile(a.ThisSlug) {
-			// a.LogErrorF("ignoring slug setting - slug file not found\n")
 			a.ThisSlug = ""
 		}
 	}
@@ -102,6 +108,8 @@ func (a *Application) Load() (err error) {
 }
 
 func (a *Application) Save() (err error) {
+	a.RLock()
+	defer a.RUnlock()
 	var buffer bytes.Buffer
 	if err = toml.NewEncoder(&buffer).Encode(a); err != nil {
 		return
@@ -111,10 +119,14 @@ func (a *Application) Save() (err error) {
 }
 
 func (a *Application) String() string {
+	a.RLock()
+	defer a.RUnlock()
 	return fmt.Sprintf("*%s{\"%s\":[%v]}", a.Name, a.Origin.String(), strings.Join(a.Domains, ","))
 }
 
 func (a *Application) SetupRepo() (err error) {
+	a.Lock()
+	defer a.Unlock()
 	if a.GitRepo != nil {
 		return
 	}
@@ -140,14 +152,21 @@ func (a *Application) LoadAllSlugs() (err error) {
 	if files, err = bePath.ListFiles(a.Config.Paths.VarSlugs); err != nil {
 		return
 	}
-	a.Slugs = make(map[string]*Slug)
 	for _, file := range files {
 		name := bePath.Base(file)
 		if strings.HasPrefix(name, a.Name+"-") {
+			a.RLock()
+			if _, exists := a.Slugs[name]; exists {
+				a.RUnlock()
+				continue
+			}
+			a.RUnlock()
 			if slug, ee := NewSlugFromZip(a, file); ee != nil {
 				a.LogErrorF("error making slug from %v: %v\n", file, ee)
 			} else {
+				a.Lock()
 				a.Slugs[slug.Name] = slug
+				a.Unlock()
 			}
 		}
 	}
@@ -155,6 +174,8 @@ func (a *Application) LoadAllSlugs() (err error) {
 }
 
 func (a *Application) GetThisSlug() (slug *Slug) {
+	a.RLock()
+	defer a.RUnlock()
 	if a.ThisSlug != "" {
 		name := bePath.Base(a.ThisSlug)
 		slug, _ = a.Slugs[name]
@@ -163,6 +184,8 @@ func (a *Application) GetThisSlug() (slug *Slug) {
 }
 
 func (a *Application) GetNextSlug() (slug *Slug) {
+	a.RLock()
+	defer a.RUnlock()
 	if a.NextSlug != "" {
 		name := bePath.Base(a.NextSlug)
 		slug, _ = a.Slugs[name]
@@ -179,6 +202,8 @@ func (a *Application) SshKeyPresent(input string) (present bool) {
 }
 
 func (a *Application) HasSshKey(input string) (present bool, err error) {
+	a.RLock()
+	defer a.RUnlock()
 	if _, _, _, id, ok := parseSshKey(input); ok {
 		for _, key := range a.SshKeys {
 			if _, _, _, keyId, valid := parseSshKey(key); valid {
@@ -199,6 +224,8 @@ func (a *Application) HasSshKey(input string) (present bool, err error) {
 
 func (a *Application) ApplySettings(envDir string) (err error) {
 	// a.LogInfoF("applying settings to: %v\n", envDir)
+	a.RLock()
+	defer a.RUnlock()
 	for _, k := range maps.SortedKeys(a.Settings) {
 		key := strcase.ToScreamingSnake(k)
 		value := fmt.Sprintf("%v", a.Settings[k])
@@ -210,6 +237,8 @@ func (a *Application) ApplySettings(envDir string) (err error) {
 }
 
 func (a *Application) OsEnviron() (environment []string) {
+	a.RLock()
+	defer a.RUnlock()
 	environment = os.Environ()
 	for _, k := range maps.SortedKeys(a.Settings) {
 		key := strcase.ToScreamingSnake(k)
