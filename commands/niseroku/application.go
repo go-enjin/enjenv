@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -71,6 +72,11 @@ func (a *Application) Load() (err error) {
 	}
 
 	a.Name = bePath.Base(a.Source)
+
+	if a.BinName != "" {
+		a.BinName = filepath.Base(a.BinName)
+	}
+
 	a.RepoPath = fmt.Sprintf("%v/%v.git", a.Config.Paths.VarRepos, a.Name)
 	a.ErrorLog = fmt.Sprintf("%s/%v.error.log", a.Config.Paths.VarLogs, a.Name)
 	a.AccessLog = fmt.Sprintf("%s/%v.access.log", a.Config.Paths.VarLogs, a.Name)
