@@ -104,11 +104,13 @@ func (s *Server) LogErrorF(format string, argv ...interface{}) {
 }
 
 func (s *Server) LoadApplications() (err error) {
+	s.RLock()
 	var appConfigs []string
 	if appConfigs, err = bePath.ListFiles(s.Config.Paths.EtcApps); err != nil {
 		if strings.Contains(err.Error(), "no such file or directory") {
 			err = nil
 		}
+		s.RUnlock()
 		return
 	}
 	foundApps := make(map[string]*Application)
@@ -118,10 +120,12 @@ func (s *Server) LoadApplications() (err error) {
 		}
 		var app *Application
 		if app, err = NewApplication(appConfig, s.Config); err != nil {
+			s.RUnlock()
 			return
 		}
 		if _, exists := foundApps[app.Name]; exists {
 			err = fmt.Errorf("app already exists: %v (%v)", app.Name, appConfig)
+			s.RUnlock()
 			return
 		}
 		foundApps[app.Name] = app
@@ -132,12 +136,14 @@ func (s *Server) LoadApplications() (err error) {
 	for _, app := range foundApps {
 		if _, exists := appLookup[app.Name]; exists {
 			err = fmt.Errorf("app %d duplicated by: %v", app.Name, app.Source)
+			s.RUnlock()
 			return
 		} else {
 			appLookup[app.Name] = app
 		}
 		if _, exists := portLookup[app.Origin.Port]; exists {
 			err = fmt.Errorf("port %d duplicated by: %v", app.Origin.Port, app.Source)
+			s.RUnlock()
 			return
 		} else {
 			portLookup[app.Origin.Port] = app
@@ -145,12 +151,14 @@ func (s *Server) LoadApplications() (err error) {
 		for _, domain := range app.Domains {
 			if _, exists := domainLookup[domain]; exists {
 				err = fmt.Errorf("domain %v duplicated by: %v", domain, app.Source)
+				s.RUnlock()
 				return
 			} else {
 				domainLookup[domain] = app
 			}
 		}
 	}
+	s.RUnlock()
 	s.Lock()
 	s.LookupApp = appLookup
 	s.LookupPort = portLookup
@@ -167,7 +175,6 @@ func (s *Server) Applications() (apps []*Application) {
 }
 
 func (s *Server) InitPidFile() (err error) {
-
 	if bePath.IsFile(s.Config.Paths.PidFile) {
 		var proc *process.Process
 		if proc, err = getProcessFromPidFile(s.Config.Paths.PidFile); err != nil {
@@ -185,7 +192,6 @@ func (s *Server) InitPidFile() (err error) {
 			return
 		}
 	}
-
 	return
 }
 

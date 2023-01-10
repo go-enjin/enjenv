@@ -64,17 +64,17 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 		domain = r.Host
 	}
 	s.RLock()
-	if origin, exists := s.LookupDomain[domain]; exists {
-		s.RUnlock()
+	origin, exists := s.LookupDomain[domain]
+	s.RUnlock()
+	if exists {
 		if err := s.Handle(origin, w, r); err != nil {
 			s.LogErrorF("error handling origin request: %v\n", err)
 		}
-	} else {
-		s.RUnlock()
-		remoteAddr, _ := beNet.GetIpFromRequest(r)
-		s.LogErrorF("host not found: %v - %v\n", r.Host, r.URL.String(), remoteAddr)
-		s.Serve404(w, r)
+		return
 	}
+	remoteAddr, _ := beNet.GetIpFromRequest(r)
+	s.LogErrorF("host not found: %v - %v\n", r.Host, r.URL.String(), remoteAddr)
+	s.Serve404(w, r)
 	return
 }
 

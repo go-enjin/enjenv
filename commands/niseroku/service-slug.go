@@ -210,31 +210,32 @@ func (s *Server) transitionAppToNextSlug(app *Application) (err error) {
 	thisSlug := app.GetThisSlug()
 	var nextSlug *Slug
 	if nextSlug = app.GetNextSlug(); nextSlug != nil {
-		// regular deployment
-
 		nextSlug.App.ThisSlug = nextSlug.App.NextSlug
 		nextSlug.App.NextSlug = ""
 		nextSlug.App.Origin.Port = nextSlug.Port
 
-		if err = nextSlug.App.Save(); err != nil {
-			err = fmt.Errorf("error saving app after transitioning: %v - %v\n", app.Name, err)
-		} else {
-			s.LogInfoF("app transitioned to slug: %v\n", nextSlug.Name)
+		if ee := nextSlug.App.Save(); ee != nil {
+			s.LogErrorF("error saving app after transitioning: %v - %v\n", app.Name, ee)
 		}
 
 		s.Lock()
-		s.LookupPort[nextSlug.Port] = nextSlug.App
-		if thisSlug != nil && thisSlug.Port != nextSlug.Port {
+		if thisSlug != nil {
 			delete(s.LookupPort, thisSlug.Port)
+			for _, domain := range thisSlug.App.Domains {
+				delete(s.LookupDomain, domain)
+			}
+		}
+		s.LookupPort[nextSlug.Port] = nextSlug.App
+		for _, domain := range nextSlug.App.Domains {
+			s.LookupDomain[domain] = nextSlug.App
 		}
 		s.Unlock()
+		s.LogInfoF("app transitioned to slug: %v\n", nextSlug.Name)
 
 		if thisSlug == nil {
 			// first deployment, nothing to clean up
-		} else {
-			if err = thisSlug.Destroy(); err != nil {
-				err = fmt.Errorf("error destroying slug: %v - %v", thisSlug.Name, err)
-			}
+		} else if err = thisSlug.Destroy(); err != nil {
+			err = fmt.Errorf("error destroying slug: %v - %v", thisSlug.Name, err)
 		}
 	}
 	return

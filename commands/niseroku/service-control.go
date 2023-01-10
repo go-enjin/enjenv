@@ -110,20 +110,21 @@ func (s *Server) sockProcessInput(cmd string, argv []string) (out string, err er
 
 	case "app-start":
 		for _, arg := range argv {
-			if app, ok := s.LookupApp[arg]; ok {
-				if err = s.StartAppSlug(app); err != nil {
-					return
-				} else {
-					s.LogInfoF("[control] started app slug: %v\n", arg)
-				}
-			} else {
+			s.RLock()
+			app, ok := s.LookupApp[arg]
+			s.RUnlock()
+			if !ok {
 				s.LogInfoF("[control] app not found: %v\n", arg)
+			} else if ee := s.StartAppSlug(app); ee != nil {
+				s.LogErrorF("error starting app slug: %v - %v\n", app.Name, ee)
+			} else {
+				s.LogInfoF("[control] started app slug: %v\n", app.Name)
 			}
 		}
 		return
 
 	case "app-stop-all":
-		for _, app := range s.LookupApp {
+		for _, app := range s.Applications() {
 			if slug := app.GetThisSlug(); slug != nil {
 				if slug.IsReady() {
 					slug.Stop()
