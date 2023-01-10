@@ -33,17 +33,17 @@ import (
 )
 
 type Application struct {
-	Name     string                 `toml:"-"`
-	Origin   AppOrigin              `toml:"origin"`
-	Domains  []string               `toml:"domains,omitempty"`
-	SshKeys  []string               `toml:"ssh-keys,omitempty"`
+	Name        string   `toml:"-"`
+	BinName     string   `toml:"bin-name,omitempty"`
+	Domains     []string `toml:"domains,omitempty"`
+	SshKeys     []string `toml:"ssh-keys,omitempty"`
+	Maintenance bool     `toml:"maintenance,omitempty"`
+	ThisSlug    string   `toml:"this-slug,omitempty"`
+	NextSlug    string   `toml:"next-slug,omitempty"`
+
 	Settings map[string]interface{} `toml:"settings,omitempty"`
 
-	Maintenance bool `toml:"maintenance,omitempty"`
-
-	ThisSlug string `toml:"this-slug,omitempty"`
-	NextSlug string `toml:"next-slug,omitempty"`
-
+	Origin   AppOrigin   `toml:"origin"`
 	Timeouts AppTimeouts `toml:"timeouts,omitempty"`
 
 	Slugs     map[string]*Slug `toml:"-"`
