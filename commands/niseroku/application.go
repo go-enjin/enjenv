@@ -210,6 +210,7 @@ func (a *Application) ApplySettings(envDir string) (err error) {
 }
 
 func (a *Application) OsEnviron() (environment []string) {
+	environment = os.Environ()
 	for _, k := range maps.SortedKeys(a.Settings) {
 		key := strcase.ToScreamingSnake(k)
 		environment = append(environment, fmt.Sprintf("%v=%v", key, a.Settings[k]))
