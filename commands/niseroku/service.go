@@ -382,7 +382,7 @@ func (s *Server) Start() (err error) {
 	go func() {
 		wg.Add(1)
 		s.LogInfoF("starting control service: %v\n", s.Config.Paths.Control)
-		if ee := s.sockServe(); ee != nil {
+		if ee := s.controlSocketServe(); ee != nil {
 			s.LogErrorF("error running control service: %v\n", ee)
 		}
 		wg.Done()

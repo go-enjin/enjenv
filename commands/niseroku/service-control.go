@@ -27,8 +27,19 @@ var (
 	RxSockCommandWithArgs = regexp.MustCompile(`^\s*([a-z][-.a-z0-9]+?)\s+(.+?)\s*$`)
 )
 
-func (s *Server) sockServe() (err error) {
-	if err = s.sockListen(); err == net.ErrClosed {
+func (s *Server) controlSocketListen() (err error) {
+	for {
+		var conn net.Conn
+		if conn, err = s.sock.Accept(); err != nil {
+			break
+		}
+		go s.HandleSock(conn)
+	}
+	return
+}
+
+func (s *Server) controlSocketServe() (err error) {
+	if err = s.controlSocketListen(); err == net.ErrClosed {
 		err = nil
 	} else if err != nil {
 		if strings.Contains(err.Error(), "use of closed network connection") {
@@ -36,17 +47,6 @@ func (s *Server) sockServe() (err error) {
 		} else {
 			err = fmt.Errorf("error serving control file: %v", err)
 		}
-	}
-	return
-}
-
-func (s *Server) sockListen() (err error) {
-	for {
-		var conn net.Conn
-		if conn, err = s.sock.Accept(); err != nil {
-			break
-		}
-		go s.HandleSock(conn)
 	}
 	return
 }
@@ -90,7 +90,7 @@ func (s *Server) HandleSock(conn net.Conn) {
 	}
 
 	var out string
-	if out, err = s.sockProcessInput(cmd, argv); err != nil {
+	if out, err = s.controlSocketProcessCommand(cmd, argv); err != nil {
 		_, _ = conn.Write([]byte(fmt.Sprintf("ERR: %v\n", err)))
 	} else if out != "" {
 		_, _ = conn.Write([]byte(out + "\n"))
@@ -99,7 +99,7 @@ func (s *Server) HandleSock(conn net.Conn) {
 	}
 }
 
-func (s *Server) sockProcessInput(cmd string, argv []string) (out string, err error) {
+func (s *Server) controlSocketProcessCommand(cmd string, argv []string) (out string, err error) {
 	cmd = strings.ToLower(cmd)
 	switch cmd {
 
