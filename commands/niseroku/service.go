@@ -243,7 +243,7 @@ func (s *Server) handleSIGINT() {
 	s.Lock()
 	s.sigint = make(chan os.Signal, 1)
 	s.Unlock()
-	signal.Notify(s.sigint, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(s.sigint, syscall.SIGINT, syscall.SIGTERM)
 
 	<-s.sigint
 
@@ -278,19 +278,25 @@ func (s *Server) handleSIGINT() {
 			s.LogErrorF("error shutting down https: %v\n", ee)
 		}
 	}
+
 	if bePath.IsFile(s.Config.Paths.PidFile) {
 		if ee := os.Remove(s.Config.Paths.PidFile); ee != nil {
 			s.LogErrorF("error removing pid file: %v", ee)
 		}
 	}
 
-	for _, app := range s.Applications() {
-		for _, slug := range app.Slugs {
-			if slug.IsRunning() {
-				slug.Stop()
+	if s.Config.IncludeSlugs.OnStop {
+		s.LogInfoF("stopping all applications")
+		for _, app := range s.Applications() {
+			for _, slug := range app.Slugs {
+				if slug.IsRunning() {
+					slug.Stop()
+					s.LogInfoF("stopped slug: %v", slug.Name)
+				}
 			}
 		}
 	}
+	s.LogInfoF("stopping niseroku\n")
 }
 
 func (s *Server) Start() (err error) {
@@ -413,10 +419,12 @@ func (s *Server) Start() (err error) {
 		s.LogInfoF("application present: %v", app.Name)
 	}
 
-	if err = s.startAppSlugs(); err != nil {
-		s.LogErrorF("error starting app slugs: %v\n", err)
-		err = nil
-		s.Stop()
+	if s.Config.IncludeSlugs.OnStart {
+		if err = s.startAppSlugs(); err != nil {
+			s.LogErrorF("error starting app slugs: %v\n", err)
+			err = nil
+			// s.Stop()
+		}
 	}
 
 	if wg.Wait(); err == nil {
