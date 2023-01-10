@@ -259,12 +259,12 @@ func (s *Slug) Start(port int) (err error) {
 	return
 }
 
-func (s *Slug) Stop() {
+func (s *Slug) Stop() (stopped bool) {
 	if bePath.IsFile(s.PidFile) {
 		if proc, err := s.GetBinProcess(); err == nil && proc != nil {
 			if err = proc.SendSignal(syscall.SIGTERM); err != nil {
 				s.App.LogErrorF("error sending SIGTERM to process: %d\n", proc.Pid)
-			} else {
+			} else if stopped = err == nil; stopped {
 				s.App.LogInfoF("sent SIGTERM to process %d: %v\n", proc.Pid, s.Name)
 			}
 		} else if err != nil {
@@ -285,6 +285,7 @@ func (s *Slug) Stop() {
 			s.App.LogInfoF("removed slug pid file: %v\n", s.PidFile)
 		}
 	}
+	return
 }
 
 func (s *Slug) Destroy() (err error) {
