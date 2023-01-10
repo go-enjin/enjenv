@@ -181,6 +181,7 @@ func (s *Slug) GetBinProcess() (proc *process.Process, err error) {
 func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string, err error) {
 	if s.App.Maintenance {
 		s.App.LogInfoF("slug app maintenance mode: %v on port %d\n", s.Name, s.Port)
+		err = fmt.Errorf("app maintenance mode")
 		return
 	}
 	if running, ready := s.IsRunningReady(); ready {
@@ -194,16 +195,18 @@ func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string,
 
 	if isAddressPortOpen(s.App.Origin.Host, port) {
 		err = fmt.Errorf("port already open by another process")
-		s.App.LogErrorF("%v\n", err)
+		s.App.LogErrorF("%v: %d\n", err, port)
 		return
 	}
 	s.Port = port
 
 	var web string
 	if web, err = s.ReadProcfile(); err != nil {
+		err = fmt.Errorf("error reading Procfile: %v", err)
 		return
 	}
-	s.App.LogInfoF("starting slug: PORT=%d %v (%v)\n", port, web, s.Name)
+
+	s.App.LogInfoF("preparing slug: PORT=%d %v (%v)\n", port, web, s.Name)
 
 	environ = append(s.App.OsEnviron(), fmt.Sprintf("PORT=%d", port))
 	var parsedArgs []string
@@ -234,12 +237,12 @@ func (s *Slug) Start(port int) (err error) {
 	var webCmd string
 	var webArgv, environ []string
 	if webCmd, webArgv, environ, err = s.PrepareStart(port); err != nil {
-		if strings.Contains(err.Error(), "slug already running") {
+		if strings.Contains(err.Error(), "slug already running") || strings.Contains(err.Error(), "maintenance mode") {
 			s.App.LogInfoF("%v", err)
 			err = nil
 			return
 		}
-		s.App.LogErrorF("error preparing slug: %v (port=%d)\n", s.Name, port)
+		s.App.LogErrorF("error preparing slug: %v (port=%d) - %v\n", s.Name, port, err)
 		return
 	}
 

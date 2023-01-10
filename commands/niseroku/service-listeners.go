@@ -123,18 +123,19 @@ func (s *Server) publicKeyLookupFunc(inputPubKey string) (pubkey *gitkit.PublicK
 		err = fmt.Errorf("unable to parse SSH key: %v", inputPubKey)
 		return
 	}
-	// s.LogInfoF("validating public key: %v\n", inputPubKey)
-	for _, app := range s.Applications() {
-		if app.SshKeyPresent(inputKeyId) {
-			s.LogInfoF("validated app pubkey: %v (%v)\n", app.Name, inputPubKey)
+	s.RLock()
+	defer s.RUnlock()
+	for _, u := range s.Users {
+		if u.HasKey(inputKeyId) {
+			s.LogInfoF("validated user by ssh-key: %v\n", u.Name)
 			pubkey = &gitkit.PublicKey{
 				Id: inputKeyId,
 			}
 			return
 		}
 	}
-	err = fmt.Errorf("pubkey not found")
-	s.LogErrorF("app with pubkey not found: %v\n", inputPubKey)
+	err = fmt.Errorf("ssh-key not found")
+	s.LogErrorF("user not found by ssh-key: %v\n", inputPubKey)
 	return
 }
 

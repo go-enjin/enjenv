@@ -77,6 +77,8 @@ type Server struct {
 
 	Name string
 
+	Users Users
+
 	sync.RWMutex
 }
 
@@ -209,6 +211,14 @@ func (s *Server) handleSIGUSR1() {
 	signal.Notify(s.sigusr, syscall.SIGUSR1)
 	for {
 		<-s.sigusr
+		s.LogInfoF("SIGUSR1: reload all users")
+		s.Lock()
+		if users, err := LoadUsers(s.Config.Paths.EtcUsers); err != nil {
+			s.LogErrorF("error loading users: %v\n", err)
+		} else {
+			s.Users = users
+		}
+		s.Unlock()
 		var runningSlugs []*Slug
 		for _, app := range s.Applications() {
 			var slug *Slug
@@ -305,6 +315,13 @@ func (s *Server) handleSIGINT() {
 	s.LogInfoF("stopping niseroku\n")
 }
 
+func (s *Server) LoadUsers() (err error) {
+	if s.Users, err = LoadUsers(s.Config.Paths.EtcUsers); err != nil {
+		return
+	}
+	return
+}
+
 func (s *Server) Start() (err error) {
 	if s.IsRunning() {
 		err = fmt.Errorf("server already running")
@@ -313,6 +330,11 @@ func (s *Server) Start() (err error) {
 
 	if err = s.Config.PrepareDirectories(); err != nil {
 		err = fmt.Errorf("error preparing directories: %v", err)
+		return
+	}
+
+	if err = s.LoadUsers(); err != nil {
+		err = fmt.Errorf("error loading users: %v\n", err)
 		return
 	}
 

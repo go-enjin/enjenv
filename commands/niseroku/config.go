@@ -87,6 +87,7 @@ type PathsConfig struct {
 	Tmp string `toml:"tmp"`
 
 	EtcApps      string `toml:"-"` // EtcApps contains all app.toml files
+	EtcUsers     string `toml:"-"` // EtcUsers contains all the user.toml files
 	TmpRun       string `toml:"-"` // TmpRun is used when running enjenv slugs
 	TmpClone     string `toml:"-"` // TmpClone is used during deployment for buildpack clones
 	TmpBuild     string `toml:"-"` // TmpBuild is used during deployment for app build directories
@@ -132,6 +133,7 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 	}
 
 	appsPath := cfg.Paths.Etc + "/apps.d"
+	usersPath := cfg.Paths.Etc + "/users.d"
 	proxySecrets := cfg.Paths.Etc + "/secrets.proxy.d"
 	// etcRepoPath := cfg.Paths.Etc + "/repos.d"
 	varReposPath := cfg.Paths.Var + "/repos.d"
@@ -265,6 +267,7 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 			Var:          cfg.Paths.Var,
 			Tmp:          cfg.Paths.Tmp,
 			EtcApps:      appsPath,
+			EtcUsers:     usersPath,
 			TmpRun:       tmpRun,
 			TmpClone:     tmpClone,
 			TmpBuild:     tmpBuild,
@@ -284,10 +287,10 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 }
 
 func (c *Config) PrepareDirectories() (err error) {
-
 	for _, p := range []string{
 		c.Paths.Etc,
 		c.Paths.EtcApps,
+		c.Paths.EtcUsers,
 		c.Paths.Tmp,
 		c.Paths.TmpRun,
 		c.Paths.TmpClone,

@@ -122,7 +122,7 @@ func (s *Server) migrateAppSlugs(running []*Slug) (err error) {
 			// restarting this
 			if !thisSlug.IsRunning() {
 				if ee := thisSlug.Start(app.Origin.Port); ee != nil {
-					s.LogErrorF("error starting this slug: %v - %v\n", thisSlug.Name, app.Origin.Port)
+					s.LogErrorF("error starting this slug: %v (%d) - %v\n", thisSlug.Name, app.Origin.Port, ee)
 				}
 			} else {
 				s.LogInfoF("this slug already running: %v\n", thisSlug.Name)

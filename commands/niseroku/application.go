@@ -38,7 +38,6 @@ type Application struct {
 	Name        string   `toml:"-"`
 	BinName     string   `toml:"bin-name,omitempty"`
 	Domains     []string `toml:"domains,omitempty"`
-	SshKeys     []string `toml:"ssh-keys,omitempty"`
 	Maintenance bool     `toml:"maintenance,omitempty"`
 	ThisSlug    string   `toml:"this-slug,omitempty"`
 	NextSlug    string   `toml:"next-slug,omitempty"`
@@ -96,8 +95,6 @@ func (a *Application) Load() (err error) {
 		err = fmt.Errorf("host setting not found")
 	case len(a.Domains) == 0:
 		err = fmt.Errorf("domains setting not found")
-	case len(a.SshKeys) == 0:
-		err = fmt.Errorf("ssh-keys setting not found")
 	case a.ThisSlug != "":
 		if !bePath.IsFile(a.ThisSlug) {
 			a.ThisSlug = ""
@@ -189,35 +186,6 @@ func (a *Application) GetNextSlug() (slug *Slug) {
 	if a.NextSlug != "" {
 		name := bePath.Base(a.NextSlug)
 		slug, _ = a.Slugs[name]
-	}
-	return
-}
-
-func (a *Application) SshKeyPresent(input string) (present bool) {
-	var err error
-	if present, err = a.HasSshKey(input); err != nil {
-		a.LogErrorF("error checking ssh key: %v - %v - %v\n", a.Name, input, err)
-	}
-	return
-}
-
-func (a *Application) HasSshKey(input string) (present bool, err error) {
-	a.RLock()
-	defer a.RUnlock()
-	if _, _, _, id, ok := parseSshKey(input); ok {
-		for _, key := range a.SshKeys {
-			if _, _, _, keyId, valid := parseSshKey(key); valid {
-				if id == keyId {
-					err = nil
-					present = true
-					return
-				}
-			} else {
-				err = fmt.Errorf("invalid app ssh-key present: %v", key)
-			}
-		}
-	} else {
-		err = fmt.Errorf("invalid app ssh-key input: %v", input)
 	}
 	return
 }
