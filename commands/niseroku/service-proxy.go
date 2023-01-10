@@ -95,6 +95,10 @@ func (s *Server) Handle(app *Application, w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if err = app.LoadAllSlugs(); err != nil {
+		return
+	}
+
 	req := r.Clone(r.Context())
 	req.Host = r.Host
 	req.URL.Host = r.Host
