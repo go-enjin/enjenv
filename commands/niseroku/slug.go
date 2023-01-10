@@ -133,7 +133,7 @@ func (s *Slug) IsReady() (ready bool) {
 func (s *Slug) IsRunning() (running bool) {
 	s.RLock()
 	defer s.RUnlock()
-	if proc, err := getProcessFromPidFile(s.PidFile); err == nil && proc != nil {
+	if proc, err := s.GetBinProcess(); err == nil && proc != nil {
 		running = proc.Pid > 0
 	}
 	return
@@ -142,10 +142,38 @@ func (s *Slug) IsRunning() (running bool) {
 func (s *Slug) IsRunningReady() (running, ready bool) {
 	s.RLock()
 	defer s.RUnlock()
-	if proc, ee := getProcessFromPidFile(s.PidFile); ee == nil && proc != nil {
+	if proc, ee := s.GetBinProcess(); ee == nil && proc != nil {
 		running = proc.Pid > 0
 		ready = isAddressPortOpen(s.App.Origin.Host, s.Port)
 	}
+	return
+}
+
+func (s *Slug) GetBinProcess() (proc *process.Process, err error) {
+	proc, err = getProcessFromPidFile(s.PidFile)
+	// if proc, err = getProcessFromPidFile(s.PidFile); err == nil && proc != nil {
+	// 	if s.App.BinName != "" {
+	// 		var ee error
+	// 		var procName string
+	// 		if procName, ee = proc.Name(); ee == nil {
+	// 			if procName = filepath.Base(procName); procName == s.App.BinName {
+	// 				// top process is the app binary
+	// 				return
+	// 			}
+	// 		}
+	// 		var children []*process.Process
+	// 		if children, ee = proc.Children(); ee == nil {
+	// 			for _, child := range children {
+	// 				if childName, childErr := child.Name(); childErr == nil {
+	// 					if childName = filepath.Base(childName); childName == s.App.BinName {
+	// 						proc = child
+	// 						return
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 	return
 }
 
