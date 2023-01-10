@@ -19,10 +19,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/user"
+	"strconv"
 	"syscall"
 
 	"github.com/go-git/go-git/v5"
 	cp "github.com/otiai10/copy"
+	"github.com/sevlyar/go-daemon"
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/sosedoff/gitkit"
 	"github.com/urfave/cli/v2"
@@ -31,8 +34,15 @@ import (
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
 
+	"github.com/go-enjin/enjenv/pkg/basepath"
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
+)
+
+import (
+	// #include <unistd.h>
+	// #include <errno.h>
+	"C"
 )
 
 const (
@@ -135,10 +145,28 @@ handled directly.
 							Action: c.actionGitPreReceiveHook,
 							Hidden: true,
 						},
+
 						{
 							Name:   "git-post-receive-hook",
 							Action: c.actionGitPostReceiveHook,
 							Hidden: true,
+						},
+
+						{
+							Name:   "start",
+							Usage:  "start an app slug",
+							Action: c.actionAppStart,
+							Flags: []cli.Flag{
+								&cli.BoolFlag{
+									Name:   "slug-process",
+									Hidden: true,
+								},
+							},
+						},
+						{
+							Name:   "stop",
+							Usage:  "stop an app slug",
+							Action: c.actionAppStop,
 						},
 					},
 				},
@@ -460,6 +488,161 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 	if err = sendSignalToPidFromFile(c.config.Paths.PidFile, syscall.SIGUSR1); err != nil {
 		beIo.StderrF("# error signaling for slug deployment: %v\n", err)
 		return
+	}
+	return
+}
+
+func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
+	if err = c.Prepare(ctx); err != nil {
+		return
+	}
+	beIo.LogFile = ""
+	if ctx.NArg() != 1 {
+		err = fmt.Errorf("too many arguments")
+		return
+	}
+	appName := ctx.Args().Get(0)
+
+	if !ctx.Bool("slug-process") {
+		binPath := basepath.EnjenvBinPath
+		argv := []string{binPath, "niseroku", "app", "start", "--slug-process", appName}
+
+		dCtx := &daemon.Context{
+			Args:  argv,
+			Env:   os.Environ(),
+			Umask: 0222,
+		}
+
+		var dProc *os.Process
+		if dProc, err = dCtx.Reborn(); err != nil {
+			beIo.StderrF("error daemonizing slug process: %v - %v\n", appName, err)
+			return
+		} else if dProc != nil {
+			beIo.StdoutF("slug process started: %v\n", appName)
+			return
+		}
+		defer func() {
+			if ee := dCtx.Release(); ee != nil {
+				beIo.StderrF("error releasing daemon context: %v - %v\n", appName, err)
+			}
+		}()
+	}
+
+	var s *Server
+	var ok bool
+	var app *Application
+	var slug *Slug
+
+	if err = c.dropPrivileges(); err != nil {
+		err = fmt.Errorf("error dropping root privileges: %v", err)
+		return
+	}
+
+	if s, err = NewServer(c.config); err != nil {
+		return
+	}
+
+	if app, ok = s.LookupApp[appName]; !ok {
+		err = fmt.Errorf("app not found: %v", appName)
+		return
+	}
+
+	if slug, err = s.PrepareAppSlug(app); err != nil {
+		return
+	}
+
+	if running, ready := slug.IsRunningReady(); running && ready {
+		err = fmt.Errorf("slug is already running and ready")
+		return
+	} else if running {
+		err = fmt.Errorf("slug is already running though not ready")
+		return
+	}
+
+	var webCmd string
+	var webArgv, environ []string
+	if webCmd, webArgv, environ, err = slug.PrepareStart(app.Origin.Port); err != nil {
+		return
+	}
+
+	if ee := run.ExeWith(&run.Options{Path: slug.RunPath, Name: webCmd, Argv: webArgv, Stdout: slug.LogFile, Stderr: slug.LogFile, PidFile: slug.PidFile, Environ: environ}); ee != nil {
+		err = ee
+		return
+	}
+
+	return
+}
+
+func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
+	if err = c.Prepare(ctx); err != nil {
+		return
+	}
+	beIo.LogFile = ""
+	if ctx.NArg() != 1 {
+		err = fmt.Errorf("too many arguments")
+		return
+	}
+	appName := ctx.Args().Get(0)
+
+	var s *Server
+	var ok bool
+	var app *Application
+	var slug *Slug
+
+	if err = c.dropPrivileges(); err != nil {
+		err = fmt.Errorf("error dropping root privileges: %v", err)
+		return
+	}
+
+	if s, err = NewServer(c.config); err != nil {
+		return
+	}
+	if app, ok = s.LookupApp[appName]; !ok {
+		err = fmt.Errorf("app not found: %v", appName)
+		return
+	}
+
+	if err = app.LoadAllSlugs(); err != nil {
+		err = fmt.Errorf("error loading all app slugs: %v - %v", app.Name, err)
+		return
+	}
+
+	if slug = app.GetThisSlug(); slug != nil {
+		slug.Stop()
+	} else {
+		err = fmt.Errorf("error getting this slug for app: %v", app.Name)
+	}
+
+	return
+}
+
+func (c *Command) dropPrivileges() (err error) {
+	if syscall.Getuid() == 0 {
+		// beIo.StdoutF("dropping root privileges to %v:%v\n", c.config.RunAs.User, c.config.RunAs.Group)
+		var u *user.User
+		if u, err = user.Lookup(c.config.RunAs.User); err != nil {
+			return
+		}
+		var g *user.Group
+		if g, err = user.LookupGroup(c.config.RunAs.Group); err != nil {
+			return
+		}
+
+		var uid, gid int
+		if uid, err = strconv.Atoi(u.Uid); err != nil {
+			return
+		}
+		if gid, err = strconv.Atoi(g.Gid); err != nil {
+			return
+		}
+
+		if cerr, errno := C.setgid(C.__gid_t(gid)); cerr != 0 {
+			err = fmt.Errorf("set GID error: %v", errno)
+			return
+		} else if cerr, errno = C.setuid(C.__uid_t(uid)); cerr != 0 {
+			err = fmt.Errorf("set UID error: %v", errno)
+			return
+		}
 	}
 	return
 }
