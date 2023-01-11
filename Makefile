@@ -176,11 +176,13 @@ install-niseroku:
 
 install-niseroku-systemd:
 	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
-	@echo "# installing niseroku.service file"
-	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.service" "${NISEROKU_SERVICE_FILE}"
-	@sha256sum "${NISEROKU_SERVICE_FILE}"
-	@echo "# reloading systemd daemon"
-	@systemctl daemon-reload
+	@if [ -f "${NISEROKU_SERVICE_FILE}" ]; then \
+		echo "# skipping ${NISEROKU_SERVICE_FILE} (exists already)"; \
+	else \
+		echo "# installing ${NISEROKU_SERVICE_FILE}"; \
+		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.service" "${NISEROKU_SERVICE_FILE}"; \
+		sha256sum "${NISEROKU_SERVICE_FILE}"; \
+	fi
 
 local:
 	@if [ -d "${BE_PATH}" ]; then \
