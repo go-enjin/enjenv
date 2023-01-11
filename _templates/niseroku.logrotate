@@ -1,6 +1,6 @@
-/var/lib/niseroku/logs.d/*.log {
+/var/log/niseroku.log /var/lib/niseroku/logs.d/*.log {
     rotate 7
-    size 10M
+    daily
     compress
     delaycompress
     sharedscripts
