@@ -4,8 +4,8 @@ After=network-online.target
 
 [Service]
 Type=exec
-ExecStart={ENJENV_PATH} niseroku start
-ExecStop={ENJENV_PATH} niseroku stop
+ExecStart=/usr/bin/enjenv niseroku start
+ExecStop=/usr/bin/enjenv niseroku stop
 Restart=on-success
 
 [Install]
