@@ -163,6 +163,8 @@ install-niseroku:
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
 		sha256sum "${NISEROKU_TOML_FILE}"; \
 	fi
+
+install-niseroku-logrotate:
 	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
 	@if [ ! -f "${NISEROKU_LOGROTATE_FILE}" ]; then \
 		echo "# installing ${NISEROKU_LOGROTATE_FILE}"; \
@@ -172,10 +174,10 @@ install-niseroku:
 
 install-niseroku-systemd:
 	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
-	@echo "# installing niseroku.service file"; \
-	@cat _templates/niseroku.service | perl -pe "s!{ENJENV_PATH}!${BIN_PATH}/enjenv!msg" > "${NISEROKU_SERVICE_FILE}"; \
-	@sha256sum "${NISEROKU_SERVICE_FILE}"; \
-	@systemctl daemon-reload; \
+	@echo "# installing niseroku.service file"
+	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.service" "${NISEROKU_SERVICE_FILE}"
+	@sha256sum "${NISEROKU_SERVICE_FILE}"
+	@systemctl daemon-reload
 
 local:
 	@if [ -d "${BE_PATH}" ]; then \
