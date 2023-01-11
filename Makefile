@@ -157,16 +157,18 @@ install:
 
 install-niseroku:
 	@[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"
-	@if [ ! -f "${NISEROKU_TOML_FILE}" ]; then \
+	@if [ -f "${NISEROKU_TOML_FILE}" ]; then \
+		echo "# skipping ${NISEROKU_TOML_FILE} (exists already)"; \
+	else \
 		echo "# installing ${NISEROKU_TOML_FILE}"; \
 		if [ ! -d "${NISEROKU_PATH}" ]; then mkdir -p "${NISEROKU_PATH}"; fi; \
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
 		sha256sum "${NISEROKU_TOML_FILE}"; \
 	fi
-
-install-niseroku-logrotate:
 	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
-	@if [ ! -f "${NISEROKU_LOGROTATE_FILE}" ]; then \
+	@if [ -f "${NISEROKU_LOGROTATE_FILE}" ]; then \
+		echo "# skipping ${NISEROKU_LOGROTATE_FILE} (exists already)"; \
+	else \
 		echo "# installing ${NISEROKU_LOGROTATE_FILE}"; \
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"; \
 		sha256sum "${NISEROKU_LOGROTATE_FILE}"; \
@@ -177,6 +179,7 @@ install-niseroku-systemd:
 	@echo "# installing niseroku.service file"
 	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.service" "${NISEROKU_SERVICE_FILE}"
 	@sha256sum "${NISEROKU_SERVICE_FILE}"
+	@echo "# reloading systemd daemon"
 	@systemctl daemon-reload
 
 local:
