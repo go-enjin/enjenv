@@ -1,5 +1,10 @@
 #: default system-wide niseroku.toml
 
+#: bind-addr is the network address to bind all listener services to, the
+#: default is empty which listens on all host addresses
+#
+#bind-addr = ""
+
 #: buildpack-path is the path to a checkout of the enjenv heroku buildpack.
 #: When set, this checkout is copied as-is each time, leaving the task of
 #: staying up-to-date to the niseroku admins rather than cloning the default
@@ -25,14 +30,20 @@ log-file = "/var/log/niseroku.log"
 #
 #account-email = ""
 
+#: include-slugs configures whether or not to start all slugs on startup and/or
+#: stop all slugs on shutdown
+#
+[include-slugs]
+on-start = true
+#on-stop = false
+
 #: timeouts are used to configure how long niseroku awaits for things to
 #: happen
 #
 [timeouts]
-#: timeouts.slug-startup is how long to allow slugs to startup before the
-#: slug process is stopped and the deployment considered a failure
-#
 slug-startup = "60s"
+ready-interval = "1s"
+origin-request = "60s"
 
 #: run-as configures the user and group niseroku switches to when started as
 #: root (UID=0), after opening any necessary privileged ports (ie: 80, 443)
@@ -42,26 +53,30 @@ user = "www-data"
 group = "www-data"
 
 #: ports configure the various niseroku listener services
-#
-[ports]
-http = 80
-https = 443
 #: ports.git is for the git repository service endpoint, clients need to know
 #: this value so that developers can push commits for deployment
+#: ports.app-start and ports.app-end configure the range of available ports
+#: used for running application slugs, a new random port is selected each time
+#: a slug build process succeeds and upon the newly built slug actually
+#: starting up and opening the specified port, the application's configuration
+#: is updated with this newly selected port (this is how failed builds are
+#: prevented from disrupting existing builds already running)
 #
+[ports]
 git = 2222
+http = 80
+https = 443
+app-start = 4200
+app-end = 4400
 
 #: paths configure where niseroku stores configurations and runtime files
-#
-[paths]
 #: paths.etc is where configuration files are stored
-#
-etc = "/etc/niseroku"
 #: paths.tmp is where temporary files are stored, note that this path should
 #: not be the operating system's actual $TMP directory
-#
-tmp = "/var/lib/niseroku/tmp"
 #: paths.var is where the runtime files are stored, such as application logs,
 #: git repositories and built slugs
 #
+[paths]
+etc = "/etc/niseroku"
+tmp = "/var/lib/niseroku/tmp"
 var = "/var/lib/niseroku"
