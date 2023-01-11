@@ -24,9 +24,11 @@ import (
 )
 
 var (
-	DefaultGitPort   = 22
-	DefaultHttpPort  = 80
-	DefaultHttpsPort = 443
+	DefaultGitPort      = 22
+	DefaultHttpPort     = 80
+	DefaultHttpsPort    = 443
+	DefaultAppEndPort   = 4400
+	DefaultAppStartPort = 4200
 
 	DefaultRunAsUser  = "www-data"
 	DefaultRunAsGroup = "www-data"
@@ -213,12 +215,12 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 	if cfg.Ports.AppEnd > 0 {
 		appEndPort = cfg.Ports.AppEnd
 	} else {
-		appEndPort = 4400
+		appEndPort = DefaultAppEndPort
 	}
 	if cfg.Ports.AppStart > 0 {
 		appStartPort = cfg.Ports.AppStart
 	} else {
-		appStartPort = 4200
+		appStartPort = DefaultAppStartPort
 	}
 
 	if appStartPort >= appEndPort {
