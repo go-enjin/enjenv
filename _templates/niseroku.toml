@@ -1,24 +1,67 @@
 #: default system-wide niseroku.toml
 
+#: buildpack-path is the path to a checkout of the enjenv heroku buildpack.
+#: When set, this checkout is copied as-is each time, leaving the task of
+#: staying up-to-date to the niseroku admins rather than cloning the default
+#: repository each time a build is performed. The default respository is of
+#: course: https://github.com/go-enjin/enjenv-heroku-buildpack.git
+#
 #buildpack-path = "/path/to/custom-enjenv-heroku-buildpack"
 
+#: log-file captures both STDOUT and STDERR from the main niseroku processes.
+#: Setting this to an empty string will disable capturing STDOUT and STDERR,
+#: leaving the output streams to be collected by the operating system's init
+#: service
+#
 log-file = "/var/log/niseroku.log"
+
+#: enable-ssl configures whether or not niseroku will listen for HTTPS requests
+#: on the (ports.https) port
+#
 #enable-ssl = false
+
+#: account-email is the email address uses when registering with Let's Encrypt
+#: and accepting the terms-of-service
+#
 #account-email = ""
 
+#: timeouts are used to configure how long niseroku awaits for things to
+#: happen
+#
 [timeouts]
+#: timeouts.slug-startup is how long to allow slugs to startup before the
+#: slug process is stopped and the deployment considered a failure
+#
 slug-startup = "60s"
 
+#: run-as configures the user and group niseroku switches to when started as
+#: root (UID=0), after opening any necessary privileged ports (ie: 80, 443)
+#
 [run-as]
 user = "www-data"
 group = "www-data"
 
+#: ports configure the various niseroku listener services
+#
 [ports]
-git = 2222
 http = 80
 https = 443
+#: ports.git is for the git repository service endpoint, clients need to know
+#: this value so that developers can push commits for deployment
+#
+git = 2222
 
+#: paths configure where niseroku stores configurations and runtime files
+#
 [paths]
+#: paths.etc is where configuration files are stored
+#
 etc = "/etc/niseroku"
+#: paths.tmp is where temporary files are stored, note that this path should
+#: not be the operating system's actual $TMP directory
+#
 tmp = "/var/lib/niseroku/tmp"
+#: paths.var is where the runtime files are stored, such as application logs,
+#: git repositories and built slugs
+#
 var = "/var/lib/niseroku"
