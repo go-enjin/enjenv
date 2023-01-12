@@ -142,18 +142,15 @@ build-arm64:
 
 build-all: build-amd64 build-arm64
 
-define _install_build =
-	echo "# installing $(1) to: $(2)"; \
-	[ -d "${BIN_PATH}" ] || mkdir -vp "${BIN_PATH}"; \
-	/usr/bin/install -v -m 0775 -T "$(1)" "${BIN_PATH}/$(2)"; \
-	sha256sum "${BIN_PATH}/$(2)"
-endef
-
 install:
 	@if [ ! -f enjenv ]; then \
 		echo "error: missing enjenv binary"; \
 		false; \
 	fi
+	@[ -d "${BIN_PATH}" ] || mkdir -vp "${BIN_PATH}"
+	@echo "# installing enjenv to: ${BIN_PATH}/enjenv"
+	@/usr/bin/install -v -m 0775 -T "enjenv" "${BIN_PATH}/enjenv"
+	@sha256sum "${BIN_PATH}/enjenv"
 
 install-niseroku:
 	@[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"
