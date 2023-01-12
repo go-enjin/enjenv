@@ -22,10 +22,10 @@ import (
 
 	"github.com/go-enjin/be/pkg/log"
 	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/enjenv/commands/niseroku"
 
 	"github.com/go-enjin/enjenv/commands/enjin"
 	herokuCmd "github.com/go-enjin/enjenv/commands/heroku"
+	"github.com/go-enjin/enjenv/commands/niseroku"
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
@@ -56,10 +56,9 @@ func main() {
 	log.Config.DisableTimestamp = true
 	log.Config.LoggingFormat = log.FormatText
 	log.Config.Apply()
-	var app *cli.App
-	app = &cli.App{
+	app := &cli.App{
 		Name:    BinName,
-		Usage:   "go-enjin environment management utility",
+		Usage:   "Go-Enjin environment management utility",
 		Version: BuildVersion + " (" + BuildRelease + ") [" + BuildBinHash + "]",
 		Action: func(ctx *cli.Context) (err error) {
 			if ctx.NArg() > 0 {
@@ -68,6 +67,9 @@ func main() {
 			}
 			io.StdoutF("%v\n", basepath.EnjenvPath)
 			return
+		},
+		Flags: []cli.Flag{
+			cli.BashCompletionFlag,
 		},
 	}
 	app.EnableBashCompletion = true
