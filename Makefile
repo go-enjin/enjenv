@@ -25,9 +25,8 @@ BIN_NAME ?= enjenv
 PWD = $(shell pwd)
 SHELL = /bin/bash
 
-#BUILD_ALL_GOOS = linux darwin
-BUILD_ALL_GOOS = linux
-BUILD_ALL_GOARCH = amd64 arm64
+BUILD_OS ?= linux
+BUILD_ARCH ?= `uname -m | perl -pe 's!aarch64!arm64!;s!x86_64!amd64!;'`
 
 prefix ?= /usr
 BIN_PATH ?= ${DESTDIR}${prefix}/bin
@@ -105,7 +104,12 @@ endef
 help:
 	@echo "usage: make <help|clean|local|unlocal|tidy>"
 	@echo "       make <build|build-all|build-amd64|build-arm64>"
-	@echo "       make <install|install-niseroku>"
+	@echo "       make <install>"
+	@echo "       make <install-autocomplete>"
+	@echo "       make <install-niseroku>"
+	@echo "       make <install-niseroku-systemd>"
+	@echo "       make <install-niseroku-logrotate>"
+	@echo "       make <install-niseroku-sysv-init>"
 
 clean:
 	@rm -fv "${BIN_NAME}"
@@ -124,7 +128,7 @@ build: BUILD_VERSION=$(call _tag_ver)
 build: BUILD_RELEASE=$(call _rel_ver)
 build: TRIM_PATHS=$(call _trim_path)
 build:
-	@$(call _build_target,"${BIN_NAME}",`go env GOOS`,`go env GOARCH`)
+	@$(call _build_target,"${BIN_NAME}.linux.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
 
 build-amd64: BUILD_VERSION=$(call _tag_ver)
 build-amd64: BUILD_RELEASE=$(call _rel_ver)
@@ -146,21 +150,26 @@ build-arm64:
 
 build-all: build-amd64 build-arm64
 
+define _install_build =
+	echo "# installing $(1) to: $(2)"; \
+	[ -d "${BIN_PATH}" ] || mkdir -vp "${BIN_PATH}"; \
+	${CMD} /usr/bin/install -v -m 0775 -T "$(1)" "${BIN_PATH}/$(2)"; \
+	${CMD} sha256sum "${BIN_PATH}/$(2)"
+endef
+
 install:
-	@if [ ! -f enjenv ]; then \
-		echo "error: missing enjenv binary"; \
-		false; \
-	fi
 	@[ -d "${BIN_PATH}" ] || mkdir -vp "${BIN_PATH}"
-	@echo "# installing enjenv to: ${BIN_PATH}/enjenv"
-	@/usr/bin/install -v -m 0775 -T "enjenv" "${BIN_PATH}/enjenv"
-	@sha256sum "${BIN_PATH}/enjenv"
+	@if [ -f "enjenv.linux.${BUILD_ARCH}" ]; then \
+		$(call _install_build,"enjenv.linux.${BUILD_ARCH}","enjenv"); \
+	else \
+		echo "error: missing enjenv.linux.${BUILD_ARCH} binary" 1>&2; \
+	fi
 
 install-autocomplete:
 	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
 	@echo "# installing bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
-	@/usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
-	@sha256sum "${ENJENV_AUTOCOMPLETE_FILE}"
+	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
+	@${CMD} sha256sum "${ENJENV_AUTOCOMPLETE_FILE}"
 
 install-niseroku:
 	@[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"
@@ -170,22 +179,24 @@ install-niseroku:
 		echo "# installing ${NISEROKU_TOML_FILE}"; \
 		if [ ! -d "${NISEROKU_PATH}" ]; then mkdir -p "${NISEROKU_PATH}"; fi; \
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
-		sha256sum "${NISEROKU_TOML_FILE}"; \
+		${CMD} sha256sum "${NISEROKU_TOML_FILE}"; \
 	fi
+
+install-niseroku-logrotate:
 	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
 	@if [ -f "${NISEROKU_LOGROTATE_FILE}" ]; then \
 		echo "# skipping ${NISEROKU_LOGROTATE_FILE} (exists already)"; \
 	else \
 		echo "# installing ${NISEROKU_LOGROTATE_FILE}"; \
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"; \
-		sha256sum "${NISEROKU_LOGROTATE_FILE}"; \
+		${CMD} sha256sum "${NISEROKU_LOGROTATE_FILE}"; \
 	fi
 
 install-niseroku-sysv-init:
 	@[ -d "${SYSV_INIT_PATH}" ] || mkdir -vp "${SYSV_INIT_PATH}"
 	@echo "# installing ${NISEROKU_SYSV_INIT_FILE}"
 	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku.init" "${NISEROKU_SYSV_INIT_FILE}"
-	@sha256sum "${NISEROKU_SYSV_INIT_FILE}"
+	@${CMD} sha256sum "${NISEROKU_SYSV_INIT_FILE}"
 
 install-niseroku-systemd:
 	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
@@ -194,7 +205,7 @@ install-niseroku-systemd:
 	else \
 		echo "# installing ${NISEROKU_SERVICE_FILE}"; \
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.service" "${NISEROKU_SERVICE_FILE}"; \
-		sha256sum "${NISEROKU_SERVICE_FILE}"; \
+		${CMD} sha256sum "${NISEROKU_SERVICE_FILE}"; \
 	fi
 
 local:
