@@ -3,7 +3,7 @@ module github.com/go-enjin/enjenv
 go 1.19
 
 require (
-	github.com/BurntSushi/toml v1.2.0
+	github.com/BurntSushi/toml v1.2.1
 	github.com/fvbommel/sortorder v1.0.2
 	github.com/go-enjin/be v0.0.0-20230110183308-d1a9920fc974
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
@@ -15,7 +15,7 @@ require (
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v3 v3.22.10
 	github.com/sosedoff/gitkit v0.3.0
-	github.com/urfave/cli/v2 v2.19.2
+	github.com/urfave/cli/v2 v2.23.7
 	golang.org/x/crypto v0.5.0
 )
 
