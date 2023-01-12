@@ -36,10 +36,14 @@ ETC_PATH ?= ${DESTDIR}/etc
 SYSTEMD_PATH ?= ${ETC_PATH}/systemd/system
 NISEROKU_PATH ?= ${ETC_PATH}/niseroku
 LOGROTATE_PATH ?= ${ETC_PATH}/logrotate.d
+SYSV_INIT_PATH ?= ${ETC_PATH}/init.d
+AUTOCOMPLETE_PATH ?= ${ETC_PATH}/bash_completion.d
 
 NISEROKU_TOML_FILE ?= ${NISEROKU_PATH}/niseroku.toml
 NISEROKU_SERVICE_FILE ?= ${SYSTEMD_PATH}/niseroku.service
 NISEROKU_LOGROTATE_FILE ?= ${LOGROTATE_PATH}/niseroku
+NISEROKU_SYSV_INIT_FILE ?= ${SYSV_INIT_PATH}/niseroku
+ENJENV_AUTOCOMPLETE_FILE ?= ${AUTOCOMPLETE_PATH}/enjenv
 
 define _trim_path =
 $(shell \
@@ -152,6 +156,12 @@ install:
 	@/usr/bin/install -v -m 0775 -T "enjenv" "${BIN_PATH}/enjenv"
 	@sha256sum "${BIN_PATH}/enjenv"
 
+install-autocomplete:
+	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
+	@echo "# installing bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
+	@/usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
+	@sha256sum "${ENJENV_AUTOCOMPLETE_FILE}"
+
 install-niseroku:
 	@[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"
 	@if [ -f "${NISEROKU_TOML_FILE}" ]; then \
@@ -170,6 +180,12 @@ install-niseroku:
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"; \
 		sha256sum "${NISEROKU_LOGROTATE_FILE}"; \
 	fi
+
+install-niseroku-sysv-init:
+	@[ -d "${SYSV_INIT_PATH}" ] || mkdir -vp "${SYSV_INIT_PATH}"
+	@echo "# installing ${NISEROKU_SYSV_INIT_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku.init" "${NISEROKU_SYSV_INIT_FILE}"
+	@sha256sum "${NISEROKU_SYSV_INIT_FILE}"
 
 install-niseroku-systemd:
 	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
