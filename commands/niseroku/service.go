@@ -488,43 +488,6 @@ func (s *Server) dropPrivileges() (err error) {
 			return
 		}
 
-		for _, p := range []string{s.Config.Paths.Etc, s.Config.Paths.Tmp, s.Config.Paths.Var} {
-			if err = os.Chown(p, uid, gid); err != nil {
-				beIo.StderrF("error changing ownership of: %v - %v\n", p, err)
-				continue
-			}
-			var allDirs []string
-			if allDirs, err = bePath.ListAllDirs(p); err != nil {
-				beIo.StderrF("error listing all dirs: %v - %v\n", p, err)
-				continue
-			}
-			var allFiles []string
-			if allFiles, err = bePath.ListAllFiles(p); err != nil {
-				beIo.StderrF("error listing all files: %v - %v\n", p, err)
-				continue
-			}
-			for _, dir := range append(allDirs, allFiles...) {
-				if err = os.Chown(dir, uid, gid); err != nil {
-					beIo.StderrF("error changing ownership of: %v - %v\n", dir, err)
-				}
-			}
-		}
-
-		if s.Config.LogFile != "" {
-			if !bePath.IsFile(s.Config.LogFile) {
-				if err = os.WriteFile(s.Config.LogFile, []byte(""), 0660); err != nil {
-					beIo.StderrF("error preparing log file: %v - %v\n", s.Config.LogFile, err)
-				}
-			}
-			if err = os.Chown(s.Config.LogFile, uid, gid); err != nil {
-				beIo.StderrF("error changing ownership of: %v - %v\n", s.Config.LogFile, err)
-			}
-		}
-
-		if err = os.Chown(s.Config.Paths.PidFile, uid, gid); err != nil {
-			beIo.StderrF("error changing ownership of: %v - %v\n", s.Config.Paths.PidFile, err)
-		}
-
 		if cerr, errno := C.setgid(C.__gid_t(gid)); cerr != 0 {
 			err = fmt.Errorf("set GID error: %v", errno)
 			return
