@@ -56,7 +56,35 @@ type Application struct {
 	AccessLog string           `toml:"-"`
 	NoticeLog string           `toml:"-"`
 
+	await chan bool
+
 	sync.RWMutex
+}
+
+func LoadApplications(config *Config) (foundApps map[string]*Application, err error) {
+	var appConfigs []string
+	if appConfigs, err = bePath.ListFiles(config.Paths.EtcApps); err != nil {
+		if strings.Contains(err.Error(), "no such file or directory") {
+			err = nil
+		}
+		return
+	}
+	foundApps = make(map[string]*Application)
+	for _, appConfig := range appConfigs {
+		if !strings.HasSuffix(appConfig, ".toml") {
+			continue
+		}
+		var app *Application
+		if app, err = NewApplication(appConfig, config); err != nil {
+			return
+		}
+		if _, exists := foundApps[app.Name]; exists {
+			err = fmt.Errorf("app already exists: %v (%v)", app.Name, appConfig)
+			return
+		}
+		foundApps[app.Name] = app
+	}
+	return
 }
 
 func NewApplication(source string, config *Config) (app *Application, err error) {
@@ -175,7 +203,12 @@ func (a *Application) GetThisSlug() (slug *Slug) {
 	defer a.RUnlock()
 	if a.ThisSlug != "" {
 		name := bePath.Base(a.ThisSlug)
-		slug, _ = a.Slugs[name]
+		if found, ok := a.Slugs[name]; ok {
+			slug = found
+			if slug.Port <= 0 {
+				slug.Port = a.Origin.Port
+			}
+		}
 	}
 	return
 }
@@ -185,7 +218,12 @@ func (a *Application) GetNextSlug() (slug *Slug) {
 	defer a.RUnlock()
 	if a.NextSlug != "" {
 		name := bePath.Base(a.NextSlug)
-		slug, _ = a.Slugs[name]
+		if found, ok := a.Slugs[name]; ok {
+			slug = found
+			if slug.Port <= 0 {
+				slug.Port = a.Config.GetUnusedPort()
+			}
+		}
 	}
 	return
 }
@@ -216,8 +254,7 @@ func (a *Application) OsEnviron() (environment []string) {
 }
 
 func (a *Application) LogInfoF(format string, argv ...interface{}) {
-	prefix := fmt.Sprintf("[%v] ", a.Name)
-	beIo.AppendF(a.NoticeLog, prefix+format, argv...)
+	beIo.AppendF(a.NoticeLog, "["+a.Name+"] "+format, argv...)
 }
 
 func (a *Application) LogAccessF(status int, remoteAddr string, r *http.Request) {
