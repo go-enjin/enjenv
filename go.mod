@@ -4,8 +4,9 @@ go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.2.1
+	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20230110183308-d1a9920fc974
+	github.com/go-enjin/be v0.0.0-20230122215752-b7f080d8473a
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/goccy/go-json v0.9.11
@@ -126,6 +127,7 @@ require (
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/yookoala/gofast v0.7.0 // indirect
 	github.com/yookoala/realpath v1.0.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
@@ -133,6 +135,7 @@ require (
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
