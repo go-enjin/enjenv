@@ -67,6 +67,12 @@ func NewSlugFromZip(app *Application, archive string) (slug *Slug, err error) {
 	return
 }
 
+func (s *Slug) String() (text string) {
+	running, ready := s.IsRunningReady()
+	text = fmt.Sprintf("{slug=%v,port=%v;running=%v;ready=%v;}", s.Name, s.Port, running, ready)
+	return
+}
+
 func (s *Slug) Compare(other *Slug) (sameSlug, samePort bool) {
 	sameSlug = s.Name == other.Name &&
 		s.App.Name == other.App.Name &&
@@ -127,9 +133,11 @@ func (s *Slug) ReadProcfile() (web string, err error) {
 }
 
 func (s *Slug) IsReady() (ready bool) {
-	if s.IsRunning() && s.Port > 0 {
-		ready = common.IsAddressPortOpen(s.App.Origin.Host, s.Port)
+	port := s.Port
+	if port <= 0 {
+		port = s.App.Origin.Port
 	}
+	ready = common.IsAddressPortOpen(s.App.Origin.Host, port)
 	return
 }
 
@@ -143,12 +151,8 @@ func (s *Slug) IsRunning() (running bool) {
 }
 
 func (s *Slug) IsRunningReady() (running, ready bool) {
-	s.RLock()
-	defer s.RUnlock()
-	if proc, ee := s.GetBinProcess(); ee == nil && proc != nil {
-		running = proc.Pid > 0
-		ready = common.IsAddressPortOpen(s.App.Origin.Host, s.Port)
-	}
+	running = s.IsRunning()
+	ready = s.IsReady()
 	return
 }
 
@@ -182,6 +186,7 @@ func (s *Slug) GetBinProcess() (proc *process.Process, err error) {
 
 func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string, err error) {
 	if s.App.Maintenance {
+		s.Stop()
 		s.App.LogInfoF("slug app maintenance mode: %v on port %d\n", s.Name, s.Port)
 		err = fmt.Errorf("app maintenance mode")
 		return
@@ -235,7 +240,39 @@ func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string,
 	return
 }
 
+func (s *Slug) StartForeground(port int) (err error) {
+	if err = s.Unpack(); err != nil {
+		err = fmt.Errorf("error unpacking this slug: %v - %v", s.Name, err)
+		return
+	}
+	var webCmd string
+	var webArgv, environ []string
+	if webCmd, webArgv, environ, err = s.PrepareStart(port); err != nil {
+		if strings.Contains(err.Error(), "slug already running") || strings.Contains(err.Error(), "maintenance mode") {
+			s.App.LogInfoF("%v", err)
+			err = nil
+			return
+		}
+		s.App.LogErrorF("error preparing slug: %v (port=%d) - %v\n", s.Name, port, err)
+		return
+	}
+
+	s.App.LogInfoF("starting slug web process: %v - %v %v\n", s.App.Name, webCmd, webArgv)
+	if err = run.ExeWith(&run.Options{Path: s.RunPath, Name: webCmd, Argv: webArgv, Stdout: s.LogFile, Stderr: s.LogFile, Environ: environ, PidFile: s.PidFile}); err != nil {
+		if strings.Contains(err.Error(), "signal: terminated") {
+			err = nil
+		} else {
+			err = fmt.Errorf("error executing slug: %v %v - %v", webCmd, webArgv, err)
+		}
+	}
+	return
+}
+
 func (s *Slug) Start(port int) (err error) {
+	if err = s.Unpack(); err != nil {
+		err = fmt.Errorf("error unpacking this slug: %v - %v", s.Name, err)
+		return
+	}
 	var webCmd string
 	var webArgv, environ []string
 	if webCmd, webArgv, environ, err = s.PrepareStart(port); err != nil {
