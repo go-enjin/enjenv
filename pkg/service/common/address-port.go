@@ -15,13 +15,19 @@
 package common
 
 import (
-	"encoding/csv"
-	"strings"
+	"net"
+	"strconv"
+	"time"
 )
 
-func ParseControlArgv(input string) (argv []string, err error) {
-	r := csv.NewReader(strings.NewReader(input))
-	r.Comma = ' '
-	argv, err = r.Read()
+func IsAddressPortOpen(host string, port int) (ok bool) {
+	ok = IsAddressPortOpenWithTimeout(host, port, 100*time.Millisecond)
+	return
+}
+
+func IsAddressPortOpenWithTimeout(host string, port int, timeout time.Duration) (ok bool) {
+	address := net.JoinHostPort(host, strconv.Itoa(port))
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	ok = err == nil && conn != nil
 	return
 }

@@ -14,14 +14,13 @@
 
 package common
 
-import (
-	"encoding/csv"
-	"strings"
+import "time"
+
+var (
+	DatestampFormat = "20060102-1504.05"
 )
 
-func ParseControlArgv(input string) (argv []string, err error) {
-	r := csv.NewReader(strings.NewReader(input))
-	r.Comma = ' '
-	argv, err = r.Read()
+func Datestamp() (stamp string) {
+	stamp = time.Now().Format(DatestampFormat)
 	return
 }

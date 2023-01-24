@@ -14,14 +14,17 @@
 
 package common
 
-import (
-	"encoding/csv"
-	"strings"
+import "regexp"
+
+var (
+	RxSshPubKey = regexp.MustCompile(`^(\S+)\s+(\S+)((?:\s*).*)$`)
 )
 
-func ParseControlArgv(input string) (argv []string, err error) {
-	r := csv.NewReader(strings.NewReader(input))
-	r.Comma = ' '
-	argv, err = r.Read()
+func ParseSshKey(input string) (prefix, data, comment, id string, ok bool) {
+	if ok = RxSshPubKey.MatchString(input); ok {
+		m := RxSshPubKey.FindAllStringSubmatch(input, 1)
+		prefix, data, comment = m[0][1], m[0][2], m[0][3]
+		id = prefix + " " + data
+	}
 	return
 }

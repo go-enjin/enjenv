@@ -15,13 +15,28 @@
 package common
 
 import (
-	"encoding/csv"
-	"strings"
+	"os/user"
+	"strconv"
 )
 
-func ParseControlArgv(input string) (argv []string, err error) {
-	r := csv.NewReader(strings.NewReader(input))
-	r.Comma = ' '
-	argv, err = r.Read()
+func GetUidGid(userName, groupName string) (uid, gid int, err error) {
+	if userName != "" {
+		var u *user.User
+		if u, err = user.Lookup(userName); err != nil {
+			return
+		}
+		if uid, err = strconv.Atoi(u.Uid); err != nil {
+			return
+		}
+	}
+	if groupName != "" {
+		var g *user.Group
+		if g, err = user.LookupGroup(groupName); err != nil {
+			return
+		}
+		if gid, err = strconv.Atoi(g.Gid); err != nil {
+			return
+		}
+	}
 	return
 }
