@@ -470,7 +470,7 @@ func (s *Server) Stop() {
 
 func (s *Server) dropPrivileges() (err error) {
 	if syscall.Getuid() == 0 {
-		s.LogInfoF("dropping root privileges to %v:%v\n", s.Config.RunAs.User, s.Config.RunAs.Group)
+
 		var u *user.User
 		if u, err = user.Lookup(s.Config.RunAs.User); err != nil {
 			return
@@ -479,6 +479,8 @@ func (s *Server) dropPrivileges() (err error) {
 		if g, err = user.LookupGroup(s.Config.RunAs.Group); err != nil {
 			return
 		}
+
+		s.LogInfoF("switching user:group to %v:%v\n", s.Config.RunAs.User, s.Config.RunAs.Group)
 
 		var uid, gid int
 		if uid, err = strconv.Atoi(u.Uid); err != nil {
