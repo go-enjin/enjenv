@@ -380,6 +380,7 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.Paths.PidFile = cfg.Paths.PidFile
 	c.Paths.RepoPidFile = cfg.Paths.RepoPidFile
 	c.Paths.ProxyPidFile = cfg.Paths.ProxyPidFile
+	c.Users = cfg.Users
 	c.Applications = cfg.Applications
 	c.PortLookup = cfg.PortLookup
 	c.DomainLookup = cfg.DomainLookup
