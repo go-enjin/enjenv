@@ -16,8 +16,6 @@ package run
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/run"
@@ -55,14 +53,5 @@ func EnjenvCmd(argv ...string) (o, e string, err error) {
 	} else {
 		err = fmt.Errorf("enjenv not found")
 	}
-	return
-}
-
-func GetPidFromFile(pidFile string) (pid int, err error) {
-	var data []byte
-	if data, err = os.ReadFile(pidFile); err != nil {
-		return
-	}
-	pid, err = strconv.Atoi(string(data))
 	return
 }
