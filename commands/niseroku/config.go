@@ -16,6 +16,7 @@ package niseroku
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -57,6 +58,13 @@ type Config struct {
 
 	Source   string `toml:"-"`
 	NeedRoot bool   `toml:"-"`
+
+	Users        []*User                 `toml:"-"`
+	Applications map[string]*Application `toml:"-"`
+	PortLookup   map[int]*Application    `toml:"-"`
+	DomainLookup map[string]*Application `toml:"-"`
+
+	sync.RWMutex
 }
 
 type IncludeSlugsConfig struct {
@@ -103,9 +111,12 @@ type PathsConfig struct {
 
 	Control string `toml:"-"` // Control is the path for local unix socket file
 	PidFile string `toml:"-"` // PidFile is the path for the process ID file
+
+	RepoPidFile  string `toml:"-"` // RepoPidFile is the path for the git-repository service process ID file
+	ProxyPidFile string `toml:"-"` // ProxyPidFile is the path for the reverse-proxy service process ID file
 }
 
-func InitConfig(niserokuConfig string) (config *Config, err error) {
+func LoadConfig(niserokuConfig string) (config *Config, err error) {
 
 	if niserokuConfig == "" {
 		err = fmt.Errorf("missing --config")
@@ -159,6 +170,9 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 
 	pidFile := cfg.Paths.Var + "/" + Name + ".pid"
 	controlFile := cfg.Paths.Var + "/" + Name + ".sock"
+
+	repoPidFile := cfg.Paths.Var + "/git-repository.pid"
+	proxyPidFile := cfg.Paths.Var + "/reverse-proxy.pid"
 
 	var needRootUser bool
 	checkPort := func(port, defaultPort int) (validPort int, err error) {
@@ -282,34 +296,92 @@ func InitConfig(niserokuConfig string) (config *Config, err error) {
 			ProxySecrets: proxySecrets,
 			PidFile:      pidFile,
 			Control:      controlFile,
+			RepoPidFile:  repoPidFile,
+			ProxyPidFile: proxyPidFile,
 		},
+	}
+
+	if config.Users, err = LoadUsers(config.Paths.EtcUsers); err != nil {
+		return
+	}
+
+	if config.Applications, err = LoadApplications(config); err != nil {
+		return
+	}
+
+	config.PortLookup = make(map[int]*Application)
+	config.DomainLookup = make(map[string]*Application)
+	for _, app := range config.Applications {
+		if _, exists := config.PortLookup[app.Origin.Port]; exists {
+			err = fmt.Errorf("port %d duplicated by: %v", app.Origin.Port, app.Source)
+			return
+		}
+		config.PortLookup[app.Origin.Port] = app
+		for _, domain := range app.Domains {
+			if _, exists := config.DomainLookup[domain]; exists {
+				err = fmt.Errorf("domain %v duplicated by: %v", domain, app.Source)
+				return
+			}
+			config.DomainLookup[domain] = app
+		}
+		if err = app.LoadAllSlugs(); err != nil {
+			err = fmt.Errorf("error loading all slugs: %v", err)
+			return
+		}
 	}
 
 	return
 }
 
-func (c *Config) PrepareDirectories() (err error) {
-	for _, p := range []string{
-		c.Paths.Etc,
-		c.Paths.EtcApps,
-		c.Paths.EtcUsers,
-		c.Paths.Tmp,
-		c.Paths.TmpRun,
-		c.Paths.TmpClone,
-		c.Paths.TmpBuild,
-		c.Paths.Var,
-		c.Paths.VarLogs,
-		c.Paths.VarSlugs,
-		c.Paths.VarSettings,
-		c.Paths.VarCache,
-		c.Paths.VarRepos,
-		c.Paths.RepoSecrets,
-		c.Paths.ProxySecrets,
-	} {
-		if err = bePath.Mkdir(p); err != nil {
-			err = fmt.Errorf("error preparing directory: %v - %v", p, err)
-			return
-		}
+func (c *Config) Reload() (err error) {
+	var cfg *Config
+	if cfg, err = LoadConfig(c.Source); err != nil {
+		return
 	}
+	err = c.MergeConfig(cfg)
+	return
+}
+
+func (c *Config) MergeConfig(cfg *Config) (err error) {
+	c.Source = cfg.Source
+	c.LogFile = cfg.LogFile
+	c.NeedRoot = cfg.NeedRoot
+	c.BindAddr = cfg.BindAddr
+	c.EnableSSL = cfg.EnableSSL
+	c.BuildPack = cfg.BuildPack
+	c.AccountEmail = cfg.AccountEmail
+	c.IncludeSlugs = cfg.IncludeSlugs
+	c.Timeouts.SlugStartup = cfg.Timeouts.SlugStartup
+	c.Timeouts.ReadyInterval = cfg.Timeouts.ReadyInterval
+	c.Timeouts.OriginRequest = cfg.Timeouts.OriginRequest
+	c.RunAs.User = cfg.RunAs.User
+	c.RunAs.Group = cfg.RunAs.Group
+	c.Ports.Git = cfg.Ports.Git
+	c.Ports.Http = cfg.Ports.Http
+	c.Ports.Https = cfg.Ports.Https
+	c.Ports.AppEnd = cfg.Ports.AppEnd
+	c.Ports.AppStart = cfg.Ports.AppStart
+	c.Paths.Etc = cfg.Paths.Etc
+	c.Paths.Var = cfg.Paths.Var
+	c.Paths.Tmp = cfg.Paths.Tmp
+	c.Paths.EtcApps = cfg.Paths.EtcApps
+	c.Paths.EtcUsers = cfg.Paths.EtcUsers
+	c.Paths.TmpRun = cfg.Paths.TmpRun
+	c.Paths.TmpClone = cfg.Paths.TmpClone
+	c.Paths.TmpBuild = cfg.Paths.TmpBuild
+	c.Paths.VarLogs = cfg.Paths.VarLogs
+	c.Paths.VarRepos = cfg.Paths.VarRepos
+	c.Paths.VarCache = cfg.Paths.VarCache
+	c.Paths.VarSlugs = cfg.Paths.VarSlugs
+	c.Paths.VarSettings = cfg.Paths.VarSettings
+	c.Paths.RepoSecrets = cfg.Paths.RepoSecrets
+	c.Paths.ProxySecrets = cfg.Paths.ProxySecrets
+	c.Paths.Control = cfg.Paths.Control
+	c.Paths.PidFile = cfg.Paths.PidFile
+	c.Paths.RepoPidFile = cfg.Paths.RepoPidFile
+	c.Paths.ProxyPidFile = cfg.Paths.ProxyPidFile
+	c.Applications = cfg.Applications
+	c.PortLookup = cfg.PortLookup
+	c.DomainLookup = cfg.DomainLookup
 	return
 }
