@@ -31,6 +31,7 @@ import (
 	"github.com/go-enjin/be/pkg/maps"
 	beNet "github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/serve"
+
 	"github.com/go-enjin/enjenv/pkg/service"
 )
 
@@ -120,11 +121,14 @@ func (rp *ReverseProxy) Bind() (err error) {
 	}
 
 	if rp.config.IncludeSlugs.OnStart {
+		rp.LogInfoF("starting applications")
 		for _, app := range maps.ValuesSortedByKeys(rp.config.Applications) {
 			if ee := app.Invoke(); ee != nil {
 				rp.LogErrorF("error invoking application on start: %v - %v", app.Name, ee)
 			}
 		}
+	} else {
+		rp.LogInfoF("not starting applications")
 	}
 
 	return
@@ -169,6 +173,14 @@ func (rp *ReverseProxy) Serve() (err error) {
 		rp.LogInfoF("awaiting idle connections")
 		<-idleConnectionsClosed
 		rp.LogInfoF("all idle connections closed")
+		if rp.config.IncludeSlugs.OnStop {
+			rp.LogInfoF("stopping applications")
+			for _, app := range maps.ValuesSortedByKeys(rp.config.Applications) {
+				_ = app.SendStopSignal()
+			}
+		} else {
+			rp.LogInfoF("not stopping applications")
+		}
 	}
 	return
 }
@@ -186,13 +198,6 @@ func (rp *ReverseProxy) Stop() (err error) {
 		rp.LogInfoF("shutting down https service")
 		if ee := rp.https.Shutdown(nil); ee != nil {
 			rp.LogErrorF("error shutting down https server: %v\n", ee)
-		}
-	}
-	if rp.config.IncludeSlugs.OnStop {
-		for _, app := range maps.ValuesSortedByKeys(rp.config.Applications) {
-			if ee := app.SendStopSignal(); ee != nil {
-				rp.LogErrorF("error sending stop signal to %v: %v", app.Name, ee)
-			}
 		}
 	}
 	return
