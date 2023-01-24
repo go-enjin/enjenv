@@ -17,19 +17,19 @@ package niseroku
 import (
 	"fmt"
 	"os"
-	"syscall"
 
-	"github.com/go-enjin/be/pkg/cli/env"
-	"github.com/go-enjin/be/pkg/cli/run"
-	"github.com/go-enjin/be/pkg/path"
-	beStrings "github.com/go-enjin/be/pkg/strings"
+	"github.com/dustin/go-humanize"
 	"github.com/go-git/go-git/v5"
 	"github.com/otiai10/copy"
 	"github.com/sosedoff/gitkit"
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/enjenv/pkg/io"
-	"github.com/go-enjin/enjenv/pkg/service/common"
+	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-enjin/be/pkg/cli/run"
+	bePath "github.com/go-enjin/be/pkg/path"
+	beStrings "github.com/go-enjin/be/pkg/strings"
+	pkgIo "github.com/go-enjin/enjenv/pkg/io"
+	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 )
 
 func (c *Command) actionGitPreReceiveHook(ctx *cli.Context) (err error) {
@@ -37,10 +37,7 @@ func (c *Command) actionGitPreReceiveHook(ctx *cli.Context) (err error) {
 		return
 	}
 
-	io.STDOUT("# initializing slug building process\n")
-
-	// authenticate git repo endpoint (and branch) with ssh-key
-	// early error during a git-push
+	pkgIo.STDOUT("# initializing slug building process\n")
 
 	receiver := gitkit.Receiver{
 		MasterOnly: false,              // if set to true, only pushes to master branch will be allowed
@@ -67,10 +64,6 @@ func (c *Command) actionGitPostReceiveHook(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
-
-	// validate git repo endpoint (and branch) with ssh-key
-	// detect, build and archive a new app slug
-	// notify slug runner to "try" the new slug (destroyed on error)
 
 	receiver := gitkit.Receiver{
 		MasterOnly: false,              // if set to true, only pushes to master branch will be allowed
@@ -105,29 +98,17 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 		return
 	}
 
-	var s *Server
-	if s, err = NewServer(config); err != nil {
-		return
-	}
-
-	if err = s.LoadUsers(); err != nil {
-		return
-	}
-
-	// s.RLock()
-	// defer s.RUnlock()
-
-	repoName := path.Base(info.RepoName)
+	repoName := bePath.Base(info.RepoName)
 	var ok bool
-	if app, ok = s.LookupApp[repoName]; !ok {
+	if app, ok = c.config.Applications[repoName]; !ok {
 		err = fmt.Errorf("repository not found: %v", repoName)
 		return
 	}
 
-	for _, u := range s.Users {
+	for _, u := range c.config.Users {
 		if u.HasKey(envSshId) {
 			if beStrings.StringInSlices(repoName, u.Applications) || beStrings.StringInSlices("*", u.Applications) {
-				s.LogInfoF("validated user and repository: %v - %v\n", u.Name, repoName)
+				pkgIo.StdoutF("validated user and repository: %v - %v\n", u.Name, repoName)
 				return
 			}
 			app = nil
@@ -148,21 +129,21 @@ func (c *Command) enjinRepoPreReceiveHandler(app *Application, config *Config, i
 
 func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, info *gitkit.HookInfo, tmpPath string) (err error) {
 
-	tmpName := path.Base(tmpPath)
+	tmpName := bePath.Base(tmpPath)
 	buildDir := config.Paths.TmpBuild + "/" + tmpName
 	cacheDir := config.Paths.VarCache + "/" + app.Name
 	slugZip := config.Paths.VarSlugs + "/" + app.Name + "--" + info.NewRev + ".zip"
 	buildPackClonePath := config.Paths.TmpClone + "/" + app.Name
 	envDir := config.Paths.VarSettings + "/" + app.Name
 
-	io.STDOUT("# preparing ENV_DIR...\n")
-	if path.IsDir(envDir) {
+	pkgIo.STDOUT("# preparing ENV_DIR...\n")
+	if bePath.IsDir(envDir) {
 		if err = os.RemoveAll(envDir); err != nil {
 			err = fmt.Errorf("error removing enjin env path: %v - %v", envDir, err)
 			return
 		}
 	}
-	if err = path.Mkdir(envDir); err != nil {
+	if err = bePath.Mkdir(envDir); err != nil {
 		err = fmt.Errorf("error making enjin deployment path: %v - %v", envDir, err)
 		return
 	}
@@ -171,27 +152,27 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 
-	io.STDOUT("# preparing CACHE_DIR...\n")
-	if !path.IsDir(cacheDir) {
-		if err = path.Mkdir(cacheDir); err != nil {
+	pkgIo.STDOUT("# preparing CACHE_DIR...\n")
+	if !bePath.IsDir(cacheDir) {
+		if err = bePath.Mkdir(cacheDir); err != nil {
 			err = fmt.Errorf("error making enjin deployment path: %v - %v", cacheDir, err)
 			return
 		}
 	}
 
-	io.STDOUT("# preparing BUILD_DIR...\n")
+	pkgIo.STDOUT("# preparing BUILD_DIR...\n")
 	if err = copy.Copy(tmpPath, buildDir); err != nil {
 		err = fmt.Errorf("error copying to enjin build path: %v - %v", buildDir, err)
 		return
 	}
 	defer func() {
 		// cleanup build dir, if success, zip is all that is needed
-		io.STDOUT("# cleaning BUILD_DIR...\n")
+		pkgIo.STDOUT("# cleaning BUILD_DIR...\n")
 		_ = os.RemoveAll(buildDir)
 	}()
 
-	io.STDOUT("# preparing enjenv buildpack...\n")
-	if path.IsDir(config.BuildPack) {
+	pkgIo.STDOUT("# preparing enjenv buildpack...\n")
+	if bePath.IsDir(config.BuildPack) {
 		if err = copy.Copy(config.BuildPack, buildPackClonePath); err != nil {
 			return
 		}
@@ -201,31 +182,31 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 		return
 	}
 	defer func() {
-		io.STDOUT("# cleaning enjenv buildpack...\n")
+		pkgIo.STDOUT("# cleaning enjenv buildpack...\n")
 		_ = os.RemoveAll(envDir)
 		_ = os.RemoveAll(buildPackClonePath)
 	}()
 
 	var status int
-	io.STDOUT("# buildpack: detecting... ")
+	pkgIo.STDOUT("# buildpack: detected... ")
 	if status, err = run.Exe(buildPackClonePath+"/bin/detect", buildDir); err != nil {
 		err = fmt.Errorf("error detecting buildpack: %v", err)
-		io.STDOUT("\n")
+		pkgIo.STDOUT("\n")
 		return
 	} else if status != 0 {
-		io.STDOUT("\n")
+		pkgIo.STDOUT("\n")
 		return
 	}
 
-	io.STDOUT("# buildpack: compiling...\n")
+	pkgIo.STDOUT("# buildpack: compiling...\n")
 	if status, err = run.Exe(buildPackClonePath+"/bin/compile", buildDir, cacheDir, envDir); err != nil {
 		return
 	} else if status != 0 {
 		return
 	}
 
-	io.STDOUT("# starting slug compression\n")
-	pwd := path.Pwd()
+	pkgIo.STDOUT("# compressing built slug\n")
+	pwd := bePath.Pwd()
 	if err = os.Chdir(buildDir); err != nil {
 		return
 	}
@@ -234,24 +215,19 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 	} else if status != 0 {
 		return
 	}
-	io.STDOUT("# finished slug compression\n")
+	slugSize := "(nil)"
+	if stat, ee := os.Stat(slugZip); ee != nil {
+		pkgIo.STDERR("error getting slug file size: %v\n", ee)
+	} else {
+		slugSize = humanize.Bytes(uint64(stat.Size()))
+	}
+	pkgIo.STDOUT("# slug compressed size: %v\n", slugSize)
 
 	if err = os.Chdir(pwd); err != nil {
 		return
 	}
 
-	if app.ThisSlug != slugZip {
-		app.NextSlug = slugZip
-		io.STDOUT("# updating niseroku application config for next slug\n")
-		if err = app.Save(); err != nil {
-			return
-		}
-	}
+	err = pkgRun.EnjenvExe("niseroku", "deploy-slug", slugZip)
 
-	io.STDOUT("# build completed, signaling for slug deployment\n")
-	if err = common.SendSignalToPidFromFile(c.config.Paths.PidFile, syscall.SIGUSR1); err != nil {
-		io.StderrF("# error signaling for slug deployment: %v\n", err)
-		return
-	}
 	return
 }
