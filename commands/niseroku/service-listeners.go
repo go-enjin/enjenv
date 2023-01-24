@@ -27,6 +27,7 @@ import (
 	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (s *Server) bindControlListener() (err error) {
@@ -119,7 +120,7 @@ func (s *Server) bindGitListener() (err error) {
 func (s *Server) publicKeyLookupFunc(inputPubKey string) (pubkey *gitkit.PublicKey, err error) {
 	var ok bool
 	var inputKeyId string
-	if _, _, _, inputKeyId, ok = parseSshKey(inputPubKey); !ok {
+	if _, _, _, inputKeyId, ok = common.ParseSshKey(inputPubKey); !ok {
 		err = fmt.Errorf("unable to parse SSH key: %v", inputPubKey)
 		return
 	}

@@ -29,6 +29,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (c *Command) actionGitPreReceiveHook(ctx *cli.Context) (err error) {
@@ -248,7 +249,7 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 	}
 
 	io.STDOUT("# build completed, signaling for slug deployment\n")
-	if err = sendSignalToPidFromFile(c.config.Paths.PidFile, syscall.SIGUSR1); err != nil {
+	if err = common.SendSignalToPidFromFile(c.config.Paths.PidFile, syscall.SIGUSR1); err != nil {
 		io.StderrF("# error signaling for slug deployment: %v\n", err)
 		return
 	}

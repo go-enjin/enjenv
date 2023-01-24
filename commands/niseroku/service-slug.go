@@ -19,6 +19,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 /*
@@ -193,7 +195,7 @@ func (s *Server) awaitAppSlugReady(slug *Slug) {
 	s.LogInfoF("awaiting slug startup: %v - %v\n", slug.Name, slugStartupTimeout)
 	start := time.Now()
 	for now := time.Now(); now.Sub(start) < slugStartupTimeout; now = time.Now() {
-		if isAddressPortOpenWithTimeout(slug.App.Origin.Host, slug.Port, readyIntervalTimeout) {
+		if common.IsAddressPortOpenWithTimeout(slug.App.Origin.Host, slug.Port, readyIntervalTimeout) {
 			s.LogInfoF("slug ready: %v on port %d (%v)\n", slug.Name, slug.Port, time.Now().Sub(start))
 			if err := s.transitionAppToNextSlug(slug.App); err != nil {
 				s.LogErrorF("error transitioning app to next slug: %v\n", err)

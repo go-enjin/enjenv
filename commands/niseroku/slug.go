@@ -29,6 +29,8 @@ import (
 
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
+
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 type Slug struct {
@@ -126,7 +128,7 @@ func (s *Slug) ReadProcfile() (web string, err error) {
 
 func (s *Slug) IsReady() (ready bool) {
 	if s.IsRunning() && s.Port > 0 {
-		ready = isAddressPortOpen(s.App.Origin.Host, s.Port)
+		ready = common.IsAddressPortOpen(s.App.Origin.Host, s.Port)
 	}
 	return
 }
@@ -145,14 +147,14 @@ func (s *Slug) IsRunningReady() (running, ready bool) {
 	defer s.RUnlock()
 	if proc, ee := s.GetBinProcess(); ee == nil && proc != nil {
 		running = proc.Pid > 0
-		ready = isAddressPortOpen(s.App.Origin.Host, s.Port)
+		ready = common.IsAddressPortOpen(s.App.Origin.Host, s.Port)
 	}
 	return
 }
 
 func (s *Slug) GetBinProcess() (proc *process.Process, err error) {
-	proc, err = getProcessFromPidFile(s.PidFile)
-	// if proc, err = getProcessFromPidFile(s.PidFile); err == nil && proc != nil {
+	proc, err = common.GetProcessFromPidFile(s.PidFile)
+	// if proc, err = GetProcessFromPidFile(s.PidFile); err == nil && proc != nil {
 	// 	if s.App.BinName != "" {
 	// 		var ee error
 	// 		var procName string
@@ -193,7 +195,7 @@ func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string,
 		return
 	}
 
-	if isAddressPortOpen(s.App.Origin.Host, port) {
+	if common.IsAddressPortOpen(s.App.Origin.Host, port) {
 		err = fmt.Errorf("port already open by another process")
 		s.App.LogErrorF("%v: %d\n", err, port)
 		return
@@ -210,7 +212,7 @@ func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string,
 
 	environ = append(s.App.OsEnviron(), fmt.Sprintf("PORT=%d", port))
 	var parsedArgs []string
-	if parsedArgs, err = parseArgv(web); err != nil {
+	if parsedArgs, err = common.ParseControlArgv(web); err != nil {
 		err = fmt.Errorf("error parsing Procfile web entry argv: %v \"%v\"", s.Name, web)
 		return
 	}

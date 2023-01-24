@@ -22,6 +22,7 @@ import (
 	bePath "github.com/go-enjin/be/pkg/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 type Users []*User
@@ -63,9 +64,9 @@ func (u *User) String() (details string) {
 }
 
 func (u *User) HasKey(given string) (has bool) {
-	if _, _, _, id, ok := parseSshKey(given); ok {
+	if _, _, _, id, ok := common.ParseSshKey(given); ok {
 		for _, key := range u.AuthorizedKeys {
-			if _, _, _, keyId, valid := parseSshKey(key); valid {
+			if _, _, _, keyId, valid := common.ParseSshKey(key); valid {
 				if has = id == keyId; has {
 					return
 				}

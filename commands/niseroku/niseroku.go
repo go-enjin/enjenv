@@ -32,6 +32,7 @@ import (
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	beIo "github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 	"github.com/go-enjin/enjenv/pkg/system"
 )
 
@@ -265,7 +266,7 @@ func (c *Command) actionReload(ctx *cli.Context) (err error) {
 	}
 
 	var proc *process.Process
-	if proc, err = getProcessFromPidFile(c.config.Paths.PidFile); err == nil && proc != nil {
+	if proc, err = common.GetProcessFromPidFile(c.config.Paths.PidFile); err == nil && proc != nil {
 		if err = proc.SendSignal(syscall.SIGUSR1); err != nil {
 			err = fmt.Errorf("error sending SIGUSR1 to process: %d - %v", proc.Pid, err)
 		} else {

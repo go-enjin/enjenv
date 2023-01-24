@@ -35,6 +35,7 @@ import (
 	bePath "github.com/go-enjin/be/pkg/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 import (
@@ -179,7 +180,7 @@ func (s *Server) Applications() (apps []*Application) {
 func (s *Server) InitPidFile() (err error) {
 	if bePath.IsFile(s.Config.Paths.PidFile) {
 		var proc *process.Process
-		if proc, err = getProcessFromPidFile(s.Config.Paths.PidFile); err != nil {
+		if proc, err = common.GetProcessFromPidFile(s.Config.Paths.PidFile); err != nil {
 			var stale bool
 			if stale = strings.HasPrefix(err.Error(), "pid is not running"); stale {
 			} else if stale = err.Error() == "process not found"; stale {
