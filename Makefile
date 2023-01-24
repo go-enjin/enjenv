@@ -38,11 +38,15 @@ LOGROTATE_PATH ?= ${ETC_PATH}/logrotate.d
 SYSV_INIT_PATH ?= ${ETC_PATH}/init.d
 AUTOCOMPLETE_PATH ?= ${ETC_PATH}/bash_completion.d
 
-NISEROKU_TOML_FILE ?= ${NISEROKU_PATH}/niseroku.toml
-NISEROKU_SERVICE_FILE ?= ${SYSTEMD_PATH}/niseroku.service
-NISEROKU_LOGROTATE_FILE ?= ${LOGROTATE_PATH}/niseroku
-NISEROKU_SYSV_INIT_FILE ?= ${SYSV_INIT_PATH}/niseroku
 ENJENV_AUTOCOMPLETE_FILE ?= ${AUTOCOMPLETE_PATH}/enjenv
+NISEROKU_TOML_FILE ?= ${NISEROKU_PATH}/niseroku.toml
+NISEROKU_LOGROTATE_FILE ?= ${LOGROTATE_PATH}/niseroku
+
+NISEROKU_PROXY_SERVICE_FILE ?= ${SYSTEMD_PATH}/niseroku-proxy.service
+NISEROKU_PROXY_SYSV_INIT_FILE ?= ${SYSV_INIT_PATH}/niseroku-proxy
+
+NISEROKU_REPOS_SERVICE_FILE ?= ${SYSTEMD_PATH}/niseroku-repos.service
+NISEROKU_REPOS_SYSV_INIT_FILE ?= ${SYSV_INIT_PATH}/niseroku-repos
 
 define _trim_path =
 $(shell \
@@ -184,29 +188,27 @@ install-niseroku:
 
 install-niseroku-logrotate:
 	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
-	@if [ -f "${NISEROKU_LOGROTATE_FILE}" ]; then \
-		echo "# skipping ${NISEROKU_LOGROTATE_FILE} (exists already)"; \
-	else \
-		echo "# installing ${NISEROKU_LOGROTATE_FILE}"; \
-		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"; \
-		${CMD} sha256sum "${NISEROKU_LOGROTATE_FILE}"; \
-	fi
+	@echo "# installing ${NISEROKU_LOGROTATE_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"
+	@${CMD} sha256sum "${NISEROKU_LOGROTATE_FILE}"
 
 install-niseroku-sysv-init:
 	@[ -d "${SYSV_INIT_PATH}" ] || mkdir -vp "${SYSV_INIT_PATH}"
-	@echo "# installing ${NISEROKU_SYSV_INIT_FILE}"
-	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku.init" "${NISEROKU_SYSV_INIT_FILE}"
-	@${CMD} sha256sum "${NISEROKU_SYSV_INIT_FILE}"
+	@echo "# installing ${NISEROKU_PROXY_SYSV_INIT_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-proxy.init" "${NISEROKU_PROXY_SYSV_INIT_FILE}"
+	@${CMD} sha256sum "${NISEROKU_PROXY_SYSV_INIT_FILE}"
+	@echo "# installing ${NISEROKU_REPOS_SYSV_INIT_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-repos.init" "${NISEROKU_REPOS_SYSV_INIT_FILE}"
+	@${CMD} sha256sum "${NISEROKU_REPOS_SYSV_INIT_FILE}"
 
 install-niseroku-systemd:
 	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
-	@if [ -f "${NISEROKU_SERVICE_FILE}" ]; then \
-		echo "# skipping ${NISEROKU_SERVICE_FILE} (exists already)"; \
-	else \
-		echo "# installing ${NISEROKU_SERVICE_FILE}"; \
-		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.service" "${NISEROKU_SERVICE_FILE}"; \
-		${CMD} sha256sum "${NISEROKU_SERVICE_FILE}"; \
-	fi
+	@echo "# installing ${NISEROKU_PROXY_SERVICE_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-proxy.service" "${NISEROKU_PROXY_SERVICE_FILE}"
+	@$${CMD} sha256sum "${NISEROKU_PROXY_SERVICE_FILE}"
+	@echo "# installing ${NISEROKU_REPOS_SERVICE_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-repos.service" "${NISEROKU_REPOS_SERVICE_FILE}"
+	@${CMD} sha256sum "${NISEROKU_REPOS_SERVICE_FILE}"
 
 local:
 	@if [ -d "${BE_PATH}" ]; then \
