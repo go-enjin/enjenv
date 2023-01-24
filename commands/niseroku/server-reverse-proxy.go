@@ -186,8 +186,6 @@ func (rp *ReverseProxy) Serve() (err error) {
 }
 
 func (rp *ReverseProxy) Stop() (err error) {
-	rp.Lock()
-	defer rp.Unlock()
 	if rp.http != nil {
 		rp.LogInfoF("shutting down http service")
 		if ee := rp.http.Shutdown(nil); ee != nil {
