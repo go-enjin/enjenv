@@ -1,21 +1,21 @@
 #!/bin/bash
 #
-# niseroku init.d script
+# niseroku-proxy init.d script
 ### BEGIN INIT INFO
-# Provides:          niseroku
+# Provides:          niseroku-proxy
 # Required-Start:    $syslog
 # Required-Stop:     $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: niseroku daemon
-# Description:       enjenv niseroku service instance.
+# Short-Description: niseroku reverse-proxy daemon
+# Description:       enjenv niseroku reverse-proxy service instance.
 ### END INIT INFO
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/bin/enjenv
-NAME=niseroku
-DESC="enjenv niseroku daemon"
-DAEMON_OPTS="niseroku start"
+NAME=niseroku-proxy
+DESC="enjenv niseroku (reverse-proxy)"
+DAEMON_OPTS="niseroku reverse-proxy"
 
 . /lib/lsb/init-functions
 

@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+# niseroku-repos init.d script
+### BEGIN INIT INFO
+# Provides:          niseroku-repos
+# Required-Start:    $syslog
+# Required-Stop:     $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: niseroku git-repository daemon
+# Description:       enjenv niseroku git-repository service instance.
+### END INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/bin/enjenv
+NAME=niseroku-repos
+DESC="enjenv niseroku (git-repository)"
+DAEMON_OPTS="niseroku git-repository"
+
+. /lib/lsb/init-functions
+
+test -x $DAEMON || exit 0
+
+set -e
+
+ret=0
+case "$1" in
+    "start")
+        log_daemon_msg "Starting ${DESC}" "${NAME}"
+        start-stop-daemon --start --quiet -u 0 --exec $DAEMON -- $DAEMON_OPTS || ret=$?
+        if [ "$ret" = 1 ]; then
+                log_progress_msg "already running"
+                ret=0
+        fi
+        log_end_msg $ret
+        ;;
+  "stop")
+        log_daemon_msg "Stopping $DESC" "$NAME"
+        start-stop-daemon --stop --retry 1 --quiet -u 0 --exec $DAEMON || ret=$?
+        if [ "$ret" = 1 ]; then
+                log_progress_msg "not running"
+                ret=0
+        fi
+        log_end_msg $ret
+        ;;
+  "reload"|"force-reload")
+        log_daemon_msg "$DESC" "Reloading configuration files"
+        start-stop-daemon --stop --signal 1 --quiet -u 0 --exec $DAEMON || ret=$?
+        log_end_msg $ret
+        ;;
+  "restart")
+        log_daemon_msg "Restarting $DESC" "$NAME"
+        start-stop-daemon --stop --oknodo --retry 1 --quiet -u 0 --exec $DAEMON && \
+        start-stop-daemon --start --quiet -u 0 --exec $DAEMON -- $DAEMON_OPTS || ret=$?
+        log_end_msg $ret
+        ;;
+  "status")
+        status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+        ;;
+  *)
+        N=/etc/init.d/$NAME
+        log_success_msg "Usage: $N {start|stop|restart|reload|force-reload|status}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
