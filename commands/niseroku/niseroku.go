@@ -138,6 +138,12 @@ handled directly.
 					Action:    c.actionRestart,
 				},
 				{
+					Name:      "fix-fs",
+					Usage:     "repair file ownership and modes",
+					UsageText: app.Name + " niseroku fix-fs",
+					Action:    c.actionFixFs,
+				},
+				{
 					Name:  "app",
 					Usage: "manage specific enjin applications",
 					Subcommands: []*cli.Command{
