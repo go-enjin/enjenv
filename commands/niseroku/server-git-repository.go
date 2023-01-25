@@ -157,6 +157,11 @@ func (gr *GitRepository) Reload() (err error) {
 	defer gr.Unlock()
 	gr.LogInfoF("git-repository reloading\n")
 	err = gr.config.Reload()
+	for _, app := range maps.ValuesSortedByKeys(gr.config.Applications) {
+		if ee := app.SetupRepo(); ee != nil {
+			gr.LogErrorF("error updating git repo setup: %v - %v", app.Name, ee)
+		}
+	}
 	return
 }
 
