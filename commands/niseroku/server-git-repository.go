@@ -230,6 +230,9 @@ func (gr *GitRepository) updateGitHookScripts() (err error) {
 				}
 			}
 		}
+		if ee := common.RepairOwnership(hookDir, gr.User, gr.Group); ee != nil {
+			gr.LogErrorF("error repairing ownership of git-hooks: %v - %v", hookDir, ee)
+		}
 	}
 
 	return
