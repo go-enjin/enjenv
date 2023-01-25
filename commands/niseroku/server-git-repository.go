@@ -81,6 +81,11 @@ func (gr *GitRepository) Bind() (err error) {
 		}
 	}
 
+	if err = gr.updateGitHookScripts(); err != nil {
+		err = fmt.Errorf("error updating git-hook scripts: %v", err)
+		return
+	}
+
 	gr.Lock()
 	defer gr.Unlock()
 
