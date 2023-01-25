@@ -20,6 +20,7 @@ import (
 	"syscall"
 
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
