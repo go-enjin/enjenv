@@ -20,10 +20,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/go-enjin/be/pkg/maps"
 	"github.com/sosedoff/gitkit"
 	"github.com/urfave/cli/v2"
 
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/service"
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -71,6 +73,12 @@ func (gr *GitRepository) Bind() (err error) {
 	if err = gr.config.PrepareDirectories(); err != nil {
 		err = fmt.Errorf("error preparing directories: %v", err)
 		return
+	}
+
+	for _, app := range maps.ValuesSortedByKeys(gr.config.Applications) {
+		if ee := app.SetupRepo(); ee != nil {
+			gr.LogErrorF("error setting up git repo: %v - %v", app.Name, ee)
+		}
 	}
 
 	gr.Lock()
