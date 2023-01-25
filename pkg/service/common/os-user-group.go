@@ -15,8 +15,12 @@
 package common
 
 import (
+	"fmt"
+	"os"
 	"os/user"
 	"strconv"
+
+	bePath "github.com/go-enjin/be/pkg/path"
 )
 
 func GetUidGid(userName, groupName string) (uid, gid int, err error) {
@@ -36,6 +40,30 @@ func GetUidGid(userName, groupName string) (uid, gid int, err error) {
 		}
 		if gid, err = strconv.Atoi(g.Gid); err != nil {
 			return
+		}
+	}
+	return
+}
+
+func RepairOwnership(path, userName, groupName string) (err error) {
+	var uid, gid int
+	if uid, gid, err = GetUidGid(userName, groupName); err != nil {
+		return
+	}
+	var allDirs, allFiles []string
+	if allDirs, err = bePath.ListAllDirs(path); err != nil {
+		return
+	}
+	if allFiles, err = bePath.ListAllFiles(path); err != nil {
+		return
+	}
+	if err = os.Chown(path, uid, gid); err != nil {
+		err = fmt.Errorf("error chown: %v (%d:%d) - %v", path, uid, gid, err)
+		return
+	}
+	for _, tgt := range append(allDirs, allFiles...) {
+		if err = os.Chown(tgt, uid, gid); err != nil {
+			err = fmt.Errorf("error chown: %v (%d:%d) - %v", tgt, uid, gid, err)
 		}
 	}
 	return
