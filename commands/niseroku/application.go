@@ -32,6 +32,7 @@ import (
 	bePath "github.com/go-enjin/be/pkg/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 type Application struct {
@@ -168,6 +169,9 @@ func (a *Application) SetupRepo() (err error) {
 	}
 	if a.GitRepo, err = git.PlainInit(a.RepoPath, true); err != nil && err == git.ErrRepositoryAlreadyExists {
 		a.GitRepo, err = git.PlainOpen(a.RepoPath)
+	}
+	if ee := common.RepairOwnership(a.RepoPath, a.Config.RunAs.User, a.Config.RunAs.Group); ee != nil {
+		a.LogErrorF("error repairing git repo ownership: %v - %v", a.RepoPath, ee)
 	}
 	return
 }
