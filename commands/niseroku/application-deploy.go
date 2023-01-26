@@ -141,6 +141,9 @@ func (a *Application) transitionAppToNextSlug(app *Application) (err error) {
 		if ee := nextSlug.App.Save(); ee != nil {
 			a.LogErrorF("error saving app after transitioning: %v - %v\n", app.Name, ee)
 		}
+		if ee := a.Config.Reload(); ee != nil {
+			a.LogErrorF("error reloading config after app transition: %v - %v", app.Name, ee)
+		}
 
 		if thisSlug != nil {
 			delete(a.Config.PortLookup, thisSlug.Port)
