@@ -23,7 +23,7 @@ import (
 
 func (a *Application) Invoke() (err error) {
 	var o, e string
-	if o, e, err = pkgRun.EnjenvCmd("niseroku", "app", "start", a.Name); err != nil {
+	if o, e, err = pkgRun.EnjenvCmd("niseroku", "app", "run", a.Name); err != nil {
 		err = fmt.Errorf("error invoking app: %v - %v", a.Name, err)
 		return
 	}
