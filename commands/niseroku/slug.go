@@ -185,12 +185,7 @@ func (s *Slug) GetBinProcess() (proc *process.Process, err error) {
 }
 
 func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string, err error) {
-	if s.App.Maintenance {
-		s.Stop()
-		s.App.LogInfoF("slug app maintenance mode: %v on port %d\n", s.Name, s.Port)
-		err = fmt.Errorf("app maintenance mode")
-		return
-	}
+
 	if running, ready := s.IsRunningReady(); ready {
 		s.Port = port
 		err = fmt.Errorf("slug already running and ready: %v (PORT=%d)", s.Name, s.Port)
