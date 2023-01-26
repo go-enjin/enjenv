@@ -123,6 +123,10 @@ func (rp *ReverseProxy) Bind() (err error) {
 	if rp.config.IncludeSlugs.OnStart {
 		rp.LogInfoF("starting applications")
 		for _, app := range maps.ValuesSortedByKeys(rp.config.Applications) {
+			if app.Maintenance {
+				rp.LogInfoF("skipping %v in maintenance mode", app.Name)
+				continue
+			}
 			if ee := app.Invoke(); ee != nil {
 				rp.LogErrorF("error invoking application on start: %v - %v", app.Name, ee)
 			}
