@@ -16,12 +16,10 @@ package niseroku
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/sevlyar/go-daemon"
+	"github.com/go-enjin/be/pkg/maps"
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -30,56 +28,32 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 		return
 	}
 	io.LogFile = ""
-	if argc := ctx.NArg(); argc > 1 {
-		err = fmt.Errorf("too many arguments")
-		return
-	} else if argc < 1 {
+
+	var appNames []string
+	if all := ctx.Bool("all"); all {
+		appNames = maps.SortedKeys(c.config.Applications)
+	} else if !all && ctx.NArg() >= 1 {
+		appNames = ctx.Args().Slice()
+	} else {
 		cli.ShowCommandHelpAndExit(ctx, "start", 1)
 	}
-	appName := ctx.Args().Get(0)
-
-	var ok bool
-	var app *Application
-	// var slug *Slug
-
-	if app, ok = c.config.Applications[appName]; !ok {
-		err = fmt.Errorf("app not found: %v", appName)
-		return
-	}
-
-	if !ctx.Bool("slug-process") {
-		binPath := basepath.EnjenvBinPath
-		argv := []string{binPath, "niseroku", "app", "start", "--slug-process", appName}
-
-		dCtx := &daemon.Context{
-			Args:  argv,
-			Env:   os.Environ(),
-			Umask: 0222,
-		}
-
-		var dProc *os.Process
-		if dProc, err = dCtx.Reborn(); err != nil {
-			io.StderrF("error daemonizing slug process: %v - %v\n", appName, err)
-			return
-		} else if dProc != nil {
-			io.StdoutF("slug process started: %v\n", appName)
-			return
-		}
-		defer func() {
-			if ee := dCtx.Release(); ee != nil {
-				io.StderrF("error releasing daemon context: %v - %v\n", appName, err)
-			}
-		}()
-	}
+	forceOverride := ctx.Bool("force")
 
 	if err = c.dropPrivileges(); err != nil {
 		err = fmt.Errorf("error dropping root privileges: %v", err)
 		return
 	}
 
-	if err = app.Deploy(); err != nil {
-		app.LogErrorF("error deploying application: %v\n", err)
-		return
+	for _, name := range appNames {
+		if app, ok := c.config.Applications[name]; !ok {
+			io.STDERR("%v application not found\n", name)
+		} else if app.Maintenance && !forceOverride {
+			io.STDOUT("%v application in maintenance mode (use --force to override)\n", name)
+		} else if ee := app.Invoke(); ee != nil {
+			io.STDERR("%v application start error: %v\n", name, ee)
+		} else {
+			io.STDOUT("%v application started\n", name)
+		}
 	}
 
 	return
