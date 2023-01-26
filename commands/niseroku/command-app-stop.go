@@ -17,6 +17,7 @@ package niseroku
 import (
 	"fmt"
 
+	"github.com/go-enjin/be/pkg/maps"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -27,36 +28,33 @@ func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
 		return
 	}
 	io.LogFile = ""
-	if argc := ctx.NArg(); argc > 1 {
-		err = fmt.Errorf("too many arguments")
-		return
-	} else if argc < 1 {
-		cli.ShowCommandHelpAndExit(ctx, "start", 1)
-	}
-	appName := ctx.Args().Get(0)
 
-	var ok bool
-	var app *Application
-	var slug *Slug
+	var appNames []string
+	if all := ctx.Bool("all"); all {
+		appNames = maps.SortedKeys(c.config.Applications)
+	} else if !all && ctx.NArg() >= 1 {
+		appNames = ctx.Args().Slice()
+	} else {
+		cli.ShowCommandHelpAndExit(ctx, "stop", 1)
+	}
 
 	if err = c.dropPrivileges(); err != nil {
 		err = fmt.Errorf("error dropping root privileges: %v", err)
 		return
 	}
 
-	if app, ok = c.config.Applications[appName]; !ok {
-		err = fmt.Errorf("app not found: %v", appName)
-		return
-	}
-
-	if slug = app.GetThisSlug(); slug != nil {
-		if slug.Stop() {
-			io.STDOUT("slug process stopped: %v\n", app.Name)
+	for _, name := range appNames {
+		if app, ok := c.config.Applications[name]; !ok {
+			io.STDERR("%v application not found\n", name)
+		} else if slug := app.GetThisSlug(); slug != nil {
+			if slug.Stop() {
+				io.STDOUT("%v stopped\n", app.Name)
+			} else {
+				io.STDOUT("%v not running\n", app.Name)
+			}
 		} else {
-			io.STDOUT("slug process already stopped: %v\n", app.Name)
+			io.STDERR("%v slug not found\n", name)
 		}
-	} else {
-		err = fmt.Errorf("%v - slug not found", app.Name)
 	}
 
 	return
