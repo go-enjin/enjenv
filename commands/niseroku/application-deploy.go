@@ -28,7 +28,7 @@ func (a *Application) Deploy() (err error) {
 	thisSlug := a.GetThisSlug()
 	nextSlug := a.GetNextSlug()
 
-	a.LogInfoF("deploying: this=%v next=%v\n", a.Name, thisSlug, nextSlug)
+	a.LogInfoF("deploying:\n\tthis=%v\n\tnext=%v\n", thisSlug, nextSlug)
 
 	if thisSlug != nil && nextSlug != nil {
 		// migrating to next from this
