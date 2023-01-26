@@ -17,6 +17,7 @@ package niseroku
 import (
 	"fmt"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -28,7 +29,21 @@ func (a *Application) Deploy() (err error) {
 	thisSlug := a.GetThisSlug()
 	nextSlug := a.GetNextSlug()
 
-	a.LogInfoF("deploying:\n\tthis=%v\n\tnext=%v\n", thisSlug, nextSlug)
+	if thisSlug != nil {
+		if proc, _ := thisSlug.GetBinProcess(); proc != nil {
+			a.deployPid = int(proc.Pid)
+		}
+	}
+
+	if nextSlug != nil {
+		if thisSlug.Name == nextSlug.Name {
+			a.LogInfoF("re-deploying: %v\n", thisSlug)
+		} else {
+			a.LogInfoF("deploying: %v\n", nextSlug)
+		}
+	} else {
+		a.LogInfoF("deploying: %v\n", thisSlug)
+	}
 
 	if thisSlug != nil && nextSlug != nil {
 		// migrating to next from this
@@ -140,8 +155,17 @@ func (a *Application) transitionAppToNextSlug(app *Application) (err error) {
 
 		if thisSlug == nil {
 			// first deployment, nothing to clean up
-		} else if err = thisSlug.Destroy(); err != nil {
-			err = fmt.Errorf("error destroying slug: %v - %v", thisSlug.Name, err)
+		} else if thisSlug.Name == nextSlug.Name {
+			if a.deployPid > 0 {
+				if proc, ee := common.GetProcessFromPid(a.deployPid); ee == nil {
+					if ee = proc.SendSignal(syscall.SIGTERM); ee != nil {
+						a.LogErrorF("error sending SIGTERM to previous slug instance: %v", ee)
+					}
+				}
+				a.deployPid = 0
+			}
+		} else if ee := thisSlug.Destroy(); ee != nil {
+			a.LogErrorF("error destroying slug: %v - %v", thisSlug.Name, ee)
 		}
 	}
 	return

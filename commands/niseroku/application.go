@@ -59,6 +59,8 @@ type Application struct {
 
 	await chan bool
 
+	deployPid int
+
 	sync.RWMutex
 }
 
