@@ -195,6 +195,19 @@ handled directly.
 								},
 							},
 						},
+
+						{
+							Name:      "restart",
+							Usage:     "restart one or more applications",
+							UsageText: app.Name + " niseroku app restart <name> [name...]",
+							Action:    c.actionAppRestart,
+							Flags: []cli.Flag{
+								&cli.BoolFlag{
+									Name:  "all",
+									Usage: "restart all applications",
+								},
+							},
+						},
 					},
 				},
 			},
