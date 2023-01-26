@@ -14,13 +14,17 @@
 
 package niseroku
 
-import "math/rand"
+import (
+	"math/rand"
+	"time"
+)
 
 func (c *Config) GetUnusedPort() (port int) {
 	c.RLock()
 	defer c.RUnlock()
 	delta := c.Ports.AppEnd - c.Ports.AppStart
 	for loop := delta; loop > 0; loop -= 1 {
+		rand.Seed(time.Now().UnixMicro())
 		port = rand.Intn(delta) + c.Ports.AppStart
 		if _, exists := c.PortLookup[port]; !exists {
 			break
