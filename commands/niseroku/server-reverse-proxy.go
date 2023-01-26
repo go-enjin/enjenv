@@ -129,6 +129,8 @@ func (rp *ReverseProxy) Bind() (err error) {
 			}
 			if ee := app.Invoke(); ee != nil {
 				rp.LogErrorF("error invoking application on start: %v - %v", app.Name, ee)
+			} else {
+				rp.LogInfoF("started %v", app.Name)
 			}
 		}
 	} else {
@@ -181,6 +183,7 @@ func (rp *ReverseProxy) Serve() (err error) {
 			rp.LogInfoF("stopping applications")
 			for _, app := range maps.ValuesSortedByKeys(rp.config.Applications) {
 				_ = app.SendStopSignal()
+				rp.LogInfoF("stop signal sent to: %v", app.Name)
 			}
 		} else {
 			rp.LogInfoF("not stopping applications")
