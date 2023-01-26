@@ -29,12 +29,12 @@ func (a *Application) Invoke() (err error) {
 	}
 	for _, line := range strings.Split(o, "\n") {
 		if line != "" {
-			a.LogInfoF("invoke[stdout]: %v", line)
+			a.LogInfoF("invoke[stdout]: " + line)
 		}
 	}
 	for _, line := range strings.Split(e, "\n") {
 		if line != "" {
-			a.LogInfoF("invoke[stderr]: %v", line)
+			a.LogInfoF("invoke[stderr]: " + line)
 		}
 	}
 	return
