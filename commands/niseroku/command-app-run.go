@@ -40,7 +40,6 @@ func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
 
 	var ok bool
 	var app *Application
-	// var slug *Slug
 
 	if app, ok = c.config.Applications[appName]; !ok {
 		err = fmt.Errorf("app not found: %v", appName)
