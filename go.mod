@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20230122215752-b7f080d8473a
+	github.com/go-enjin/be v0.0.0-20230126192647-016063007b74
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/goccy/go-json v0.9.11
