@@ -58,16 +58,17 @@ func (a *Application) Deploy() (err error) {
 		// setting to next from nil
 		nextSlug.Port = a.Config.GetUnusedPort()
 		if ee := a.migrateAppSlug(nextSlug); ee != nil {
-			a.LogErrorF("error starting next slug: %v - %v\n", nextSlug.Name, a.Origin.Port)
+			a.LogErrorF("error starting next slug: %v on port %v\n", nextSlug.Name, nextSlug.Port)
 		} else {
-			a.LogInfoF("migrated slug: %v on port %d\n", nextSlug, thisSlug.Port)
+			a.LogInfoF("migrated slug: %v on port %d\n", nextSlug, nextSlug.Port)
 			<-a.await
 		}
 	} else if thisSlug != nil && nextSlug == nil {
 		// start this if not running already
 		if !thisSlug.IsRunning() {
-			if ee := thisSlug.StartForeground(a.Origin.Port); ee != nil {
-				a.LogErrorF("error starting this slug: %v (%d) - %v\n", thisSlug.Name, a.Origin.Port, ee)
+			thisSlug.Port = a.Origin.Port
+			if ee := thisSlug.StartForeground(thisSlug.Port); ee != nil {
+				a.LogErrorF("error starting this slug: %v (%d) - %v\n", thisSlug.Name, thisSlug.Port, ee)
 			}
 		} else {
 			a.LogErrorF("slug already running: %v\n", thisSlug.Name)
