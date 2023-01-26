@@ -167,15 +167,16 @@ handled directly.
 								},
 							},
 						},
+
 						{
 							Name:      "start",
-							Usage:     "start an app slug process in the background",
+							Usage:     "start one or more applications",
 							UsageText: app.Name + " niseroku app start <name> [name...]",
 							Action:    c.actionAppStart,
 							Flags: []cli.Flag{
 								&cli.BoolFlag{
 									Name:  "all",
-									Usage: "start all configured applications",
+									Usage: "start all applications",
 								},
 								&cli.BoolFlag{
 									Name:  "force",
@@ -183,15 +184,16 @@ handled directly.
 								},
 							},
 						},
+
 						{
 							Name:      "stop",
-							Usage:     "stop a running app slug process",
+							Usage:     "stop one or more running applications",
 							UsageText: app.Name + " niseroku app stop <name> [name...]",
 							Action:    c.actionAppStop,
 							Flags: []cli.Flag{
 								&cli.BoolFlag{
 									Name:  "all",
-									Usage: "stop all running applications",
+									Usage: "stop all applications",
 								},
 							},
 						},
