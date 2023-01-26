@@ -186,12 +186,8 @@ func (s *Slug) GetBinProcess() (proc *process.Process, err error) {
 
 func (s *Slug) PrepareStart(port int) (webCmd string, webArgv, environ []string, err error) {
 
-	if running, ready := s.IsRunningReady(); ready {
-		s.Port = port
-		err = fmt.Errorf("slug already running and ready: %v (PORT=%d)", s.Name, s.Port)
-		return
-	} else if running {
-		err = fmt.Errorf("slug already running and not ready: %v", s.Name)
+	if ready := s.IsReady(); ready && port == s.Port {
+		err = fmt.Errorf("slug already running on given port: %v (PORT=%d)", s.Name, s.Port)
 		return
 	}
 
