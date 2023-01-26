@@ -49,7 +49,7 @@ func (c *Command) actionAppRestart(ctx *cli.Context) (err error) {
 		app.NextSlug = app.ThisSlug
 		if ee := app.Save(); ee != nil {
 			err = fmt.Errorf("error saving %v application config: %v\n", app.Name, ee)
-		} else if eee := pkgRun.EnjenvExe("niseroku", "app", "start", app.Name); eee != nil {
+		} else if _, _, eee := pkgRun.EnjenvCmd("niseroku", "app", "start", app.Name); eee != nil {
 			err = fmt.Errorf("error starting %v application: %v\n", app.Name, eee)
 		}
 		return
@@ -61,7 +61,9 @@ func (c *Command) actionAppRestart(ctx *cli.Context) (err error) {
 		} else if app.Maintenance && !forceOverride {
 			io.STDOUT("%v application in maintenance mode (use --force to override)\n", name)
 		} else if ee := restartApp(app); ee != nil {
-			io.STDERR("%v application start error: %v\n", name, ee)
+			io.STDERR("%v application restart error: %v\n", name, ee)
+		} else {
+			io.STDOUT("%v application restarting\n", name)
 		}
 	}
 
