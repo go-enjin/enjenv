@@ -22,20 +22,13 @@ import (
 )
 
 func (a *Application) Invoke() (err error) {
-	var o, e string
-	if o, e, err = pkgRun.EnjenvCmd("niseroku", "app", "run", a.Name); err != nil {
+	var e string
+	if _, e, err = pkgRun.EnjenvCmd("niseroku", "app", "run", a.Name); err != nil {
 		err = fmt.Errorf("error invoking app: %v - %v", a.Name, err)
 		return
 	}
-	for _, line := range strings.Split(o, "\n") {
-		if line != "" {
-			a.LogInfoF("invoke[stdout]: " + line)
-		}
-	}
-	for _, line := range strings.Split(e, "\n") {
-		if line != "" {
-			a.LogInfoF("invoke[stderr]: " + line)
-		}
+	if len(e) > 1 {
+		err = fmt.Errorf("stderr invoking app: %v", strings.TrimSpace(e))
 	}
 	return
 }
