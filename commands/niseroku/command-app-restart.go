@@ -16,6 +16,7 @@ package niseroku
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-enjin/be/pkg/maps"
 	"github.com/urfave/cli/v2"
@@ -65,6 +66,7 @@ func (c *Command) actionAppRestart(ctx *cli.Context) (err error) {
 		} else {
 			io.STDOUT("%v application restarting\n", name)
 		}
+		time.Sleep(100 * time.Millisecond) // slight delay before next app is restarted
 	}
 
 	return
