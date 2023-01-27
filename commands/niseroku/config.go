@@ -48,6 +48,8 @@ type Config struct {
 	AccountEmail string `toml:"account-email,omitempty"`
 	LogFile      string `toml:"log-file,omitempty"`
 
+	SlugNice int `toml:"slug-nice,omitempty"`
+
 	IncludeSlugs IncludeSlugsConfig `toml:"include-slugs"`
 
 	Timeouts TimeoutsConfig `toml:"timeouts,omitempty"`
@@ -130,6 +132,11 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 
 	var cfg Config
 	if _, err = toml.DecodeFile(niserokuConfig, &cfg); err != nil {
+		return
+	}
+
+	if cfg.SlugNice < -10 && cfg.SlugNice > 20 {
+		err = fmt.Errorf("slug-nice value out of range: -10 to 20")
 		return
 	}
 
@@ -261,6 +268,7 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 		EnableSSL:    cfg.EnableSSL,
 		BuildPack:    cfg.BuildPack,
 		AccountEmail: cfg.AccountEmail,
+		SlugNice:     cfg.SlugNice,
 		IncludeSlugs: cfg.IncludeSlugs,
 		Timeouts: TimeoutsConfig{
 			SlugStartup:   slugStartupTimeout,
