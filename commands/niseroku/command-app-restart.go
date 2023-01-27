@@ -41,10 +41,10 @@ func (c *Command) actionAppRestart(ctx *cli.Context) (err error) {
 	}
 	forceOverride := ctx.Bool("force")
 
-	if err = c.dropPrivileges(); err != nil {
-		err = fmt.Errorf("error dropping root privileges: %v", err)
-		return
-	}
+	// if err = c.dropPrivileges(); err != nil {
+	// 	err = fmt.Errorf("error dropping root privileges: %v", err)
+	// 	return
+	// }
 
 	restartApp := func(app *Application) (err error) {
 		app.NextSlug = app.ThisSlug

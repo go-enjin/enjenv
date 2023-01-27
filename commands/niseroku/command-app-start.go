@@ -15,7 +15,7 @@
 package niseroku
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/go-enjin/be/pkg/maps"
 	"github.com/urfave/cli/v2"
@@ -39,10 +39,10 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 	}
 	forceOverride := ctx.Bool("force")
 
-	if err = c.dropPrivileges(); err != nil {
-		err = fmt.Errorf("error dropping root privileges: %v", err)
-		return
-	}
+	// if err = c.dropPrivileges(); err != nil {
+	// 	err = fmt.Errorf("error dropping root privileges: %v", err)
+	// 	return
+	// }
 
 	for _, name := range appNames {
 		if app, ok := c.config.Applications[name]; !ok {
@@ -54,6 +54,7 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 		} else {
 			io.STDOUT("%v application started\n", name)
 		}
+		time.Sleep(100 * time.Millisecond) // slight delay before next app is started
 	}
 
 	return
