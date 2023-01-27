@@ -15,9 +15,12 @@
 package niseroku
 
 import (
+	"syscall"
+
 	"github.com/shirou/gopsutil/v3/process"
 
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
@@ -34,6 +37,14 @@ func (c *Config) SignalReverseProxy(sig process.Signal) {
 	return
 }
 
+func (c *Config) SignalReloadReverseProxy() {
+	c.SignalReverseProxy(syscall.SIGUSR1)
+}
+
+func (c *Config) SignalStopReverseProxy() {
+	c.SignalReverseProxy(syscall.SIGTERM)
+}
+
 func (c *Config) SignalGitRepository(sig process.Signal) {
 	c.RLock()
 	defer c.RUnlock()
@@ -45,4 +56,12 @@ func (c *Config) SignalGitRepository(sig process.Signal) {
 		}
 	}
 	return
+}
+
+func (c *Config) SignalReloadGitRepository() {
+	c.SignalGitRepository(syscall.SIGUSR1)
+}
+
+func (c *Config) SignalStopGitRepository() {
+	c.SignalGitRepository(syscall.SIGTERM)
 }
