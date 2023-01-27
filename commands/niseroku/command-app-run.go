@@ -17,7 +17,9 @@ package niseroku
 import (
 	"fmt"
 	"os"
+	"strconv"
 
+	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/sevlyar/go-daemon"
 	"github.com/urfave/cli/v2"
 
@@ -71,9 +73,20 @@ func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
 		}()
 	}
 
+	thisPid := strconv.Itoa(os.Getpid())
+	niceVal := strconv.Itoa(c.config.SlugNice)
+	o, e, _, _ := run.Cmd("/bin/renice", "-n", niceVal, "-g", thisPid)
+
 	if err = c.dropPrivileges(); err != nil {
 		err = fmt.Errorf("error dropping root privileges: %v", err)
 		return
+	}
+
+	if len(o) > 1 {
+		app.LogInfoF("renice[stdout] %v\n", o)
+	}
+	if len(e) > 1 {
+		app.LogInfoF("renice[stderr] %v\n", e)
 	}
 
 	if err = app.Deploy(); err != nil {
