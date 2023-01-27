@@ -30,6 +30,11 @@ log-file = "/var/log/niseroku.log"
 #
 #account-email = ""
 
+#: slug-nice is the CPU priority (or "nice" value) to use for all application
+#: slugs, applied using /bin/renice just before dropping root privileges
+#
+#slug-nice = 0
+
 #: include-slugs configures whether or not to start all slugs on startup and/or
 #: stop all slugs on shutdown
 #
