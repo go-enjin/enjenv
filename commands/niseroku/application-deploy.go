@@ -139,23 +139,19 @@ func (a *Application) transitionAppToNextSlug(app *Application) (err error) {
 		nextSlug.App.Origin.Port = nextSlug.Port
 
 		if ee := nextSlug.App.Save(); ee != nil {
-			a.LogErrorF("error saving app after transitioning: %v - %v\n", app.Name, ee)
+			err = fmt.Errorf("error saving: %v - %v\n", app.Name, ee)
+			return
 		}
 		if ee := a.Config.Reload(); ee != nil {
-			a.LogErrorF("error reloading config after app transition: %v - %v", app.Name, ee)
+			err = fmt.Errorf("error reloading: %v - %v", app.Name, ee)
+			return
 		}
 
-		if thisSlug != nil {
-			delete(a.Config.PortLookup, thisSlug.Port)
-			for _, domain := range thisSlug.App.Domains {
-				delete(a.Config.DomainLookup, domain)
-			}
-		}
-		a.Config.PortLookup[nextSlug.Port] = nextSlug.App
-		for _, domain := range nextSlug.App.Domains {
-			a.Config.DomainLookup[domain] = nextSlug.App
-		}
-		a.LogInfoF("app transitioned to slug: %v\n", nextSlug.Name)
+		a.LogInfoF("app transitioned to next slug: %v\n", nextSlug.Name)
+
+		time.Sleep(250 * time.Millisecond) // slight delay, allow os to settle down?
+		a.LogInfoF("sending reverse-proxy reload signal\n")
+		a.Config.SignalReloadReverseProxy()
 
 		if thisSlug == nil {
 			// first deployment, nothing to clean up
