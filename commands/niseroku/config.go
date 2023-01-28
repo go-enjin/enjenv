@@ -39,6 +39,10 @@ var (
 	DefaultSlugStartupTimeout   = 5 * time.Minute
 	DefaultOriginRequestTimeout = time.Minute
 	DefaultReadyIntervalTimeout = time.Second
+
+	DefaultRateLimitTTL   time.Duration = 8760 * time.Hour
+	DefaultRateLimitMax   float64       = 150.0
+	DefaultRateLimitBurst int           = 0
 )
 
 type Config struct {
@@ -53,6 +57,8 @@ type Config struct {
 	IncludeSlugs IncludeSlugsConfig `toml:"include-slugs"`
 
 	Timeouts TimeoutsConfig `toml:"timeouts,omitempty"`
+
+	ProxyLimit RateLimit `toml:"proxy-limit,omitempty"`
 
 	RunAs RunAsConfig `toml:"run-as,omitempty"`
 	Ports PortsConfig `toml:"ports,omitempty"`
@@ -91,6 +97,12 @@ type PortsConfig struct {
 	Https    int `toml:"https,omitempty"`
 	AppEnd   int `toml:"app-end,omitempty"`
 	AppStart int `toml:"app-start,omitempty"`
+}
+
+type RateLimit struct {
+	TTL   time.Duration `toml:"ttl,omitempty"`
+	Max   float64       `toml:"max,omitempty"`
+	Burst int           `toml:"burst,omitempty"`
 }
 
 type PathsConfig struct {
@@ -275,6 +287,11 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 			ReadyInterval: readyIntervalTimeout,
 			OriginRequest: originRequestTimeout,
 		},
+		ProxyLimit: RateLimit{
+			TTL:   CheckAB(cfg.ProxyLimit.TTL, DefaultRateLimitTTL, cfg.ProxyLimit.TTL >= 0),
+			Max:   CheckAB(cfg.ProxyLimit.Max, DefaultRateLimitMax, cfg.ProxyLimit.Max > 0),
+			Burst: CheckAB(cfg.ProxyLimit.Burst, DefaultRateLimitBurst, cfg.ProxyLimit.Burst > 0),
+		},
 		RunAs: RunAsConfig{
 			User:  runAsUser,
 			Group: runAsGroup,
@@ -362,6 +379,9 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.Timeouts.SlugStartup = cfg.Timeouts.SlugStartup
 	c.Timeouts.ReadyInterval = cfg.Timeouts.ReadyInterval
 	c.Timeouts.OriginRequest = cfg.Timeouts.OriginRequest
+	c.ProxyLimit.TTL = cfg.ProxyLimit.TTL
+	c.ProxyLimit.Max = cfg.ProxyLimit.Max
+	c.ProxyLimit.Burst = cfg.ProxyLimit.Burst
 	c.RunAs.User = cfg.RunAs.User
 	c.RunAs.Group = cfg.RunAs.Group
 	c.Ports.Git = cfg.Ports.Git
@@ -392,5 +412,14 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.Applications = cfg.Applications
 	c.PortLookup = cfg.PortLookup
 	c.DomainLookup = cfg.DomainLookup
+	return
+}
+
+func CheckAB[V interface{}](a, b V, check bool) (v V) {
+	if check {
+		v = a
+	} else {
+		v = b
+	}
 	return
 }
