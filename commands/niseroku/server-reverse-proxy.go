@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/didip/tollbooth/v7/limiter"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/acme/autocert"
 
@@ -46,6 +47,8 @@ type ReverseProxy struct {
 	https         *http.Server
 	httpsListener net.Listener
 	autocert      *autocert.Manager
+
+	limiter *limiter.Limiter
 }
 
 func (c *Command) actionReverseProxy(ctx *cli.Context) (err error) {
@@ -87,10 +90,9 @@ func (rp *ReverseProxy) Bind() (err error) {
 	rp.Lock()
 	defer rp.Unlock()
 
-	// default serve mux
-	http.HandleFunc("/", rp.Handler)
+	handler := rp.ProxyHttpHandler()
+	http.Handle("/", handler)
 
-	var httpHandler http.Handler = http.HandlerFunc(rp.Handler)
 	if rp.config.EnableSSL {
 		lookupDomains := maps.Keys(rp.config.DomainLookup)
 		rp.autocert = &autocert.Manager{
@@ -99,13 +101,13 @@ func (rp *ReverseProxy) Bind() (err error) {
 			Email:      rp.config.AccountEmail,
 			HostPolicy: autocert.HostWhitelist(lookupDomains...),
 		}
-		httpHandler = rp.autocert.HTTPHandler(nil)
+		handler = rp.autocert.HTTPHandler(nil)
 	}
 
 	httpAddr := fmt.Sprintf("%v:%d", rp.config.BindAddr, rp.config.Ports.Http)
 	rp.http = &http.Server{
 		Addr:    httpAddr,
-		Handler: httpHandler,
+		Handler: handler,
 	}
 	if rp.httpListener, err = net.Listen("tcp", httpAddr); err != nil {
 		return
@@ -221,7 +223,7 @@ func (rp *ReverseProxy) Restart() (err error) {
 	return
 }
 
-func (rp *ReverseProxy) Handler(w http.ResponseWriter, r *http.Request) {
+func (rp *ReverseProxy) ServeProxyHTTP(w http.ResponseWriter, r *http.Request) {
 	var domain string
 	if strings.Contains(r.Host, ":") {
 		if h, p, err := net.SplitHostPort(r.Host); err == nil {
@@ -241,7 +243,7 @@ func (rp *ReverseProxy) Handler(w http.ResponseWriter, r *http.Request) {
 	origin, exists := rp.config.DomainLookup[domain]
 	rp.RUnlock()
 	if exists {
-		if err := rp.Handle(origin, w, r); err != nil {
+		if err := rp.ServeOriginHTTP(origin, w, r); err != nil {
 			rp.LogErrorF("error handling origin request: %v\n", err)
 		}
 		return
@@ -252,7 +254,7 @@ func (rp *ReverseProxy) Handler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (rp *ReverseProxy) Handle(app *Application, w http.ResponseWriter, r *http.Request) (err error) {
+func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter, r *http.Request) (err error) {
 	var remoteAddr string
 	if remoteAddr, err = beNet.GetIpFromRequest(r); err != nil {
 		return
