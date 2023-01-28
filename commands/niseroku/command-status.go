@@ -49,7 +49,7 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 				var childCpuTotal float64
 				var childMemTotal float32
 				for _, child := range children {
-					if cir, _ := child.IsRunning(); cir {
+					if cir, ce := child.IsRunning(); ce == nil && cir {
 						if cp, eee := child.CPUPercent(); eee == nil {
 							childCpuTotal += cp
 						}
