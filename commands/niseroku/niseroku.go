@@ -127,6 +127,12 @@ handled directly.
 					Action:    c.actionStatus,
 				},
 				{
+					Name:      "configtest",
+					Usage:     "test the current config file for syntax and other errors",
+					UsageText: app.Name + " niseroku configtest",
+					Action:    c.actionConfigTest,
+				},
+				{
 					Name:      "deploy-slug",
 					Usage:     "deploy a built slug",
 					UsageText: "niseroku deploy-slug <slug.zip> [slugs.zip...]",
