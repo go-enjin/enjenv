@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.2.1
+	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.0.2
 	github.com/go-enjin/be v0.0.0-20230126192647-016063007b74
@@ -66,6 +67,7 @@ require (
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
+	github.com/go-pkgz/expirable-cache v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
