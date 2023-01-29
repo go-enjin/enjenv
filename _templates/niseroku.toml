@@ -50,6 +50,52 @@ slug-startup = "60s"
 ready-interval = "1s"
 origin-request = "60s"
 
+#: proxy-limits configure the reverse-proxy rate-limiter facilities
+#
+[proxy-limit]
+
+#: proxy-limit.ttl is the limiter cache lifetime for request data stored
+#: in-memory (default: 168h - 7 days in hours)
+#
+ttl = "168h"
+
+#: proxy-limit.max is the maximum number of requests (per-domain,
+#: per-remote-address) allowed before considering the request to be limited
+#: (default: 150)
+#
+max = 150.0
+
+#: proxy-limit.burst is the maximum number of requests in a very short period
+#: of time before considering the request to be limited (default: 50)
+#
+burst = 50
+
+#: proxy-limit.max-delay is the maximum amount of time to delay a limited
+#: request before responding with a 429 status (default: 10s)
+#
+max-delay = "10s"
+
+#: proxy-limit.delay-scale is the number of iterations for checking if the
+#: request is now allowed before the max-delay setting is reached
+#: (default: 100)
+#
+delay-scale = 100
+
+#: proxy-limit.log-allowed configures logging rate-limited connections that
+#: were delayed and are now allowed (caution, causes a lot of log entries)
+#
+log-allowed = false
+
+#: proxy-limit.log-delayed configures logging rate-limited connections as
+#: they're being delayed (caution, causes a lot of log entries)
+#
+log-delayed = false
+
+#: proxy-limit.log-limited configures logging rate-limited connections that
+#: result in 429 responses because the service is being flooded
+#
+log-limited = true
+
 #: run-as configures the user and group niseroku switches to when started as
 #: root (UID=0), after opening any necessary privileged ports (ie: 80, 443)
 #
