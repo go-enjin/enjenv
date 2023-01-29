@@ -15,7 +15,10 @@
 package niseroku
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -74,6 +77,8 @@ type Config struct {
 	PortLookup   map[int]*Application    `toml:"-"`
 	DomainLookup map[string]*Application `toml:"-"`
 
+	tomlMetaData toml.MetaData
+	tomlComments TomlComments
 	sync.RWMutex
 }
 
@@ -150,8 +155,26 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 	}
 
 	var cfg Config
-	if _, err = toml.DecodeFile(niserokuConfig, &cfg); err != nil {
+	var contents string
+	if b, ee := os.ReadFile(niserokuConfig); ee != nil {
+		err = ee
 		return
+	} else {
+		contents = string(b)
+	}
+
+	var tmd toml.MetaData
+	if tmd, err = toml.Decode(contents, &cfg); err != nil {
+		return
+	} else {
+		cfg.tomlMetaData = tmd
+	}
+
+	if tcs, ee := ParseComments(contents); ee != nil {
+		err = ee
+		return
+	} else {
+		cfg.tomlComments = MergeConfigToml(tcs)
 	}
 
 	if cfg.SlugNice < -10 && cfg.SlugNice > 20 {
@@ -336,6 +359,8 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 			RepoPidFile:  repoPidFile,
 			ProxyPidFile: proxyPidFile,
 		},
+		tomlMetaData: cfg.tomlMetaData,
+		tomlComments: cfg.tomlComments,
 	}
 
 	if config.Users, err = LoadUsers(config.Paths.EtcUsers); err != nil {
@@ -367,6 +392,22 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 		}
 	}
 
+	return
+}
+
+func (c *Config) Save() (err error) {
+	c.RLock()
+	defer c.RUnlock()
+	var buffer bytes.Buffer
+	if err = toml.NewEncoder(&buffer).Encode(c); err != nil {
+		return
+	}
+	contents := string(buffer.Bytes())
+	var modified string
+	if modified, err = ApplyComments(contents, c.tomlComments); err != nil {
+		return
+	}
+	err = os.WriteFile(c.Source, []byte(modified), 0660)
 	return
 }
 
@@ -429,5 +470,167 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.Applications = cfg.Applications
 	c.PortLookup = cfg.PortLookup
 	c.DomainLookup = cfg.DomainLookup
+	c.tomlMetaData = cfg.tomlMetaData
+	c.tomlComments = cfg.tomlComments
+	return
+}
+
+func (c *Config) GetTomlValue(key string) (v interface{}) {
+	switch key {
+	case "buildpack-path":
+		v = c.BuildPack
+	case "log-file":
+		v = c.LogFile
+	case "enable-ssl":
+		v = c.EnableSSL
+	case "account-email":
+		v = c.AccountEmail
+	case "slug-nice":
+		v = c.SlugNice
+	case "include-slugs.on-start":
+		v = c.IncludeSlugs.OnStart
+	case "include-slugs.on-stop":
+		v = c.IncludeSlugs.OnStop
+	case "timeouts.slug-startup":
+		v = c.Timeouts.SlugStartup
+	case "timeouts.ready-interval":
+		v = c.Timeouts.ReadyInterval
+	case "timeouts.origin-request":
+		v = c.Timeouts.OriginRequest
+	case "proxy-limit.ttl":
+		v = c.ProxyLimit.TTL
+	case "proxy-limit.max":
+		v = c.ProxyLimit.Max
+	case "proxy-limit.burst":
+		v = c.ProxyLimit.Burst
+	case "proxy-limit.max-delay":
+		v = c.ProxyLimit.MaxDelay
+	case "proxy-limit.delay-scale":
+		v = c.ProxyLimit.DelayScale
+	case "proxy-limit.log-allowed":
+		v = c.ProxyLimit.LogAllowed
+	case "proxy-limit.log-delayed":
+		v = c.ProxyLimit.LogDelayed
+	case "proxy-limit.log-limited":
+		v = c.ProxyLimit.LogLimited
+	case "run-as.user":
+		v = c.RunAs.User
+	case "run-as.group":
+		v = c.RunAs.Group
+	case "ports.git":
+		v = c.Ports.Git
+	case "ports.http":
+		v = c.Ports.Http
+	case "ports.https":
+		v = c.Ports.Https
+	case "ports.app-start":
+		v = c.Ports.AppStart
+	case "ports.app-end":
+		v = c.Ports.AppEnd
+	case "paths.etc":
+		v = c.Paths.Etc
+	case "paths.tmp":
+		v = c.Paths.Tmp
+	case "paths.var":
+		v = c.Paths.Var
+	}
+	return
+}
+
+func (c *Config) SetTomlValue(key string, v string) (err error) {
+	switch key {
+	case "buildpack-path":
+		c.BuildPack, err = c.parseStringValue(v)
+	case "log-file":
+		c.LogFile, err = c.parseStringValue(v)
+	case "enable-ssl":
+		c.EnableSSL, err = c.parseBoolValue(v)
+	case "account-email":
+		c.AccountEmail, err = c.parseStringValue(v)
+	case "slug-nice":
+		c.SlugNice, err = c.parseIntValue(v)
+	case "include-slugs.on-start":
+		c.IncludeSlugs.OnStart, err = c.parseBoolValue(v)
+	case "include-slugs.on-stop":
+		c.IncludeSlugs.OnStop, err = c.parseBoolValue(v)
+	case "timeouts.slug-startup":
+		c.Timeouts.SlugStartup, err = c.parseTimeDurationValue(v)
+	case "timeouts.ready-interval":
+		c.Timeouts.ReadyInterval, err = c.parseTimeDurationValue(v)
+	case "timeouts.origin-request":
+		c.Timeouts.OriginRequest, err = c.parseTimeDurationValue(v)
+	case "proxy-limit.ttl":
+		c.ProxyLimit.TTL, err = c.parseTimeDurationValue(v)
+	case "proxy-limit.max":
+		c.ProxyLimit.Max, err = c.parseFloatValue(v)
+	case "proxy-limit.burst":
+		c.ProxyLimit.Burst, err = c.parseIntValue(v)
+	case "proxy-limit.max-delay":
+		c.ProxyLimit.MaxDelay, err = c.parseTimeDurationValue(v)
+	case "proxy-limit.delay-scale":
+		c.ProxyLimit.DelayScale, err = c.parseIntValue(v)
+	case "proxy-limit.log-allowed":
+		c.ProxyLimit.LogAllowed, err = c.parseBoolValue(v)
+	case "proxy-limit.log-delayed":
+		c.ProxyLimit.LogDelayed, err = c.parseBoolValue(v)
+	case "proxy-limit.log-limited":
+		c.ProxyLimit.LogLimited, err = c.parseBoolValue(v)
+	case "run-as.user":
+		c.RunAs.User, err = c.parseStringValue(v)
+	case "run-as.group":
+		c.RunAs.Group, err = c.parseStringValue(v)
+	case "ports.git":
+		c.Ports.Git, err = c.parsePortValue(v)
+	case "ports.http":
+		c.Ports.Http, err = c.parsePortValue(v)
+	case "ports.https":
+		c.Ports.Https, err = c.parsePortValue(v)
+	case "ports.app-start":
+		c.Ports.AppStart, err = c.parsePortValue(v)
+	case "ports.app-end":
+		c.Ports.AppEnd, err = c.parsePortValue(v)
+	case "paths.etc":
+		c.Paths.Etc, err = c.parseStringValue(v)
+	case "paths.tmp":
+		c.Paths.Tmp, err = c.parseStringValue(v)
+	case "paths.var":
+		c.Paths.Var, err = c.parseStringValue(v)
+	default:
+		err = fmt.Errorf("key not found")
+	}
+	return
+}
+
+func (c *Config) parseBoolValue(v string) (parsed bool, err error) {
+	parsed, err = strconv.ParseBool(v)
+	return
+}
+
+func (c *Config) parseFloatValue(v string) (parsed float64, err error) {
+	parsed, err = strconv.ParseFloat(v, 64)
+	return
+}
+
+func (c *Config) parseIntValue(v string) (parsed int, err error) {
+	parsed, err = strconv.Atoi(v)
+	return
+}
+
+func (c *Config) parseStringValue(v string) (parsed string, err error) {
+	parsed = v
+	return
+}
+
+func (c *Config) parsePortValue(v string) (parsed int, err error) {
+	if parsed, err = c.parseIntValue(v); err == nil {
+		if parsed < 1 || parsed > 65534 {
+			err = fmt.Errorf("port out of range: 1 to 65534")
+		}
+	}
+	return
+}
+
+func (c *Config) parseTimeDurationValue(v string) (parsed time.Duration, err error) {
+	parsed, err = time.ParseDuration(v)
 	return
 }
