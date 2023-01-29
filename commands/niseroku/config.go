@@ -40,9 +40,11 @@ var (
 	DefaultOriginRequestTimeout = time.Minute
 	DefaultReadyIntervalTimeout = time.Second
 
-	DefaultRateLimitTTL   time.Duration = 8760 * time.Hour
-	DefaultRateLimitMax   float64       = 150.0
-	DefaultRateLimitBurst int           = 0
+	DefaultRateLimitTTL        time.Duration = 8760 * time.Hour
+	DefaultRateLimitMax        float64       = 150.0
+	DefaultRateLimitBurst      int           = 0
+	DefaultRateLimitMaxDelay   time.Duration = 2 * time.Second
+	DefaultRateLimitDelayScale int           = 10
 )
 
 type Config struct {
@@ -100,9 +102,11 @@ type PortsConfig struct {
 }
 
 type RateLimit struct {
-	TTL   time.Duration `toml:"ttl,omitempty"`
-	Max   float64       `toml:"max,omitempty"`
-	Burst int           `toml:"burst,omitempty"`
+	TTL        time.Duration `toml:"ttl,omitempty"`
+	Max        float64       `toml:"max,omitempty"`
+	Burst      int           `toml:"burst,omitempty"`
+	MaxDelay   time.Duration `toml:"max-delay,omitempty"`
+	DelayScale int           `toml:"delay-scale,omitempty"`
 }
 
 type PathsConfig struct {
@@ -287,11 +291,6 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 			ReadyInterval: readyIntervalTimeout,
 			OriginRequest: originRequestTimeout,
 		},
-		ProxyLimit: RateLimit{
-			TTL:   CheckAB(cfg.ProxyLimit.TTL, DefaultRateLimitTTL, cfg.ProxyLimit.TTL >= 0),
-			Max:   CheckAB(cfg.ProxyLimit.Max, DefaultRateLimitMax, cfg.ProxyLimit.Max > 0),
-			Burst: CheckAB(cfg.ProxyLimit.Burst, DefaultRateLimitBurst, cfg.ProxyLimit.Burst > 0),
-		},
 		RunAs: RunAsConfig{
 			User:  runAsUser,
 			Group: runAsGroup,
@@ -302,6 +301,13 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 			Https:    httpsPort,
 			AppEnd:   appEndPort,
 			AppStart: appStartPort,
+		},
+		ProxyLimit: RateLimit{
+			TTL:        CheckAB(cfg.ProxyLimit.TTL, DefaultRateLimitTTL, cfg.ProxyLimit.TTL >= 0),
+			Max:        CheckAB(cfg.ProxyLimit.Max, DefaultRateLimitMax, cfg.ProxyLimit.Max > 0),
+			Burst:      CheckAB(cfg.ProxyLimit.Burst, DefaultRateLimitBurst, cfg.ProxyLimit.Burst > 0),
+			MaxDelay:   CheckAB(cfg.ProxyLimit.MaxDelay, DefaultRateLimitMaxDelay, cfg.ProxyLimit.MaxDelay > 0),
+			DelayScale: CheckAB(cfg.ProxyLimit.DelayScale, DefaultRateLimitDelayScale, cfg.ProxyLimit.DelayScale > 0),
 		},
 		Paths: PathsConfig{
 			Etc:          cfg.Paths.Etc,
@@ -382,6 +388,8 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.ProxyLimit.TTL = cfg.ProxyLimit.TTL
 	c.ProxyLimit.Max = cfg.ProxyLimit.Max
 	c.ProxyLimit.Burst = cfg.ProxyLimit.Burst
+	c.ProxyLimit.MaxDelay = cfg.ProxyLimit.MaxDelay
+	c.ProxyLimit.DelayScale = cfg.ProxyLimit.DelayScale
 	c.RunAs.User = cfg.RunAs.User
 	c.RunAs.Group = cfg.RunAs.Group
 	c.Ports.Git = cfg.Ports.Git
