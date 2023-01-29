@@ -20,6 +20,8 @@ import (
 
 	"github.com/didip/tollbooth/v7"
 	"github.com/didip/tollbooth/v7/limiter"
+	"github.com/go-enjin/be/pkg/net"
+	"github.com/kataras/requestid"
 )
 
 func (rp *ReverseProxy) initRateLimiter() {
@@ -39,26 +41,42 @@ func (rp *ReverseProxy) initRateLimiter() {
 
 func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 	rp.initRateLimiter()
-	lastLimited := time.Now()
-	numLimited := 0
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if tbe := tollbooth.LimitByRequest(rp.limiter, w, r); tbe != nil {
-			rp.limiter.ExecOnLimitReached(w, r)
-			if rp.limiter.GetOverrideDefaultResponseWriter() {
+	return requestid.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rateLimits := rp.config.ProxyLimit
+		remoteAddr := "err"
+		if addr, err := net.GetIpFromRequest(r); err == nil {
+			remoteAddr = addr
+		}
+		reqId := requestid.Get(r)
+		reqUrl, _, reqHost, _ := DecomposeUrl(r)
+		if tbe := tollbooth.LimitByKeys(rp.limiter, []string{reqHost, remoteAddr}); tbe != nil {
+			var delayCount int
+			itrDelay := time.Duration(rateLimits.MaxDelay.Nanoseconds() / int64(rateLimits.DelayScale))
+			totalDelay := time.Duration(0)
+			for delayCount = 1; delayCount <= rateLimits.DelayScale; delayCount++ {
+				time.Sleep(itrDelay)
+				totalDelay = time.Duration(itrDelay.Nanoseconds() * int64(delayCount))
+				if !rp.limiter.LimitReached(reqHost) || !rp.limiter.LimitReached(remoteAddr) {
+					if delayCount > 1 {
+						rp.LogInfoF("[rate] allowed - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
+					}
+					break
+				}
+				rp.LogInfoF("[rate] delayed - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
+			}
+			if delayCount > rateLimits.DelayScale {
+				rp.limiter.ExecOnLimitReached(w, r)
+				if rp.limiter.GetOverrideDefaultResponseWriter() {
+					return
+				}
+				w.Header().Add("Content-Type", rp.limiter.GetMessageContentType())
+				w.WriteHeader(tbe.StatusCode)
+				_, _ = w.Write([]byte(tbe.Message))
+				rp.LogInfoF("[rate] limited - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
 				return
 			}
-			w.Header().Add("Content-Type", rp.limiter.GetMessageContentType())
-			w.WriteHeader(tbe.StatusCode)
-			_, _ = w.Write([]byte(tbe.Message))
-			numLimited += 1
-			if now := time.Now(); now.Sub(lastLimited) > time.Second || numLimited >= 100 {
-				rp.LogInfoF("rate limited %d request(s): %v - %v", numLimited, r.Host, r.URL)
-				lastLimited = now
-				numLimited = 0
-			}
-			return
 		}
-		// request is not limited
+		// request is allowed
 		rp.ServeProxyHTTP(w, r)
-	})
+	}))
 }
