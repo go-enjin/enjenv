@@ -34,6 +34,9 @@ func (rp *ReverseProxy) initRateLimiter() {
 			DefaultExpirationTTL: rp.config.ProxyLimit.TTL,
 		},
 	)
+	rp.limiter.SetStatusCode(http.StatusTooManyRequests)
+	rp.limiter.SetMessage("429 - Too Many Requests")
+	rp.limiter.SetMessageContentType("text/plain; charset=utf-8")
 	if rp.config.ProxyLimit.Burst > 0 {
 		rp.limiter.SetBurst(rp.config.ProxyLimit.Burst)
 	}
