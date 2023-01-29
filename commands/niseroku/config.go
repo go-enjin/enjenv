@@ -107,6 +107,9 @@ type RateLimit struct {
 	Burst      int           `toml:"burst,omitempty"`
 	MaxDelay   time.Duration `toml:"max-delay,omitempty"`
 	DelayScale int           `toml:"delay-scale,omitempty"`
+	LogAllowed bool          `toml:"log-allowed,omitempty"`
+	LogDelayed bool          `toml:"log-delayed,omitempty"`
+	LogLimited bool          `toml:"log-limited,omitempty"`
 }
 
 type PathsConfig struct {
@@ -308,6 +311,9 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 			Burst:      CheckAB(cfg.ProxyLimit.Burst, DefaultRateLimitBurst, cfg.ProxyLimit.Burst > 0),
 			MaxDelay:   CheckAB(cfg.ProxyLimit.MaxDelay, DefaultRateLimitMaxDelay, cfg.ProxyLimit.MaxDelay > 0),
 			DelayScale: CheckAB(cfg.ProxyLimit.DelayScale, DefaultRateLimitDelayScale, cfg.ProxyLimit.DelayScale > 0),
+			LogAllowed: cfg.ProxyLimit.LogAllowed,
+			LogDelayed: cfg.ProxyLimit.LogDelayed,
+			LogLimited: cfg.ProxyLimit.LogLimited,
 		},
 		Paths: PathsConfig{
 			Etc:          cfg.Paths.Etc,
@@ -390,6 +396,9 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.ProxyLimit.Burst = cfg.ProxyLimit.Burst
 	c.ProxyLimit.MaxDelay = cfg.ProxyLimit.MaxDelay
 	c.ProxyLimit.DelayScale = cfg.ProxyLimit.DelayScale
+	c.ProxyLimit.LogAllowed = cfg.ProxyLimit.LogAllowed
+	c.ProxyLimit.LogDelayed = cfg.ProxyLimit.LogDelayed
+	c.ProxyLimit.LogLimited = cfg.ProxyLimit.LogLimited
 	c.RunAs.User = cfg.RunAs.User
 	c.RunAs.Group = cfg.RunAs.Group
 	c.Ports.Git = cfg.Ports.Git
