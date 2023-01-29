@@ -13,6 +13,7 @@ require (
 	github.com/goccy/go-json v0.9.11
 	github.com/gofrs/uuid v4.3.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
+	github.com/kataras/requestid v0.0.2
 	github.com/otiai10/copy v1.9.0
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v3 v3.22.10
@@ -75,6 +76,7 @@ require (
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
