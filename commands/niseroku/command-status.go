@@ -38,26 +38,31 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 
 	buf := bytes.NewBuffer([]byte(""))
 	tw := tabwriter.NewWriter(io.Writer(buf), 3, 2, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte("[ SERVICE ]\t[ PID ]\t[ PORT ]\t[ NICE ]\t[ CPU ]\t[ MEM ]\n"))
+	_, _ = tw.Write([]byte("[ SERVICE ]\t[ PID ]\t[ PORT ]\t[ NICE ]\t[ CPU ]\t[ MEM ]\t[ THREADS ]\n"))
 	report := func(name string, running, ready bool, pid, port int, proc *process.Process) {
-		cpu, mem, nice := "-", "-", "-"
+		cpu, mem, nice, threads := "-", "-", "-", "-"
 		if proc != nil {
 			cpuPercent, _ := proc.CPUPercent()
 			memPercent, _ := proc.MemoryPercent()
+			numThreads, _ := proc.NumThreads()
+			var numChildren, numChildThreads int
 			if children, ee := proc.Children(); ee == nil {
-				var childConns int
 				var childCpuTotal float64
 				var childMemTotal float32
 				for _, child := range children {
 					if cir, ce := child.IsRunning(); ce == nil && cir {
+						numChildren += 1
+						childThreads, _ := child.NumThreads()
+						numChildThreads += int(childThreads)
 						if cp, eee := child.CPUPercent(); eee == nil {
-							childCpuTotal += cp
+							if childCpuTotal < cp {
+								childCpuTotal = cp
+							}
 						}
 						if mp, eee := child.MemoryPercent(); eee == nil {
-							childMemTotal += mp
-						}
-						if connections, eee := proc.Connections(); eee == nil {
-							childConns += len(connections)
+							if childMemTotal < mp {
+								childMemTotal = mp
+							}
 						}
 					}
 				}
@@ -68,6 +73,11 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 			mem = fmt.Sprintf("%.01f", memPercent)
 			niceVal, _ := proc.Nice()
 			nice = fmt.Sprintf("%d", 20-niceVal)
+			if numChildren > 0 {
+				threads = fmt.Sprintf("%v+(%d/%d)", numThreads, numChildren, numChildThreads)
+			} else {
+				threads = fmt.Sprintf("%v", numThreads)
+			}
 		}
 		var runningMsg, readyMsg string
 		if running {
@@ -80,7 +90,7 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 		} else {
 			readyMsg = "-"
 		}
-		_, _ = tw.Write([]byte(fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\n", name, runningMsg, readyMsg, nice, cpu, mem)))
+		_, _ = tw.Write([]byte(fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\n", name, runningMsg, readyMsg, nice, cpu, mem, threads)))
 	}
 
 	proxyPid := -1
@@ -126,7 +136,7 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 	report("git-repository", repoIsRunning, repoIsReady, repoPid, repoPort, repoProc)
 
 	_, _ = tw.Write([]byte(" \t \t \n"))
-	_, _ = tw.Write([]byte("[ APPLICATION ]\t[ PID ]\t[ PORT ]\t[ NICE ]\t[ CPU ]\t[ MEM ]\n"))
+	_, _ = tw.Write([]byte("[ APPLICATION ]\t[ PID ]\t[ PORT ]\t[ NICE ]\t[ CPU ]\t[ MEM ]\t[ THREADS ]\n"))
 	for _, app := range maps.ValuesSortedByKeys(c.config.Applications) {
 		var pid, port int
 		var running, ready bool
