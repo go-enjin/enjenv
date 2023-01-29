@@ -57,12 +57,14 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 				time.Sleep(itrDelay)
 				totalDelay = time.Duration(itrDelay.Nanoseconds() * int64(delayCount))
 				if !rp.limiter.LimitReached(reqHost) || !rp.limiter.LimitReached(remoteAddr) {
-					if delayCount > 1 {
+					if delayCount > 1 && rateLimits.LogAllowed {
 						rp.LogInfoF("[rate] allowed - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
 					}
 					break
 				}
-				rp.LogInfoF("[rate] delayed - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
+				if rateLimits.LogDelayed {
+					rp.LogInfoF("[rate] delayed - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
+				}
 			}
 			if delayCount > rateLimits.DelayScale {
 				rp.limiter.ExecOnLimitReached(w, r)
@@ -72,7 +74,9 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 				w.Header().Add("Content-Type", rp.limiter.GetMessageContentType())
 				w.WriteHeader(tbe.StatusCode)
 				_, _ = w.Write([]byte(tbe.Message))
-				rp.LogInfoF("[rate] limited - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
+				if rateLimits.LogLimited {
+					rp.LogInfoF("[rate] limited - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
+				}
 				return
 			}
 		}
