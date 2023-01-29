@@ -414,12 +414,3 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.DomainLookup = cfg.DomainLookup
 	return
 }
-
-func CheckAB[V interface{}](a, b V, check bool) (v V) {
-	if check {
-		v = a
-	} else {
-		v = b
-	}
-	return
-}
