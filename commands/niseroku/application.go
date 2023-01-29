@@ -43,10 +43,11 @@ type Application struct {
 	ThisSlug    string   `toml:"this-slug,omitempty"`
 	NextSlug    string   `toml:"next-slug,omitempty"`
 
+	Timeouts AppTimeouts `toml:"timeouts,omitempty"`
+
 	Settings map[string]interface{} `toml:"settings,omitempty"`
 
-	Origin   AppOrigin   `toml:"origin"`
-	Timeouts AppTimeouts `toml:"timeouts,omitempty"`
+	Origin AppOrigin `toml:"origin"`
 
 	Slugs     map[string]*Slug `toml:"-"`
 	Config    *Config          `toml:"-"`
@@ -60,6 +61,8 @@ type Application struct {
 	await chan bool
 
 	deployPid int
+
+	tomlComments TomlComments
 
 	sync.RWMutex
 }
@@ -104,8 +107,23 @@ func (a *Application) Load() (err error) {
 	a.Lock()
 	defer a.Unlock()
 
-	if _, err = toml.DecodeFile(a.Source, &a); err != nil {
+	var contents string
+	if b, ee := os.ReadFile(a.Source); ee != nil {
+		err = ee
 		return
+	} else {
+		contents = string(b)
+	}
+
+	if _, err = toml.Decode(contents, &a); err != nil {
+		return
+	}
+
+	if tcs, ee := ParseComments(contents); ee != nil {
+		err = ee
+		return
+	} else {
+		a.tomlComments = MergeApplicationToml(tcs)
 	}
 
 	a.Name = bePath.Base(a.Source)
@@ -142,7 +160,12 @@ func (a *Application) Save() (err error) {
 	if err = toml.NewEncoder(&buffer).Encode(a); err != nil {
 		return
 	}
-	err = os.WriteFile(a.Source, buffer.Bytes(), 0660)
+	contents := string(buffer.Bytes())
+	var modified string
+	if modified, err = ApplyComments(contents, a.tomlComments); err != nil {
+		return
+	}
+	err = os.WriteFile(a.Source, []byte(modified), 0660)
 	return
 }
 
