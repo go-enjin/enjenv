@@ -17,6 +17,7 @@ package niseroku
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"sync"
@@ -45,7 +46,7 @@ var (
 
 	DefaultRateLimitTTL        time.Duration = 8760 * time.Hour
 	DefaultRateLimitMax        float64       = 150.0
-	DefaultRateLimitBurst      int           = 0
+	DefaultRateLimitBurst      int           = 150
 	DefaultRateLimitMaxDelay   time.Duration = 2 * time.Second
 	DefaultRateLimitDelayScale int           = 10
 )
@@ -146,6 +147,9 @@ func WriteDefaultConfig(niserokuConfig string) (err error) {
 	var config *Config
 	if config, err = validateConfig(niserokuConfig, &Config{
 		SlugNice: 0,
+		ProxyLimit: RateLimit{
+			LogLimited: true,
+		},
 		IncludeSlugs: IncludeSlugsConfig{
 			OnStart: true,
 			OnStop:  false,
@@ -332,6 +336,15 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 		bindAddr = "0.0.0.0"
 	}
 
+	var burstRate int
+	if burstRate = cfg.ProxyLimit.Burst; burstRate <= 0 {
+		if cfg.ProxyLimit.Max <= 0 {
+			burstRate = DefaultRateLimitBurst
+		} else {
+			burstRate = int(math.Max(1, cfg.ProxyLimit.Max))
+		}
+	}
+
 	config = &Config{
 		Source:       niserokuConfig,
 		LogFile:      cfg.LogFile,
@@ -359,9 +372,9 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 			AppStart: appStartPort,
 		},
 		ProxyLimit: RateLimit{
-			TTL:        CheckAB(cfg.ProxyLimit.TTL, DefaultRateLimitTTL, cfg.ProxyLimit.TTL >= 0),
+			TTL:        CheckAB(cfg.ProxyLimit.TTL, DefaultRateLimitTTL, cfg.ProxyLimit.TTL > 0),
 			Max:        CheckAB(cfg.ProxyLimit.Max, DefaultRateLimitMax, cfg.ProxyLimit.Max > 0),
-			Burst:      CheckAB(cfg.ProxyLimit.Burst, DefaultRateLimitBurst, cfg.ProxyLimit.Burst > 0),
+			Burst:      CheckAB(cfg.ProxyLimit.Burst, burstRate, cfg.ProxyLimit.Burst > 0),
 			MaxDelay:   CheckAB(cfg.ProxyLimit.MaxDelay, DefaultRateLimitMaxDelay, cfg.ProxyLimit.MaxDelay > 0),
 			DelayScale: CheckAB(cfg.ProxyLimit.DelayScale, DefaultRateLimitDelayScale, cfg.ProxyLimit.DelayScale > 0),
 			LogAllowed: cfg.ProxyLimit.LogAllowed,
