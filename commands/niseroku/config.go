@@ -103,8 +103,8 @@ type PortsConfig struct {
 	Git      int `toml:"git"`
 	Http     int `toml:"http"`
 	Https    int `toml:"https"`
-	AppEnd   int `toml:"app-end"`
 	AppStart int `toml:"app-start"`
+	AppEnd   int `toml:"app-end"`
 }
 
 type RateLimit struct {
