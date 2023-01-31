@@ -149,6 +149,16 @@ setting. Prints "OK" if no value parsing or config file saving errors occurred.
 							Action:      c.actionConfigTest,
 						},
 					},
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:  "reset-comments",
+							Usage: "restore default comments on config save",
+						},
+						&cli.PathFlag{
+							Name:  "init-default",
+							Usage: "write a default niseroku.toml file",
+						},
+					},
 				},
 				{
 					Name:      "deploy-slug",
