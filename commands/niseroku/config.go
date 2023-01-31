@@ -142,6 +142,26 @@ type PathsConfig struct {
 	ProxyPidFile string `toml:"-"` // ProxyPidFile is the path for the reverse-proxy service process ID file
 }
 
+func WriteDefaultConfig(niserokuConfig string) (err error) {
+	var config *Config
+	if config, err = validateConfig(niserokuConfig, &Config{
+		SlugNice: 0,
+		IncludeSlugs: IncludeSlugsConfig{
+			OnStart: true,
+			OnStop:  false,
+		},
+		Paths: PathsConfig{
+			Etc: "/etc/niseroku",
+			Tmp: "/var/lib/niseroku/tmp",
+			Var: "/var/lib/niseroku",
+		},
+	}); err != nil {
+		return
+	}
+	err = config.Save(false)
+	return
+}
+
 func LoadConfig(niserokuConfig string) (config *Config, err error) {
 
 	if niserokuConfig == "" {
@@ -176,6 +196,16 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 	} else {
 		cfg.tomlComments = MergeConfigToml(tcs, true)
 	}
+
+	if config, err = validateConfig(niserokuConfig, &cfg); err != nil {
+		return
+	}
+
+	err = loadUsersApps(config)
+	return
+}
+
+func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err error) {
 
 	if cfg.SlugNice < -10 && cfg.SlugNice > 20 {
 		err = fmt.Errorf("slug-nice value out of range: -10 to 20")
@@ -362,6 +392,10 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 		tomlMetaData: cfg.tomlMetaData,
 		tomlComments: cfg.tomlComments,
 	}
+	return
+}
+
+func loadUsersApps(config *Config) (err error) {
 
 	if config.Users, err = LoadUsers(config.Paths.EtcUsers); err != nil {
 		return
