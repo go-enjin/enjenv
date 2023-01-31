@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	DefaultGitPort      = 22
+	DefaultGitPort      = 2403
 	DefaultHttpPort     = 80
 	DefaultHttpsPort    = 443
 	DefaultAppEndPort   = 4400
