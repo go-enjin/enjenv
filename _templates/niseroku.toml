@@ -1,133 +1,169 @@
-#: default system-wide niseroku.toml
+#: BEGIN NISEROKU CONFIG - enjenv niseroku config --help
 
-#: bind-addr is the network address to bind all listener services to, the
-#: default is empty which listens on all host addresses
+#: bind-addr         (string)
+#:     * ip address for niseroku services to bind listeners
+#:     * requires niseroku-{proxy,repos} restart if changed
 #
-#bind-addr = ""
+bind-addr = "0.0.0.0"
 
-#: buildpack-path is the path to a checkout of the enjenv heroku buildpack.
-#: When set, this checkout is copied as-is each time, leaving the task of
-#: staying up-to-date to the niseroku admins rather than cloning the default
-#: repository each time a build is performed. The default respository is of
-#: course: https://github.com/go-enjin/enjenv-heroku-buildpack.git
+#: enable-ssl        (bool)
+#:     * reverse-proxy will bind an HTTPS autocert listener
+#:     * requires account-email to be set
+#:     * requires niseroku-proxy restart if changed
 #
-#buildpack-path = "/path/to/custom-enjenv-heroku-buildpack"
+enable-ssl = false
 
-#: log-file captures both STDOUT and STDERR from the main niseroku processes.
-#: Setting this to an empty string will disable capturing STDOUT and STDERR,
-#: leaving the output streams to be collected by the operating system's init
-#: service
+#: account-email     (email@address.string)
+#:     * email address used for the Let's Encrypt account
+#:     * implies agreement with Let's Encrypt terms of service
+#:     * requires niseroku-proxy restart if changed
 #
-log-file = "/var/log/niseroku.log"
+account-email = ""
 
-#: enable-ssl configures whether or not niseroku will listen for HTTPS requests
-#: on the (ports.https) port
+#: buildpack-path    (path)
+#:     * specifies an enjenv-heroku-buildpack checkout to use
+#:     * requires niseroku-repos reload or restart if changed
 #
-#enable-ssl = false
+buildpack-path = "https://github.com/go-enjin/enjenv-heroku-buildpack.git"
 
-#: account-email is the email address uses when registering with Let's Encrypt
-#: and accepting the terms-of-service
+#: log-file          (path)
+#:     * specifies the path to use for logging services
+#:     * both reverse-proxy and git-repository log to this file
+#:     * requires niseroku-{proxy,repos} reload or restart if changed
 #
-#account-email = ""
+log-file = ""
 
-#: slug-nice is the CPU priority (or "nice" value) to use for all application
-#: slugs, applied using /bin/renice just before dropping root privileges
+#: slug-nice         (number: -20 to 20)
+#:     * renice all slugs run to the given priority
+#:     * be careful with this setting!
+#:     * requires niseroku app restart if changed
 #
-#slug-nice = 0
+slug-nice = 0
 
-#: include-slugs configures whether or not to start all slugs on startup and/or
-#: stop all slugs on shutdown
+#: [include-slugs]   (section)
+#:     * configures when to include slugs in the niseroku lifecycle
+#:     * requires niseroku-proxy reload or restart if changed
 #
 [include-slugs]
-on-start = true
-#on-stop = false
+  on-start = true #: start all stopped slugs on reverse-proxy startup
+  on-stop = false #: stop all running slugs on reverse-proxy shutdown
 
-#: timeouts are used to configure how long niseroku awaits for things to
-#: happen
+#: [timeouts]        (section)
+#:     * global reverse-proxy timeout settings
+#:     * uses the Go time.Duration format, see: https://pkg.go.dev/time#ParseDuration
+#:     * requires niseroku-proxy reload or restart if changed
 #
 [timeouts]
-slug-startup = "60s"
-ready-interval = "1s"
-origin-request = "60s"
+  #: slug-startup      (time.Duration)
+  #:     * maximum time to allow slugs to open the expected port
+  #
+  slug-startup = "5m0s"
 
-#: proxy-limits configure the reverse-proxy rate-limiter facilities
+  #: ready-interval    (time.Duration)
+  #:     * frequency at which niseroku checks expected ports to open
+  #
+  ready-interval = "1s"
+
+  #: origin-request    (time.Duration)
+  #:     * maximum time to allow slugs to perform a given request
+  #
+  origin-request = "1m0s"
+
+#: [proxy-limit]     (section)
+#:     * reverse-proxy request rate-limiting settings
+#:     * requires niseroku-proxy reload or restart if changed
 #
 [proxy-limit]
+  #: ttl (time.Duration) - rate-limiter cached values lifetime
+  #
+  ttl = "8760h0m0s"
 
-#: proxy-limit.ttl is the limiter cache lifetime for request data stored
-#: in-memory (default: 168h - 7 days in hours)
-#
-ttl = "168h"
+  #: max (int) - concurrent requests allowed before rate limiting
+  #
+  max = 150.0
 
-#: proxy-limit.max is the maximum number of requests (per-domain,
-#: per-remote-address) allowed before considering the request to be limited
-#: (default: 150)
-#
-max = 150.0
+  #: burst (int) - concurrent requests allowed within a brief timeframe before rate limiting
+  #
+  burst = 150
 
-#: proxy-limit.burst is the maximum number of requests in a very short period
-#: of time before considering the request to be limited (default: 50)
-#
-burst = 50
+  #: max-delay (time.Duration) - maximum time to delay requests before 429 response
+  #
+  max-delay = "2s"
 
-#: proxy-limit.max-delay is the maximum amount of time to delay a limited
-#: request before responding with a 429 status (default: 10s)
-#
-max-delay = "10s"
+  #: delay-scale (int) - number of limit-check intervals within the max-delay timeframe
+  #
+  delay-scale = 10
 
-#: proxy-limit.delay-scale is the number of iterations for checking if the
-#: request is now allowed before the max-delay setting is reached
-#: (default: 100)
-#
-delay-scale = 100
+  #: log-allowed (bool) - log when already delayed requests are allowed to pass
+  #
+  log-allowed = false
 
-#: proxy-limit.log-allowed configures logging rate-limited connections that
-#: were delayed and are now allowed (caution, causes a lot of log entries)
-#
-log-allowed = false
+  #: log-delayed (bool) - log each time a request is delayed by rate-limiting
+  #
+  log-delayed = false
 
-#: proxy-limit.log-delayed configures logging rate-limited connections as
-#: they're being delayed (caution, causes a lot of log entries)
-#
-log-delayed = false
+  #: log-limited (bool) - log each time a request is limited (429 response)
+  #
+  log-limited = true
 
-#: proxy-limit.log-limited configures logging rate-limited connections that
-#: result in 429 responses because the service is being flooded
-#
-log-limited = true
-
-#: run-as configures the user and group niseroku switches to when started as
-#: root (UID=0), after opening any necessary privileged ports (ie: 80, 443)
+#: [run-as]          (section)
+#:     * when run as root, drop privileges to the specified user and group
+#:     * requires niseroku-{proxy,repos} restart if changed
+#:     * may also require "sudo enjenv niseroku fix-fs" to correct file ownership errors
 #
 [run-as]
-user = "www-data"
-group = "www-data"
+  user = "www-data"
+  group = "www-data"
 
-#: ports configure the various niseroku listener services
-#: ports.git is for the git repository service endpoint, clients need to know
-#: this value so that developers can push commits for deployment
-#: ports.app-start and ports.app-end configure the range of available ports
-#: used for running application slugs, a new random port is selected each time
-#: a slug build process succeeds and upon the newly built slug actually
-#: starting up and opening the specified port, the application's configuration
-#: is updated with this newly selected port (this is how failed builds are
-#: prevented from disrupting existing builds already running)
+#: [ports]           (section)
+#:     * all ports specified are used with the bind-addr setting
 #
 [ports]
-git = 2403
-http = 80
-https = 443
-app-start = 4200
-app-end = 4400
+  #: git               (number: 1 to 65534)
+  #:     * requires niseroku-repos restart if changed
+  #
+  git = 2403
 
-#: paths configure where niseroku stores configurations and runtime files
-#: paths.etc is where configuration files are stored
-#: paths.tmp is where temporary files are stored, note that this path should
-#: not be the operating system's actual $TMP directory
-#: paths.var is where the runtime files are stored, such as application logs,
-#: git repositories and built slugs
+  #: http               (number: 1 to 65534)
+  #:     * requires niseroku-proxy restart if changed
+  #
+  http = 80
+
+  #: https              (number: 1 to 65534)
+  #:     * setting to anything other than 443 has not been tested
+  #:     * requires niseroku-proxy restart if changed
+  #
+  https = 443
+
+  #: app-start          (number: 1 to 65534)
+  #:     * start of application port range
+  #
+  app-start = 4200
+
+  #: app-end            (number: 1 to 65534)
+  #:     * end of application port range
+  #
+  app-end = 4400
+
+#: [paths]            (section)
+#:     * top-levels of where niseroku files live
+#:     * requires niseroku-{proxy,repos} restart if changed
+#:     * may also require "sudo enjenv niseroku fix-fs" to correct file ownership errors
 #
 [paths]
-etc = "/etc/niseroku"
-tmp = "/var/lib/niseroku/tmp"
-var = "/var/lib/niseroku"
+  #: etc                (path)
+  #:     * where configuration files live
+  #
+  etc = "/etc/niseroku"
+
+  #: var                (path)
+  #:     * where persistent files live
+  #
+  var = "/var/lib/niseroku"
+
+  #: tmp                (path)
+  #:     * where temporary files live
+  #
+  tmp = "/var/lib/niseroku/tmp"
+
+#: END NISEROKU CONFIG - enjenv niseroku config --help
