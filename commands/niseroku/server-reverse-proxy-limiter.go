@@ -15,6 +15,7 @@
 package niseroku
 
 import (
+	"math"
 	"net/http"
 	"time"
 
@@ -34,11 +35,24 @@ func (rp *ReverseProxy) initRateLimiter() {
 			DefaultExpirationTTL: rp.config.ProxyLimit.TTL,
 		},
 	)
+	if rp.config.ProxyLimit.Burst > 0 {
+		rp.limiter.SetBurst(rp.config.ProxyLimit.Burst)
+	}
 	rp.limiter.SetStatusCode(http.StatusTooManyRequests)
 	rp.limiter.SetMessage("429 - Too Many Requests")
 	rp.limiter.SetMessageContentType("text/plain; charset=utf-8")
+}
+
+func (rp *ReverseProxy) reloadRateLimiter() {
+	if rp.limiter == nil {
+		rp.initRateLimiter()
+		return
+	}
+	rp.limiter.SetMax(rp.config.ProxyLimit.Max)
 	if rp.config.ProxyLimit.Burst > 0 {
 		rp.limiter.SetBurst(rp.config.ProxyLimit.Burst)
+	} else {
+		rp.limiter.SetBurst(int(math.Max(1, rp.config.ProxyLimit.Max)))
 	}
 }
 

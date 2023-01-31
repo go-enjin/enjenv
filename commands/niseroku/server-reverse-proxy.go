@@ -33,6 +33,7 @@ import (
 	beNet "github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/serve"
 
+	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/service"
 )
 
@@ -214,7 +215,10 @@ func (rp *ReverseProxy) Reload() (err error) {
 	rp.Lock()
 	defer rp.Unlock()
 	rp.LogInfoF("reverse-proxy reloading\n")
-	err = rp.config.Reload()
+	if err = rp.config.Reload(); err == nil {
+		rp.reloadRateLimiter()
+		beIo.LogFile = rp.config.LogFile
+	}
 	return
 }
 
