@@ -296,14 +296,19 @@ var configTomlComments = TomlComments{
 	},
 }
 
-func MergeConfigToml(current TomlComments) (modified TomlComments) {
+func MergeConfigToml(current TomlComments, keepCustomComments bool) (modified TomlComments) {
 	var defaults TomlComments
 	for _, dtc := range configTomlComments {
 		var exists bool
 		for _, ctc := range current {
 			if exists = dtc.Statement == ctc.Statement; exists {
-				ctc.Inline = dtc.Inline
-				ctc.Lines = dtc.Lines
+				if keepCustomComments {
+					ctc.Inline = CheckAB(ctc.Inline, dtc.Inline, ctc.Inline != "")
+					ctc.Lines = CheckAB(ctc.Lines, dtc.Lines, len(ctc.Lines) > 0)
+				} else {
+					ctc.Inline = dtc.Inline
+					ctc.Lines = dtc.Lines
+				}
 				break
 			}
 		}

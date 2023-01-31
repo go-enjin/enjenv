@@ -174,7 +174,7 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 		err = ee
 		return
 	} else {
-		cfg.tomlComments = MergeConfigToml(tcs)
+		cfg.tomlComments = MergeConfigToml(tcs, true)
 	}
 
 	if cfg.SlugNice < -10 && cfg.SlugNice > 20 {
@@ -395,7 +395,7 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 	return
 }
 
-func (c *Config) Save() (err error) {
+func (c *Config) Save(keepCustomComments bool) (err error) {
 	c.RLock()
 	defer c.RUnlock()
 	var buffer bytes.Buffer
@@ -404,7 +404,8 @@ func (c *Config) Save() (err error) {
 	}
 	contents := string(buffer.Bytes())
 	var modified string
-	if modified, err = ApplyComments(contents, c.tomlComments); err != nil {
+	tcs := MergeConfigToml(c.tomlComments, keepCustomComments)
+	if modified, err = ApplyComments(contents, tcs); err != nil {
 		return
 	}
 	err = os.WriteFile(c.Source, []byte(modified), 0660)
