@@ -24,12 +24,20 @@ import (
 )
 
 func (c *Command) actionConfig(ctx *cli.Context) (err error) {
+
+	if path := ctx.Path("init-default"); path != "" {
+		err = WriteDefaultConfig(path)
+		return
+	}
+
 	if err = c.CCommand.Prepare(ctx); err != nil {
 		return
 	}
 
+	resetComments := ctx.Bool("reset-comments")
+
 	var argc int
-	if argc = ctx.NArg(); argc == 0 {
+	if argc = ctx.NArg(); argc == 0 && !resetComments {
 		err = c.actionConfigDisplayFull(ctx)
 		return
 	}
@@ -40,6 +48,15 @@ func (c *Command) actionConfig(ctx *cli.Context) (err error) {
 		return
 	} else if argc == 2 {
 		err = c.actionConfigSet(ctx, argv[0], argv[1])
+		return
+	}
+
+	if ctx.Bool("reset-comments") {
+		if c.config, err = c.findConfig(ctx); err != nil {
+			return
+		} else if err = c.config.Save(false); err == nil {
+			beIo.STDOUT("OK\n")
+		}
 		return
 	}
 
