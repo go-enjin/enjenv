@@ -165,6 +165,7 @@ func ApplyComments(content string, comments TomlComments) (modified string, err 
 
 	isFirstLine := true
 	prevIsEmpty := false
+	var prevIsSectionStart, thisIsSectionStart bool
 	for scanner.Scan() {
 		line := scanner.Text()
 		if rxEmptyString.MatchString(line) {
@@ -185,6 +186,8 @@ func ApplyComments(content string, comments TomlComments) (modified string, err 
 			pad = m[0][1]
 			stmnt = m[0][2]
 			actual = pad + stmnt
+			prevIsSectionStart = true
+			thisIsSectionStart = true
 		} else {
 			err = fmt.Errorf("invalid toml statement: %v\n", line)
 			return
@@ -194,7 +197,7 @@ func ApplyComments(content string, comments TomlComments) (modified string, err 
 		for _, comment := range comments {
 			if found = comment.Statement == stmnt; found {
 				if len(comment.Lines) > 0 {
-					if pad == "" && !isFirstLine && !prevIsEmpty {
+					if !prevIsSectionStart && !isFirstLine && !prevIsEmpty {
 						modified += "\n"
 					}
 					for _, cl := range comment.Lines {
@@ -215,6 +218,11 @@ func ApplyComments(content string, comments TomlComments) (modified string, err 
 
 		prevIsEmpty = false
 		isFirstLine = false
+		if thisIsSectionStart {
+			thisIsSectionStart = false
+		} else {
+			prevIsSectionStart = false
+		}
 	}
 
 	for _, comment := range comments {
