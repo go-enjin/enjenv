@@ -89,7 +89,7 @@ func (c *Command) actionConfigSet(ctx *cli.Context, givenKey, givenValue string)
 	for _, key := range c.config.tomlMetaData.Keys() {
 		if tk := key.String(); tk == givenKey {
 			if err = c.config.SetTomlValue(tk, givenValue); err == nil {
-				if err = c.config.Save(); err == nil {
+				if err = c.config.Save(!ctx.Bool("reset-comments")); err == nil {
 					beIo.STDOUT("OK\n")
 				}
 			}
