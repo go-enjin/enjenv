@@ -26,6 +26,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -74,7 +75,7 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 			if app.ThisSlug != slugDestPath {
 				app.NextSlug = slugDestPath
 				app.LogInfoF("# updating %v next slug: %v\n", app.Name, slugName)
-				if err = app.Save(); err != nil {
+				if err = app.Save(true); err != nil {
 					app.LogErrorF("error saving %v config: %v\n", app.Name, err)
 					hasErr = true
 					continue

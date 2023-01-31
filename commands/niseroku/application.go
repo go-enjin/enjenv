@@ -123,7 +123,7 @@ func (a *Application) Load() (err error) {
 		err = ee
 		return
 	} else {
-		a.tomlComments = MergeApplicationToml(tcs)
+		a.tomlComments = MergeApplicationToml(tcs, true)
 	}
 
 	a.Name = bePath.Base(a.Source)
@@ -153,7 +153,7 @@ func (a *Application) Load() (err error) {
 	return
 }
 
-func (a *Application) Save() (err error) {
+func (a *Application) Save(keepCustomComments bool) (err error) {
 	a.RLock()
 	defer a.RUnlock()
 	var buffer bytes.Buffer
@@ -162,7 +162,8 @@ func (a *Application) Save() (err error) {
 	}
 	contents := string(buffer.Bytes())
 	var modified string
-	if modified, err = ApplyComments(contents, a.tomlComments); err != nil {
+	tcs := MergeApplicationToml(a.tomlComments, keepCustomComments)
+	if modified, err = ApplyComments(contents, tcs); err != nil {
 		return
 	}
 	err = os.WriteFile(a.Source, []byte(modified), 0660)

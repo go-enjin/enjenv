@@ -138,7 +138,7 @@ func (a *Application) transitionAppToNextSlug(app *Application) (err error) {
 		nextSlug.App.NextSlug = ""
 		nextSlug.App.Origin.Port = nextSlug.Port
 
-		if ee := nextSlug.App.Save(); ee != nil {
+		if ee := nextSlug.App.Save(true); ee != nil {
 			err = fmt.Errorf("error saving: %v - %v\n", app.Name, ee)
 			return
 		}
