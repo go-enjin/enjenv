@@ -64,10 +64,22 @@ func ParseComments(content string) (tomlComments TomlComments, err error) {
 	input := strings.NewReader(content)
 	scanner := bufio.NewScanner(input)
 
-	var thisEntry *TomlComment
+	var thisEntry, header *TomlComment
+
 	for scanner.Scan() {
 		line := scanner.Text()
+
 		if rxEmptyString.MatchString(line) {
+			if header == nil {
+				if thisEntry != nil {
+					if thisEntry.Statement == "" && len(tomlComments) == 0 {
+						header = thisEntry
+						header.Statement = "__header__"
+						tomlComments = append(tomlComments, header)
+						thisEntry = nil
+					}
+				}
+			}
 			continue
 		}
 
@@ -122,6 +134,14 @@ func ParseComments(content string) (tomlComments TomlComments, err error) {
 		}
 	}
 
+	if thisEntry != nil {
+		if thisEntry.Statement == "" {
+			thisEntry.Statement = "__footer__"
+		}
+		tomlComments = append(tomlComments, thisEntry)
+		thisEntry = nil
+	}
+
 	err = scanner.Err()
 	return
 }
@@ -129,6 +149,19 @@ func ParseComments(content string) (tomlComments TomlComments, err error) {
 func ApplyComments(content string, comments TomlComments) (modified string, err error) {
 	input := strings.NewReader(content)
 	scanner := bufio.NewScanner(input)
+
+	for _, comment := range comments {
+		if comment.Statement == "__header__" {
+			if len(comment.Lines) == 0 {
+				break
+			}
+			for _, cl := range comment.Lines {
+				modified += "#" + cl + "\n"
+			}
+			modified += "\n"
+			break
+		}
+	}
 
 	isFirstLine := true
 	prevIsEmpty := false
@@ -182,6 +215,19 @@ func ApplyComments(content string, comments TomlComments) (modified string, err 
 
 		prevIsEmpty = false
 		isFirstLine = false
+	}
+
+	for _, comment := range comments {
+		if comment.Statement == "__footer__" {
+			if len(comment.Lines) == 0 {
+				break
+			}
+			modified += "\n"
+			for _, cl := range comment.Lines {
+				modified += "#" + cl + "\n"
+			}
+			break
+		}
 	}
 
 	err = scanner.Err()
