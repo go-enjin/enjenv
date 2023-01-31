@@ -51,22 +51,22 @@ var (
 )
 
 type Config struct {
-	BindAddr     string `toml:"bind-addr,omitempty"`
-	EnableSSL    bool   `toml:"enable-ssl,omitempty"`
-	BuildPack    string `toml:"buildpack-path,omitempty"`
-	AccountEmail string `toml:"account-email,omitempty"`
-	LogFile      string `toml:"log-file,omitempty"`
+	BindAddr     string `toml:"bind-addr"`
+	EnableSSL    bool   `toml:"enable-ssl"`
+	AccountEmail string `toml:"account-email"`
+	BuildPack    string `toml:"buildpack-path"`
+	LogFile      string `toml:"log-file"`
 
-	SlugNice int `toml:"slug-nice,omitempty"`
+	SlugNice int `toml:"slug-nice"`
 
 	IncludeSlugs IncludeSlugsConfig `toml:"include-slugs"`
 
-	Timeouts TimeoutsConfig `toml:"timeouts,omitempty"`
+	Timeouts TimeoutsConfig `toml:"timeouts"`
 
-	ProxyLimit RateLimit `toml:"proxy-limit,omitempty"`
+	ProxyLimit RateLimit `toml:"proxy-limit"`
 
-	RunAs RunAsConfig `toml:"run-as,omitempty"`
-	Ports PortsConfig `toml:"ports,omitempty"`
+	RunAs RunAsConfig `toml:"run-as"`
+	Ports PortsConfig `toml:"ports"`
 	Paths PathsConfig `toml:"paths"`
 
 	Source   string `toml:"-"`
@@ -83,38 +83,38 @@ type Config struct {
 }
 
 type IncludeSlugsConfig struct {
-	OnStart bool `toml:"on-start,omitempty"`
-	OnStop  bool `toml:"on-stop,omitempty"`
+	OnStart bool `toml:"on-start"`
+	OnStop  bool `toml:"on-stop"`
 }
 
 type TimeoutsConfig struct {
-	SlugStartup   time.Duration `toml:"slug-startup,omitempty"`
-	ReadyInterval time.Duration `toml:"ready-interval,omitempty"`
-	OriginRequest time.Duration `toml:"origin-request,omitempty"`
+	SlugStartup   time.Duration `toml:"slug-startup"`
+	ReadyInterval time.Duration `toml:"ready-interval"`
+	OriginRequest time.Duration `toml:"origin-request"`
 }
 
 type RunAsConfig struct {
-	User  string `toml:"user,omitempty"`
-	Group string `toml:"group,omitempty"`
+	User  string `toml:"user"`
+	Group string `toml:"group"`
 }
 
 type PortsConfig struct {
-	Git      int `toml:"git,omitempty"`
-	Http     int `toml:"http,omitempty"`
-	Https    int `toml:"https,omitempty"`
-	AppEnd   int `toml:"app-end,omitempty"`
-	AppStart int `toml:"app-start,omitempty"`
+	Git      int `toml:"git"`
+	Http     int `toml:"http"`
+	Https    int `toml:"https"`
+	AppEnd   int `toml:"app-end"`
+	AppStart int `toml:"app-start"`
 }
 
 type RateLimit struct {
-	TTL        time.Duration `toml:"ttl,omitempty"`
-	Max        float64       `toml:"max,omitempty"`
-	Burst      int           `toml:"burst,omitempty"`
-	MaxDelay   time.Duration `toml:"max-delay,omitempty"`
-	DelayScale int           `toml:"delay-scale,omitempty"`
-	LogAllowed bool          `toml:"log-allowed,omitempty"`
-	LogDelayed bool          `toml:"log-delayed,omitempty"`
-	LogLimited bool          `toml:"log-limited,omitempty"`
+	TTL        time.Duration `toml:"ttl"`
+	Max        float64       `toml:"max"`
+	Burst      int           `toml:"burst"`
+	MaxDelay   time.Duration `toml:"max-delay"`
+	DelayScale int           `toml:"delay-scale"`
+	LogAllowed bool          `toml:"log-allowed"`
+	LogDelayed bool          `toml:"log-delayed"`
+	LogLimited bool          `toml:"log-limited"`
 }
 
 type PathsConfig struct {
