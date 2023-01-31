@@ -28,6 +28,7 @@ import (
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
+
 	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 )
@@ -172,13 +173,17 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 	}()
 
 	pkgIo.STDOUT("# preparing enjenv buildpack...\n")
+	var buildPack string
+	if config.BuildPack != "" {
+		buildPack = config.BuildPack
+	} else {
+		buildPack = DefaultBuildPack
+	}
 	if bePath.IsDir(config.BuildPack) {
 		if err = copy.Copy(config.BuildPack, buildPackClonePath); err != nil {
 			return
 		}
-	} else if _, err = git.PlainClone(buildPackClonePath, false, &git.CloneOptions{
-		URL: "https://github.com/go-enjin/enjenv-heroku-buildpack.git",
-	}); err != nil {
+	} else if _, err = git.PlainClone(buildPackClonePath, false, &git.CloneOptions{URL: buildPack}); err != nil {
 		return
 	}
 	defer func() {
