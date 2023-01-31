@@ -55,14 +55,14 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 						childThreads, _ := child.NumThreads()
 						numChildThreads += int(childThreads)
 						if cp, eee := child.CPUPercent(); eee == nil {
-							if childCpuTotal < cp {
-								childCpuTotal = cp
-							}
+							// if childCpuTotal < cp {
+							childCpuTotal += cp
+							// }
 						}
 						if mp, eee := child.MemoryPercent(); eee == nil {
-							if childMemTotal < mp {
-								childMemTotal = mp
-							}
+							// if childMemTotal < mp {
+							childMemTotal += mp
+							// }
 						}
 					}
 				}
