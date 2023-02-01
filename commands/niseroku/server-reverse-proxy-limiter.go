@@ -73,7 +73,7 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 			for delayCount = 1; delayCount <= rateLimits.DelayScale; delayCount++ {
 				time.Sleep(itrDelay)
 				totalDelay = time.Duration(itrDelay.Nanoseconds() * int64(delayCount))
-				if !rp.limiter.LimitReached(reqHost) || !rp.limiter.LimitReached(remoteAddr) {
+				if !rp.limiter.LimitReached(reqHost) && !rp.limiter.LimitReached(remoteAddr) {
 					if delayCount > 1 && rateLimits.LogAllowed {
 						rp.LogInfoF("[rate] allowed - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
 					}
