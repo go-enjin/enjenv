@@ -165,6 +165,12 @@ setting. Prints "OK" if no value parsing or config file saving errors occurred.
 					Usage:     "deploy a built slug",
 					UsageText: "niseroku deploy-slug <slug.zip> [slugs.zip...]",
 					Action:    c.actionDeploySlug,
+					Flags: []cli.Flag{
+						&cli.BoolFlag{
+							Name:  "verbose",
+							Usage: "use STDOUT and STDERR for command logging",
+						},
+					},
 				},
 				{
 					Name:      "fix-fs",

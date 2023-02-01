@@ -40,6 +40,9 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
+	if ctx.Bool("verbose") {
+		beIo.LogFile = ""
+	}
 
 	if ctx.NArg() == 0 {
 		cli.ShowCommandHelpAndExit(ctx, "deploy-slug", 1)
