@@ -48,10 +48,6 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 		cli.ShowCommandHelpAndExit(ctx, "deploy-slug", 1)
 	}
 
-	if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
-		return
-	}
-
 	hasErr := false
 	argv := ctx.Args().Slice()
 	for _, arg := range argv {
@@ -69,24 +65,25 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 		slugAppName := m[0][1]
 		if app, ok := c.config.Applications[slugAppName]; ok {
 			slugDestPath := c.config.Paths.VarSlugs + "/" + slugName
-			if ee := os.Rename(slugPath, slugDestPath); ee != nil {
-				app.LogErrorF("error moving slug: %v\n", ee)
-				hasErr = true
-				continue
-			}
-
 			if app.ThisSlug != slugDestPath {
+				if ee := os.Rename(slugPath, slugDestPath); ee != nil {
+					beIo.StderrF("error moving slug: %v\n", ee)
+					hasErr = true
+					continue
+				}
+				_ = c.config.RunAsChown(slugDestPath)
 				app.NextSlug = slugDestPath
-				app.LogInfoF("# updating %v next slug: %v\n", app.Name, slugName)
+				beIo.StdoutF("# updating %v next slug: %v\n", app.Name, slugName)
 				if err = app.Save(true); err != nil {
-					app.LogErrorF("error saving %v config: %v\n", app.Name, err)
+					_ = c.config.RunAsChown(app.Source)
+					beIo.StderrF("error saving %v config: %v\n", app.Name, err)
 					hasErr = true
 					continue
 				}
 			}
 		} else {
 			hasErr = true
-			app.LogErrorF("unknown slug app name: %v - %v\n", slugAppName, slugPath)
+			beIo.StderrF("unknown slug app name: %v - %v\n", slugAppName, slugPath)
 			continue
 		}
 	}
@@ -94,6 +91,10 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 	if hasErr {
 		err = fmt.Errorf("errors encountered, deployment halted\n")
 		beIo.StderrF("%v\n", err)
+		return
+	}
+
+	if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
 		return
 	}
 
@@ -109,20 +110,20 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 	}
 
 	time.Sleep(2500 * time.Millisecond) // necessary to allow background processes time
-	beIo.StdoutF("slug deployment completed, signaling reload of proxy and repo services\n")
+	beIo.StdoutF("# slug deployment completed, signaling reload of proxy and repo services\n")
 
 	if bePath.IsFile(c.config.Paths.ProxyPidFile) {
 		if ee := common.SendSignalToPidFromFile(c.config.Paths.ProxyPidFile, syscall.SIGUSR1); ee != nil {
 			beIo.StderrF("error sending signal to reverse-proxy process: %v\n", ee)
 		} else {
-			beIo.StdoutF("sent SIGUSR1 signal to reverse-proxy process\n")
+			beIo.StdoutF("# sent SIGUSR1 signal to reverse-proxy process\n")
 		}
 	}
 	if bePath.IsFile(c.config.Paths.RepoPidFile) {
 		if ee := common.SendSignalToPidFromFile(c.config.Paths.RepoPidFile, syscall.SIGUSR1); ee != nil {
 			beIo.StderrF("error sending signal to git-repository process: %v\n", ee)
 		} else {
-			beIo.StdoutF("sent SIGUSR1 signal to git-repository process\n")
+			beIo.StdoutF("# sent SIGUSR1 signal to git-repository process\n")
 		}
 	}
 	return
