@@ -39,10 +39,10 @@ func (a *Application) Deploy() (err error) {
 		if thisSlug.Name == nextSlug.Name {
 			a.LogInfoF("re-deploying: %v\n", thisSlug)
 		} else {
-			a.LogInfoF("deploying: %v\n", nextSlug)
+			a.LogInfoF("deploying next: %v\n", nextSlug)
 		}
 	} else {
-		a.LogInfoF("deploying: %v\n", thisSlug)
+		a.LogInfoF("deploying this: %v\n", thisSlug)
 	}
 
 	if thisSlug != nil && nextSlug != nil {
