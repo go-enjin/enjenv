@@ -1,24 +1,24 @@
 module github.com/go-enjin/enjenv
 
-go 1.19
+go 1.18
 
 require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20230126192647-016063007b74
+	github.com/go-enjin/be v0.0.0-20230202203032-d6578a153b4c
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
-	github.com/go-git/go-git/v5 v5.5.1
-	github.com/goccy/go-json v0.9.11
-	github.com/gofrs/uuid v4.3.0+incompatible
+	github.com/go-git/go-git/v5 v5.5.2
+	github.com/goccy/go-json v0.10.0
+	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
 	github.com/kataras/requestid v0.0.2
 	github.com/otiai10/copy v1.9.0
 	github.com/sevlyar/go-daemon v0.1.6
-	github.com/shirou/gopsutil/v3 v3.22.10
+	github.com/shirou/gopsutil/v3 v3.23.1
 	github.com/sosedoff/gitkit v0.3.0
-	github.com/urfave/cli/v2 v2.23.7
+	github.com/urfave/cli/v2 v2.24.3
 	golang.org/x/crypto v0.5.0
 )
 
@@ -28,7 +28,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20221026131551-cf6655e29de4 // indirect
 	github.com/RoaringBitmap/roaring v0.9.4 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
-	github.com/alecthomas/participle/v2 v2.0.0-beta.5 // indirect
+	github.com/alecthomas/participle/v2 v2.0.0-beta.1 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
@@ -53,7 +53,6 @@ require (
 	github.com/creack/pty v1.1.18 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
-	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -66,7 +65,7 @@ require (
 	github.com/go-curses/terminfo v1.0.0 // indirect
 	github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
+	github.com/go-git/go-billy/v5 v5.4.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-pkgz/expirable-cache v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
@@ -125,8 +124,8 @@ require (
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/tdewolff/parse/v2 v2.6.4 // indirect
 	github.com/tg123/go-htpasswd v1.2.0 // indirect
-	github.com/tklauser/go-sysconf v0.3.10 // indirect
-	github.com/tklauser/numcpus v0.4.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.11 // indirect
+	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
