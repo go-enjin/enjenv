@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
@@ -114,14 +115,22 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 
 	if bePath.IsFile(c.config.Paths.ProxyPidFile) {
 		if ee := common.SendSignalToPidFromFile(c.config.Paths.ProxyPidFile, syscall.SIGUSR1); ee != nil {
-			beIo.StderrF("error sending signal to reverse-proxy process: %v\n", ee)
+			if strings.Contains(ee.Error(), "process not found") {
+				_ = os.Remove(c.config.Paths.ProxyPidFile)
+			} else {
+				beIo.StderrF("error sending signal to reverse-proxy process: %v\n", ee)
+			}
 		} else {
 			beIo.StdoutF("# sent SIGUSR1 signal to reverse-proxy process\n")
 		}
 	}
 	if bePath.IsFile(c.config.Paths.RepoPidFile) {
 		if ee := common.SendSignalToPidFromFile(c.config.Paths.RepoPidFile, syscall.SIGUSR1); ee != nil {
-			beIo.StderrF("error sending signal to git-repository process: %v\n", ee)
+			if strings.Contains(ee.Error(), "process not found") {
+				_ = os.Remove(c.config.Paths.RepoPidFile)
+			} else {
+				beIo.StderrF("error sending signal to git-repository process: %v\n", ee)
+			}
 		} else {
 			beIo.StdoutF("# sent SIGUSR1 signal to git-repository process\n")
 		}
