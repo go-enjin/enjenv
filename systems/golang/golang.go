@@ -54,8 +54,8 @@ var (
 )
 
 var (
-	rxVersion = regexp.MustCompile(`^(?:go)??(\d+?\.\d+?\.\d+?)$`)
-	rxTarName = regexp.MustCompile(`go(\d+?\.\d+?\.\d+?)\.([a-z0-9]+?)-([a-z0-9]+?)\.tar\.gz`)
+	rxVersion = regexp.MustCompile(`^(?:go)??(\d+?\.\d+?[.\d]+?)$`)
+	rxTarName = regexp.MustCompile(`go(\d+?\.\d+?[.\d]+?)\.([a-z0-9]+?)-([a-z0-9]+?)\.tar\.gz`)
 	rxTarGzs  = regexp.MustCompile(`(?ms)<tr(?:[^>]+?|)>\s*<td class="filename">\s*<a.+?href="/dl/([^"]+?\.tar\.gz)"[^<]*</a></td>\s*<td>[^<]*</td>\s*<td>[^<]*</td>\s*<td>[^<]*</td>\s*<td>[^<]*</td>\s*<td>\s*<tt>\s*(.+?)\s*</tt>\s*</td>\s*</tr>`)
 )
 
