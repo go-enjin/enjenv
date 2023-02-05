@@ -20,22 +20,6 @@ import (
 	"syscall"
 )
 
-func (s *Service) HandleSIGHUP() {
-	s.Lock()
-	s.SigHUP = make(chan os.Signal, 1)
-	s.Unlock()
-	signal.Notify(s.SigHUP, syscall.SIGHUP)
-	for {
-		switch <-s.SigHUP {
-		case syscall.SIGHUP:
-			s.LogInfoF("signal received: HUP (restart)")
-			if err := s.RestartFn(); err != nil {
-				s.LogErrorF("error restarting during SIGHUP: %v\n", err)
-			}
-		}
-	}
-}
-
 func (s *Service) HandleSIGINT() {
 	s.Lock()
 	s.SigINT = make(chan os.Signal, 1)
@@ -61,9 +45,25 @@ func (s *Service) HandleSIGUSR1() {
 	for {
 		switch <-s.SigUSR1 {
 		case syscall.SIGUSR1:
-			s.LogInfoF("signal received: USR1 (reload)")
+			s.LogInfoF("signal received: USR1 (dump stats)")
+			if err := s.DumpStatsFn(); err != nil {
+				s.LogErrorF("error during SIGUSR1: %v\n", err)
+			}
+		}
+	}
+}
+
+func (s *Service) HandleSIGHUP() {
+	s.Lock()
+	s.SigHUP = make(chan os.Signal, 1)
+	s.Unlock()
+	signal.Notify(s.SigHUP, syscall.SIGHUP)
+	for {
+		switch <-s.SigHUP {
+		case syscall.SIGHUP:
+			s.LogInfoF("signal received: HUP (reload)")
 			if err := s.ReloadFn(); err != nil {
-				s.LogErrorF("error reloading during SIGUSR1: %v\n", err)
+				s.LogErrorF("error during SIGHUP: %v\n", err)
 			}
 		}
 	}

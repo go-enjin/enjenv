@@ -64,7 +64,7 @@ func NewGitRepository(config *Config) (gr *GitRepository) {
 	gr.BindFn = gr.Bind
 	gr.StopFn = gr.Stop
 	gr.ReloadFn = gr.Reload
-	gr.RestartFn = gr.Restart
+	gr.DumpStatsFn = gr.DumpStats
 	return
 }
 
@@ -170,8 +170,8 @@ func (gr *GitRepository) Reload() (err error) {
 	return
 }
 
-func (gr *GitRepository) Restart() (err error) {
-	err = fmt.Errorf("git-repository restart not implemented")
+func (gr *GitRepository) DumpStats() (err error) {
+	err = fmt.Errorf("git-repository dump-stats not implemented")
 	return
 }
 

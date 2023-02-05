@@ -77,7 +77,7 @@ func NewReverseProxy(config *Config) (rp *ReverseProxy) {
 	rp.ServeFn = rp.Serve
 	rp.StopFn = rp.Stop
 	rp.ReloadFn = rp.Reload
-	rp.RestartFn = rp.Restart
+	rp.DumpStatsFn = rp.DumpStats
 	return
 }
 
@@ -222,8 +222,8 @@ func (rp *ReverseProxy) Reload() (err error) {
 	return
 }
 
-func (rp *ReverseProxy) Restart() (err error) {
-	err = fmt.Errorf("reverse-proxy restart not implemented")
+func (rp *ReverseProxy) DumpStats() (err error) {
+	err = fmt.Errorf("reverse-proxy dump stats not implemented")
 	return
 }
 
