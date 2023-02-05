@@ -141,6 +141,8 @@ type PathsConfig struct {
 
 	RepoPidFile  string `toml:"-"` // RepoPidFile is the path for the git-repository service process ID file
 	ProxyPidFile string `toml:"-"` // ProxyPidFile is the path for the reverse-proxy service process ID file
+
+	ProxyDumpStats string `toml:"-"`
 }
 
 func WriteDefaultConfig(niserokuConfig string) (err error) {
@@ -256,6 +258,7 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 
 	repoPidFile := cfg.Paths.Var + "/git-repository.pid"
 	proxyPidFile := cfg.Paths.Var + "/reverse-proxy.pid"
+	proxyDumpStats := cfg.Paths.Var + "/reverse-proxy.stats"
 
 	var needRootUser bool
 	checkPort := func(port, defaultPort int) (validPort int, err error) {
@@ -382,25 +385,26 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 			LogLimited: cfg.ProxyLimit.LogLimited,
 		},
 		Paths: PathsConfig{
-			Etc:          cfg.Paths.Etc,
-			Var:          cfg.Paths.Var,
-			Tmp:          cfg.Paths.Tmp,
-			EtcApps:      appsPath,
-			EtcUsers:     usersPath,
-			TmpRun:       tmpRun,
-			TmpClone:     tmpClone,
-			TmpBuild:     tmpBuild,
-			VarLogs:      varLogs,
-			VarRepos:     varReposPath,
-			VarCache:     varCache,
-			VarSlugs:     varSlugs,
-			VarSettings:  varSettings,
-			RepoSecrets:  repoSecrets,
-			ProxySecrets: proxySecrets,
-			PidFile:      pidFile,
-			Control:      controlFile,
-			RepoPidFile:  repoPidFile,
-			ProxyPidFile: proxyPidFile,
+			Etc:            cfg.Paths.Etc,
+			Var:            cfg.Paths.Var,
+			Tmp:            cfg.Paths.Tmp,
+			EtcApps:        appsPath,
+			EtcUsers:       usersPath,
+			TmpRun:         tmpRun,
+			TmpClone:       tmpClone,
+			TmpBuild:       tmpBuild,
+			VarLogs:        varLogs,
+			VarRepos:       varReposPath,
+			VarCache:       varCache,
+			VarSlugs:       varSlugs,
+			VarSettings:    varSettings,
+			RepoSecrets:    repoSecrets,
+			ProxySecrets:   proxySecrets,
+			PidFile:        pidFile,
+			Control:        controlFile,
+			RepoPidFile:    repoPidFile,
+			ProxyPidFile:   proxyPidFile,
+			ProxyDumpStats: proxyDumpStats,
 		},
 		tomlMetaData: cfg.tomlMetaData,
 		tomlComments: cfg.tomlComments,
@@ -514,6 +518,7 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.Paths.PidFile = cfg.Paths.PidFile
 	c.Paths.RepoPidFile = cfg.Paths.RepoPidFile
 	c.Paths.ProxyPidFile = cfg.Paths.ProxyPidFile
+	c.Paths.ProxyDumpStats = cfg.Paths.ProxyDumpStats
 	c.Users = cfg.Users
 	c.Applications = cfg.Applications
 	c.PortLookup = cfg.PortLookup
