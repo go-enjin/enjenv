@@ -1,8 +1,6 @@
 [Unit]
 Description="enjenv niseroku (git-repository)"
 After=network-online.target
-StartLimitBurst=5
-StartLimitIntervalSec=300
 
 [Service]
 Type=exec
