@@ -23,9 +23,9 @@ import (
 	"github.com/urfave/cli/v2"
 
 	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/enjenv/pkg/service/common"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (c *Command) actionFixFs(ctx *cli.Context) (err error) {

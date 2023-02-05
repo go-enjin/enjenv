@@ -24,44 +24,50 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
-func (c *Config) SignalReverseProxy(sig process.Signal) {
+func (c *Config) SignalReverseProxy(sig process.Signal) (sent bool) {
 	c.RLock()
 	defer c.RUnlock()
 	if bePath.IsFile(c.Paths.ProxyPidFile) {
 		if proc, err := common.GetProcessFromPidFile(c.Paths.ProxyPidFile); err == nil {
-			if running, err := proc.IsRunning(); err == nil && running {
+			if running, ee := proc.IsRunning(); ee == nil && running {
 				_ = proc.SendSignal(sig)
+				sent = true
 			}
 		}
 	}
 	return
 }
 
-func (c *Config) SignalReloadReverseProxy() {
-	c.SignalReverseProxy(syscall.SIGUSR1)
+func (c *Config) SignalReloadReverseProxy() (sent bool) {
+	sent = c.SignalReverseProxy(syscall.SIGHUP)
+	return
 }
 
-func (c *Config) SignalStopReverseProxy() {
-	c.SignalReverseProxy(syscall.SIGTERM)
+func (c *Config) SignalStopReverseProxy() (sent bool) {
+	sent = c.SignalReverseProxy(syscall.SIGTERM)
+	return
 }
 
-func (c *Config) SignalGitRepository(sig process.Signal) {
+func (c *Config) SignalGitRepository(sig process.Signal) (sent bool) {
 	c.RLock()
 	defer c.RUnlock()
 	if bePath.IsFile(c.Paths.RepoPidFile) {
 		if proc, err := common.GetProcessFromPidFile(c.Paths.RepoPidFile); err == nil {
 			if running, err := proc.IsRunning(); err == nil && running {
 				_ = proc.SendSignal(sig)
+				sent = true
 			}
 		}
 	}
 	return
 }
 
-func (c *Config) SignalReloadGitRepository() {
-	c.SignalGitRepository(syscall.SIGUSR1)
+func (c *Config) SignalReloadGitRepository() (sent bool) {
+	sent = c.SignalGitRepository(syscall.SIGHUP)
+	return
 }
 
-func (c *Config) SignalStopGitRepository() {
-	c.SignalGitRepository(syscall.SIGTERM)
+func (c *Config) SignalStopGitRepository() (sent bool) {
+	sent = c.SignalGitRepository(syscall.SIGTERM)
+	return
 }
