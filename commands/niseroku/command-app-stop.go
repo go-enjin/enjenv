@@ -21,6 +21,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
@@ -38,7 +39,7 @@ func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
 		cli.ShowCommandHelpAndExit(ctx, "stop", 1)
 	}
 
-	if err = c.dropPrivileges(); err != nil {
+	if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
 		err = fmt.Errorf("error dropping root privileges: %v", err)
 		return
 	}

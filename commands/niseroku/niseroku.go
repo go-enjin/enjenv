@@ -18,9 +18,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os/user"
-	"strconv"
-	"syscall"
 
 	"github.com/urfave/cli/v2"
 
@@ -287,39 +284,6 @@ func (c *Command) Prepare(ctx *cli.Context) (err error) {
 	}
 	if c.config.LogFile != "" {
 		beIo.LogFile = c.config.LogFile
-	}
-	return
-}
-
-func (c *Command) dropPrivileges() (err error) {
-	if syscall.Getuid() == 0 {
-
-		var u *user.User
-		if u, err = user.Lookup(c.config.RunAs.User); err != nil {
-			return
-		}
-		var g *user.Group
-		if g, err = user.LookupGroup(c.config.RunAs.Group); err != nil {
-			return
-		}
-
-		// beIo.StdoutF("switching user:group to %v:%v\n", c.config.RunAs.User, c.config.RunAs.Group)
-
-		var uid, gid int
-		if uid, err = strconv.Atoi(u.Uid); err != nil {
-			return
-		}
-		if gid, err = strconv.Atoi(g.Gid); err != nil {
-			return
-		}
-
-		if cerr, errno := C.setgid(C.__gid_t(gid)); cerr != 0 {
-			err = fmt.Errorf("set GID error: %v", errno)
-			return
-		} else if cerr, errno = C.setuid(C.__uid_t(uid)); cerr != 0 {
-			err = fmt.Errorf("set UID error: %v", errno)
-			return
-		}
 	}
 	return
 }

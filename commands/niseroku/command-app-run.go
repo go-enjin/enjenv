@@ -17,14 +17,14 @@ package niseroku
 import (
 	"fmt"
 	"os"
-	"strconv"
+	"syscall"
 
-	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/sevlyar/go-daemon"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
@@ -73,20 +73,18 @@ func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
 		}()
 	}
 
-	thisPid := strconv.Itoa(os.Getpid())
-	niceVal := strconv.Itoa(c.config.SlugNice)
-	o, e, _, _ := run.Cmd("/bin/renice", "-n", niceVal, "-g", thisPid)
-
-	if err = c.dropPrivileges(); err != nil {
-		err = fmt.Errorf("error dropping root privileges: %v", err)
-		return
-	}
-
-	if len(o) > 1 {
-		app.LogInfoF("renice[stdout] %v\n", o)
-	}
-	if len(e) > 1 {
-		app.LogInfoF("renice[stderr] %v\n", e)
+	if syscall.Getuid() == 0 {
+		thisPid := os.Getpid()
+		niceVal := c.config.SlugNice
+		ee := common.SetPgrpPriority(thisPid, niceVal)
+		if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
+			err = fmt.Errorf("error dropping root privileges: %v", err)
+			return
+		} else if ee != nil {
+			app.LogErrorF("error setting pid-group(%d) priority(%d): %v - %v\n", thisPid, niceVal, app.Name, ee)
+		} else {
+			app.LogInfoF("pid-group (%d) priority set: %d\n", thisPid, niceVal)
+		}
 	}
 
 	if err = app.Deploy(); err != nil {
