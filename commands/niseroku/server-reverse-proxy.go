@@ -156,7 +156,7 @@ func (rp *ReverseProxy) Serve() (err error) {
 	// SIGINT+TERM handler
 	idleConnectionsClosed := make(chan struct{})
 	go func() {
-		go rp.HandleSIGINT()
+		rp.HandleSIGINT()
 		close(idleConnectionsClosed)
 	}()
 
