@@ -7,7 +7,7 @@ require (
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20230202203032-d6578a153b4c
+	github.com/go-enjin/be v0.0.0-20230205182357-2733480a4466
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/goccy/go-json v0.10.0
@@ -20,6 +20,7 @@ require (
 	github.com/sosedoff/gitkit v0.3.0
 	github.com/urfave/cli/v2 v2.24.3
 	golang.org/x/crypto v0.5.0
+	golang.org/x/sys v0.4.0
 )
 
 require (
@@ -135,7 +136,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
 	golang.org/x/net v0.5.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/tools v0.1.12 // indirect
