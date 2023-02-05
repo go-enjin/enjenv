@@ -25,6 +25,7 @@ func (s *Service) HandleSIGINT() {
 	s.SigINT = make(chan os.Signal, 1)
 	s.Unlock()
 	signal.Notify(s.SigINT, syscall.SIGINT, syscall.SIGTERM)
+	s.LogInfoF("listening for INT/TERM signals\n")
 	switch <-s.SigINT {
 	case syscall.SIGINT, syscall.SIGTERM:
 		s.LogInfoF("signal received: INT/TERM (shutdown)")
@@ -42,10 +43,11 @@ func (s *Service) HandleSIGUSR1() {
 	s.SigUSR1 = make(chan os.Signal, 1)
 	s.Unlock()
 	signal.Notify(s.SigUSR1, syscall.SIGUSR1)
+	s.LogInfoF("listening for USR1 signals\n")
 	for {
 		switch <-s.SigUSR1 {
 		case syscall.SIGUSR1:
-			s.LogInfoF("signal received: USR1 (dump stats)")
+			// s.LogInfoF("signal received: USR1 (dump stats)")
 			if err := s.DumpStatsFn(); err != nil {
 				s.LogErrorF("error during SIGUSR1: %v\n", err)
 			}
@@ -58,6 +60,7 @@ func (s *Service) HandleSIGHUP() {
 	s.SigHUP = make(chan os.Signal, 1)
 	s.Unlock()
 	signal.Notify(s.SigHUP, syscall.SIGHUP)
+	s.LogInfoF("listening for HUP signals\n")
 	for {
 		switch <-s.SigHUP {
 		case syscall.SIGHUP:
