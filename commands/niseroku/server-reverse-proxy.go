@@ -20,12 +20,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/didip/tollbooth/v7/limiter"
+	bePath "github.com/go-enjin/be/pkg/path"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/acme/autocert"
 
@@ -50,6 +52,8 @@ type ReverseProxy struct {
 	autocert      *autocert.Manager
 
 	limiter *limiter.Limiter
+
+	tracking *Tracking
 }
 
 func (c *Command) actionReverseProxy(ctx *cli.Context) (err error) {
@@ -73,6 +77,7 @@ func NewReverseProxy(config *Config) (rp *ReverseProxy) {
 	rp.PidFile = config.Paths.ProxyPidFile
 	rp.LogFile = config.LogFile
 	rp.config = config
+	rp.tracking = NewTracking()
 	rp.BindFn = rp.Bind
 	rp.ServeFn = rp.Serve
 	rp.StopFn = rp.Stop
@@ -208,6 +213,9 @@ func (rp *ReverseProxy) Stop() (err error) {
 			rp.LogErrorF("error shutting down https server: %v\n", ee)
 		}
 	}
+	if bePath.IsFile(rp.config.Paths.ProxyDumpStats) {
+		_ = os.Remove(rp.config.Paths.ProxyDumpStats)
+	}
 	return
 }
 
@@ -223,7 +231,8 @@ func (rp *ReverseProxy) Reload() (err error) {
 }
 
 func (rp *ReverseProxy) DumpStats() (err error) {
-	err = fmt.Errorf("reverse-proxy dump stats not implemented")
+	// rp.LogInfoF("[dump-stats] current total: %v\n", rp.tracking.Get("__total__"))
+	_ = os.WriteFile(rp.config.Paths.ProxyDumpStats, []byte(rp.tracking.String()), 0660)
 	return
 }
 
