@@ -66,10 +66,22 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 		}
 		reqId := requestid.Get(r)
 		reqUrl, _, reqHost, _ := DecomposeUrl(r)
+
+		go rp.tracking.Increment("__total__", "host,"+reqHost, "addr,"+remoteAddr)
+		defer func() {
+			time.Sleep(10 * time.Millisecond)
+			rp.tracking.Decrement("__total__", "host,"+reqHost, "addr,"+remoteAddr)
+		}()
+
 		if tbe := tollbooth.LimitByKeys(rp.limiter, []string{reqHost, remoteAddr}); tbe != nil {
 			var delayCount int
 			itrDelay := time.Duration(rateLimits.MaxDelay.Nanoseconds() / int64(rateLimits.DelayScale))
 			totalDelay := time.Duration(0)
+			go rp.tracking.Increment("__delay__", "delay,host,"+reqHost, "delay,addr,"+remoteAddr)
+			defer func() {
+				time.Sleep(10 * time.Millisecond)
+				rp.tracking.Decrement("__delay__", "delay,host,"+reqHost, "delay,addr,"+remoteAddr)
+			}()
 			for delayCount = 1; delayCount <= rateLimits.DelayScale; delayCount++ {
 				time.Sleep(itrDelay)
 				totalDelay = time.Duration(itrDelay.Nanoseconds() * int64(delayCount))
