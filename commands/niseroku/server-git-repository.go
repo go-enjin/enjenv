@@ -36,7 +36,8 @@ type GitRepository struct {
 
 	config *Config
 
-	repo *gitkit.SSH
+	repo  *gitkit.SSH
+	gkcfg gitkit.Config
 }
 
 func (c *Command) actionGitRepository(ctx *cli.Context) (err error) {
@@ -91,17 +92,22 @@ func (gr *GitRepository) Bind() (err error) {
 
 	addr := fmt.Sprintf("%v:%d", gr.config.BindAddr, gr.config.Ports.Git)
 
-	gr.repo = gitkit.NewSSH(gitkit.Config{
+	gr.gkcfg = gitkit.Config{
 		Dir:        gr.config.Paths.VarRepos,
 		KeyDir:     gr.config.Paths.RepoSecrets,
-		AutoCreate: false,
 		Auth:       true,
 		AutoHooks:  false,
+		AutoCreate: false,
 		// Hooks: &gitkit.HookScripts{
 		// 	PreReceive:  preReceiveHookSource,
 		// 	PostReceive: postReceiveHookSource,
 		// },
-	})
+	}
+	if err = gr.gkcfg.Setup(); err != nil {
+		err = fmt.Errorf("error setting up git config: %v", err)
+		return
+	}
+	gr.repo = gitkit.NewSSH(gr.gkcfg)
 
 	gr.repo.PublicKeyLookupFunc = gr.publicKeyLookupFunc
 
