@@ -289,10 +289,26 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter,
 
 	var originRequestTimeout time.Duration
 	if slug := app.GetThisSlug(); slug == nil {
-		err = fmt.Errorf("origin missing this slug: %v\n", app.Name)
+		err = fmt.Errorf("origin missing this-slug: %v\n", app.Name)
 		return
 	} else {
 		originRequestTimeout = slug.GetOriginRequestTimeout()
+		running, ready := slug.IsRunningReady()
+		switch {
+		case running && !ready:
+			rp.LogInfoF("origin running and not ready: [503] %v\n", slug.Name)
+			status = http.StatusServiceUnavailable
+			serve.Serve503(w, r)
+			return
+		case !running && !ready:
+			rp.LogInfoF("origin not running and not ready: [502] %v\n", slug.Name)
+			status = http.StatusBadGateway
+			serve.Serve502(w, r)
+			return
+		case !running && ready:
+			rp.LogErrorF("origin pidfile error, yet is ready: [port=%d] %v\n", slug.Port, slug.Name)
+		case running && ready:
+		}
 	}
 
 	client := http.Client{
