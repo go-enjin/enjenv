@@ -110,12 +110,34 @@ handled directly.
 					Usage:     "niseroku reverse-proxy service",
 					UsageText: app.Name + " niseroku reverse-proxy",
 					Action:    c.actionReverseProxy,
+					Subcommands: []*cli.Command{
+						{
+							Name:      "reload",
+							Usage:     "reload reverse-proxy services",
+							UsageText: app.Name + " niseroku reverse-proxy reload",
+							Action:    c.actionReverseProxyReload,
+						},
+					},
 				},
 				{
 					Name:      "git-repository",
 					Usage:     "niseroku git-repository service",
 					UsageText: app.Name + " niseroku git-repository",
 					Action:    c.actionGitRepository,
+					Subcommands: []*cli.Command{
+						{
+							Name:      "reload",
+							Usage:     "reload git-repository services",
+							UsageText: app.Name + " niseroku git-repository reload",
+							Action:    c.actionGitRepositoryReload,
+						},
+					},
+				},
+				{
+					Name:      "reload",
+					Usage:     "reload all niseroku services",
+					UsageText: app.Name + " niseroku reload",
+					Action:    c.actionReload,
 				},
 				{
 					Name:      "status",
