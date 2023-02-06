@@ -19,6 +19,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/run"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 )
 
@@ -50,6 +51,31 @@ func EnjenvExe(argv ...string) (err error) {
 func EnjenvCmd(argv ...string) (o, e string, err error) {
 	if enjenvBin := basepath.WhichBin(); enjenvBin != "" {
 		o, e, err = run.CheckCmd(enjenvBin, argv...)
+	} else {
+		err = fmt.Errorf("enjenv not found")
+	}
+	return
+}
+
+func EnjenvBg(so, se string, argv ...string) (pid int, err error) {
+	if so == "-" && se != "-" {
+		so = se
+	} else if so != "-" && se == "-" {
+		se = so
+	}
+	if so == "" {
+		so = "/dev/null"
+	}
+	if se == "" {
+		se = "/dev/null"
+	}
+	if enjenvBin := basepath.WhichBin(); enjenvBin != "" {
+		pid, err = run.BackgroundWith(&run.Options{
+			Name:   enjenvBin,
+			Argv:   argv,
+			Stdout: so,
+			Stderr: se,
+		})
 	} else {
 		err = fmt.Errorf("enjenv not found")
 	}
