@@ -36,6 +36,7 @@ import (
 	"github.com/go-enjin/be/pkg/net/serve"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
+	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service"
 )
 
@@ -129,17 +130,9 @@ func (rp *ReverseProxy) Bind() (err error) {
 	}
 
 	if rp.config.IncludeSlugs.OnStart {
-		rp.LogInfoF("starting applications")
-		for _, app := range maps.ValuesSortedByKeys(rp.config.Applications) {
-			if app.Maintenance {
-				rp.LogInfoF("skipping %v in maintenance mode", app.Name)
-				continue
-			}
-			if ee := app.Invoke(); ee != nil {
-				rp.LogErrorF("error invoking application on start: %v - %v", app.Name, ee)
-			} else {
-				rp.LogInfoF("started %v", app.Name)
-			}
+		rp.LogInfoF("restarting all applications")
+		if _, ee := pkgRun.EnjenvBg(rp.config.LogFile, "-", "niseroku", "app", "restart", "--all"); ee != nil {
+			rp.LogErrorF("error calling niseroku app restart --all: %v\n", ee)
 		}
 	} else {
 		rp.LogInfoF("not starting applications")
