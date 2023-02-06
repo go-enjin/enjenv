@@ -123,7 +123,7 @@ func (gr *GitRepository) Serve() (err error) {
 	// SIGINT+TERM handler
 	idleConnectionsClosed := make(chan struct{})
 	go func() {
-		go gr.HandleSIGINT()
+		gr.HandleSIGINT()
 		close(idleConnectionsClosed)
 	}()
 
