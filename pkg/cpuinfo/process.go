@@ -21,6 +21,7 @@ package cpuinfo
 type CProcess struct {
 	Pid      int
 	Ppid     int
+	Pgrp     int
 	Nice     int
 	Threads  int
 	TimePrev int64
@@ -33,6 +34,7 @@ type CProcess struct {
 type Process struct {
 	Pid     int
 	Ppid    int
+	Pgrp    int
 	Nice    int
 	Threads int
 	Usage   float32

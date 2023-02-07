@@ -35,14 +35,16 @@ func NumCores() (n int) {
 	return int(C.num_cores())
 }
 
-func GetPidStats(pid int) (t int64, ppid, nice, threads int) {
+func GetPidStats(pid int) (t int64, ppid, pgrp, nice, threads int) {
 	cppid := C.int(0)
+	cpgrp := C.int(0)
 	ctime := C.ulong(0)
 	cnice := C.int(0)
 	cthreads := C.int(0)
-	if ok := C.read_stat_from_pid(C.int(pid), &cppid, &ctime, &cnice, &cthreads); ok > 0 {
+	if ok := C.read_stat_from_pid(C.int(pid), &cppid, &cpgrp, &ctime, &cnice, &cthreads); ok > 0 {
 		t = int64(ctime)
 		ppid = int(cppid)
+		pgrp = int(cpgrp)
 		nice = int(cnice)
 		threads = int(cthreads)
 	}

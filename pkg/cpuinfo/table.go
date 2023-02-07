@@ -58,9 +58,16 @@ func (t *Table) Update(sortByUsage bool) (list []Process, err error) {
 
 	for _, v := range t.data {
 		if v.Dirty == false && v.Active == true {
-			p := Process{v.Pid, v.Ppid, v.Nice, v.Threads, 0}
-			if v.TimeCur-v.TimePrev > 0 {
-				p.Usage = 1. / factor * float32(v.TimeCur-v.TimePrev)
+			p := Process{
+				Pid:     v.Pid,
+				Ppid:    v.Ppid,
+				Pgrp:    v.Pgrp,
+				Nice:    v.Nice,
+				Threads: v.Threads,
+				Usage:   0.0,
+			}
+			if v.TimeThis-v.TimePrev > 0 {
+				p.Usage = 1. / factor * float32(v.TimeThis-v.TimePrev)
 			}
 			list = append(list, p)
 		}
@@ -116,10 +123,21 @@ func (t *Table) updateTableData() (err error) {
 			p.TimePrev = p.TimeThis
 		} else {
 			// construct new
-			p = &CProcess{pid, 0, 0, 0, 0, 0, true, true, 0.}
+			p = &CProcess{
+				Pid:      pid,
+				Ppid:     0,
+				Pgrp:     0,
+				Nice:     0,
+				Threads:  0,
+				TimePrev: 0,
+				TimeThis: 0,
+				Dirty:    true,
+				Active:   true,
+				Usage:    0.0,
+			}
 		}
 
-		p.TimeThis, p.Ppid, p.Nice, p.Threads = GetPidStats(pid)
+		p.TimeThis, p.Ppid, p.Pgrp, p.Nice, p.Threads = GetPidStats(pid)
 		t.data[pid] = p
 	}
 

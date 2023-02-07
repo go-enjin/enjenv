@@ -73,30 +73,31 @@ unsigned long read_time_from_pid(int pid) {
 }
 
 // read cpu tick for a specific process
-int read_stat_from_pid(int pid, int *ppid, unsigned long *time, int *nice, int *threads) {
-
+int read_stat_from_pid(int pid, int *ppid, int *pgrp, unsigned long *time, int *nice, int *threads) {
   char pidStatFile[MAX_NAME + 1];
   snprintf(pidStatFile, sizeof pidStatFile, "/proc/%i/stat", pid);
 
   unsigned long utime = 0;
   unsigned long stime = 0;
   int _ppid = 0;
+  int _pgrp = 0;
   int _nice = 0;
   int _threads = 0;
 
   FILE *fp;
   fp = fopen(pidStatFile, "r");
   if (fp != NULL) {
-    bool ans = fscanf(fp, "%*d %*s %*c %d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu"
+    bool ans = fscanf(fp, "%*d %*s %*c %d %*d %*d %d %*d %*u %*u %*u %*u %*u %lu"
                       "%lu %*ld %*ld %*d %d %d %*d %*u %*lu %*ld",
-                      &_ppid, &utime, &stime, &_nice, &_threads) != EOF;
+                      &_ppid, &_pgrp, &utime, &stime, &_nice, &_threads) != EOF;
     fclose(fp);
     if (!ans) {
       return false;
     }
 
-    *time = utime + stime;
     *ppid = _ppid;
+    *pgrp = _pgrp;
+    *time = utime + stime;
     *nice = _nice;
     *threads = _threads;
     return true;
