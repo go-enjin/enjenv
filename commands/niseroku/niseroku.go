@@ -27,12 +27,6 @@ import (
 	"github.com/go-enjin/enjenv/pkg/system"
 )
 
-import (
-	// #include <unistd.h>
-	// #include <errno.h>
-	"C"
-)
-
 const (
 	Name           = "niseroku"
 	ConfigFileName = Name + ".toml"
