@@ -269,6 +269,13 @@ setting. Prints "OK" if no value parsing or config file saving errors occurred.
 								},
 							},
 						},
+
+						{
+							Name:      "rename",
+							Usage:     "rename an application",
+							UsageText: app.Name + " niseroku app rename <old> <new>",
+							Action:    c.actionAppRename,
+						},
 					},
 				},
 			},
