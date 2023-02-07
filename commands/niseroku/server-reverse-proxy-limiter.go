@@ -67,10 +67,10 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 		reqId := requestid.Get(r)
 		reqUrl, _, reqHost, _ := DecomposeUrl(r)
 
-		go rp.tracking.Increment("__total__", "host,"+reqHost, "addr,"+remoteAddr)
+		go rp.tracking.Increment("__total__")
 		defer func() {
 			time.Sleep(10 * time.Millisecond)
-			rp.tracking.Decrement("__total__", "host,"+reqHost, "addr,"+remoteAddr)
+			rp.tracking.Decrement("__total__")
 		}()
 
 		if tbe := tollbooth.LimitByKeys(rp.limiter, []string{reqHost, remoteAddr}); tbe != nil {
@@ -109,7 +109,13 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 				return
 			}
 		}
+
 		// request is allowed
+		go rp.tracking.Increment("host,"+reqHost, "addr,"+remoteAddr)
+		defer func() {
+			time.Sleep(10 * time.Millisecond)
+			rp.tracking.Decrement("host,"+reqHost, "addr,"+remoteAddr)
+		}()
 		rp.ServeProxyHTTP(w, r)
 	}))
 }
