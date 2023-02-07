@@ -46,7 +46,7 @@ func New() (t *Table) {
 	return
 }
 
-func (t *Table) Update() (list []Process, err error) {
+func (t *Table) Update(sortByUsage bool) (list []Process, err error) {
 	t.markDirty()
 
 	t.tickThis = CpuTick()
@@ -67,7 +67,11 @@ func (t *Table) Update() (list []Process, err error) {
 	}
 
 	t.tickPrev = t.tickThis
-	sort.Sort(ByUsage(list))
+	if sortByUsage {
+		sort.Sort(ByUsage(list))
+	} else {
+		sort.Sort(ByPid(list))
+	}
 	return
 }
 
