@@ -39,6 +39,7 @@ SYSV_INIT_PATH ?= ${ETC_PATH}/init.d
 AUTOCOMPLETE_PATH ?= ${ETC_PATH}/bash_completion.d
 
 ENJENV_AUTOCOMPLETE_FILE ?= ${AUTOCOMPLETE_PATH}/enjenv
+NISEROKU_AUTOCOMPLETE_FILE ?= ${AUTOCOMPLETE_PATH}/niseroku
 NISEROKU_TOML_FILE ?= ${NISEROKU_PATH}/niseroku.toml
 NISEROKU_LOGROTATE_FILE ?= ${LOGROTATE_PATH}/niseroku
 
@@ -162,7 +163,6 @@ define _install_build =
 endef
 
 install:
-	@[ -d "${BIN_PATH}" ] || mkdir -vp "${BIN_PATH}"
 	@if [ -f "enjenv.linux.${BUILD_ARCH}" ]; then \
 		$(call _install_build,"enjenv.linux.${BUILD_ARCH}","enjenv"); \
 	else \
@@ -171,7 +171,7 @@ install:
 
 install-autocomplete:
 	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
-	@echo "# installing bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
+	@echo "# installing enjenv bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
 	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
 	@${CMD} sha256sum "${ENJENV_AUTOCOMPLETE_FILE}"
 
@@ -209,6 +209,24 @@ install-niseroku-systemd:
 	@echo "# installing ${NISEROKU_REPOS_SERVICE_FILE}"
 	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-repos.service" "${NISEROKU_REPOS_SERVICE_FILE}"
 	@${CMD} sha256sum "${NISEROKU_REPOS_SERVICE_FILE}"
+
+install-niseroku-utils:
+	@if [ -f "_templates/niseroku.sh" ]; then \
+		echo "# installing niseroku wrapper script"; \
+		$(call _install_build,"_templates/niseroku.sh","niseroku"); \
+	else \
+		echo "error: missing niseroku wrapper script" 1>&2; \
+	fi
+	@if [ -f "_templates/niseroku-tail.sh" ]; then \
+		echo "# installing niseroku-tail wrapper script"; \
+		$(call _install_build,"_templates/niseroku-tail.sh","niseroku-tail"); \
+	else \
+		echo "error: missing niseroku-tail wrapper script" 1>&2; \
+	fi
+	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
+	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
+	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${NISEROKU_AUTOCOMPLETE_FILE}"
+	@${CMD} sha256sum "${NISEROKU_AUTOCOMPLETE_FILE}"
 
 local:
 	@if [ -d "${BE_PATH}" ]; then \
