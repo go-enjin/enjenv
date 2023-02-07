@@ -109,13 +109,13 @@ func (t *Table) updateTableData() (err error) {
 			// update existing
 			p.Dirty = false
 			p.Active = true
-			p.TimePrev = p.TimeCur
+			p.TimePrev = p.TimeThis
 		} else {
 			// construct new
 			p = &CProcess{pid, 0, 0, 0, 0, 0, true, true, 0.}
 		}
 
-		p.TimeCur, p.Ppid, p.Nice, p.Threads = GetPidStats(pid)
+		p.TimeThis, p.Ppid, p.Nice, p.Threads = GetPidStats(pid)
 		t.data[pid] = p
 	}
 

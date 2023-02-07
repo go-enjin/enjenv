@@ -24,7 +24,7 @@ type CProcess struct {
 	Nice     int
 	Threads  int
 	TimePrev int64
-	TimeCur  int64
+	TimeThis int64
 	Dirty    bool
 	Active   bool
 	Usage    float32
