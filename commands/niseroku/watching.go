@@ -109,7 +109,7 @@ func (w *Watching) watcher() {
 func (w *Watching) updateCpuList() {
 	w.Lock()
 	defer w.Unlock()
-	if list, err := w.cpuinfo.Update(); err != nil {
+	if list, err := w.cpuinfo.Update(false); err != nil {
 		w.LogErrorF("error updating cpuinfo: %v\n", err)
 	} else {
 		w.cpulist = list
@@ -221,8 +221,8 @@ func (w *Watching) getProcUsage(pid int) (usage float32, num, threads int) {
 			usage += proc.Usage
 			num += 1
 			threads += proc.Threads
-		} else if proc.Ppid == pid {
-			// is child
+		} else if proc.Ppid == pid || proc.Pgrp == pid {
+			// is related
 			u, n, t := w.getProcUsage(proc.Pid)
 			usage += u
 			num += n
