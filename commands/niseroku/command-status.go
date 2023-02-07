@@ -63,15 +63,16 @@ func (c *Command) statusDisplayWatchingSnapshot(snapshot *WatchSnapshot) {
 	tw := tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
 
 	writeEntry := func(stat WatchProc) {
-		var pid, ports, nice, cpu, mem, num string
+		var pid, ports, nice, cpu, mem, num, threads string
 		if stat.Pid <= 0 {
-			pid, nice, cpu, mem, num = "-", "-", "-", "-", "-"
+			pid, nice, cpu, mem, num, threads = "-", "-", "-", "-", "-", "-"
 		} else {
 			pid = strconv.Itoa(stat.Pid)
 			nice = fmt.Sprintf("%d", stat.Nice)
 			cpu = fmt.Sprintf("%.2f", stat.Cpu)
 			mem = fmt.Sprintf("%.2f", stat.Mem)
-			num = fmt.Sprintf("%d (%d)", stat.Num, stat.Threads)
+			num = fmt.Sprintf("%d", stat.Num)
+			threads = fmt.Sprintf("%d", stat.Threads)
 		}
 		for idx, port := range stat.Ports {
 			if idx > 0 {
@@ -79,19 +80,19 @@ func (c *Command) statusDisplayWatchingSnapshot(snapshot *WatchSnapshot) {
 			}
 			ports += strconv.Itoa(port)
 		}
-		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\n", stat.Name, pid, ports, nice, cpu, mem, num)))
+		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", stat.Name, pid, ports, nice, cpu, mem, num, threads)))
 	}
 
 	// SERVICES
 
-	_, _ = tw.Write([]byte("[ SERVICE ]\t[ PID ]\t[ PORTS ]\t[ PRIORITY ]\t[ CPU ]\t[ MEM ]\t[ PROCS ]\n"))
+	_, _ = tw.Write([]byte("[ SERVICE ]\t[ PID ]\t[ PORT ]\t[ PRIORITY ]\t[ CPU ]\t[ MEM ]\t[ PROC ]\t[ THREAD ]\n"))
 	for _, stat := range snapshot.Services {
 		writeEntry(stat)
 	}
 
 	// APPLICATIONS
 	_, _ = tw.Write([]byte("\t\t\t\t\t\n"))
-	_, _ = tw.Write([]byte("[ APPLICATION ]\t[ PID ]\t[ PORTS ]\t[ PRIORITY ]\t[ CPU ]\t[ MEM ]\t[ PROCS ]\n"))
+	_, _ = tw.Write([]byte("[ APPLICATION ]\t[ PID ]\t[ PORT ]\t[ PRIORITY ]\t[ CPU ]\t[ MEM ]\t[ PROC ]\t[ THREAD ]\n"))
 	for _, stat := range snapshot.Applications {
 		writeEntry(stat)
 	}
