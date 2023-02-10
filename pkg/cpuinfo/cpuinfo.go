@@ -23,38 +23,115 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"time"
+
+	"github.com/prometheus/procfs"
+
+	"github.com/go-enjin/be/pkg/maps"
 )
 
-type Table struct {
+type CpuInfo struct {
 	cores    int
 	tickPrev int64
 	tickThis int64
 
-	data map[int]*CProcess
+	data     map[int]*CProcess
+	cpusPrev map[int64]procfs.CPUStat
+	cpusThis map[int64]procfs.CPUStat
+
+	procfs procfs.FS
 
 	sync.RWMutex
 }
 
-func New() (t *Table) {
+func New() (t *CpuInfo, err error) {
+	var pfs procfs.FS
+	if pfs, err = procfs.NewDefaultFS(); err != nil {
+		return
+	}
 	tick := CpuTick()
-	t = &Table{
+	var ps procfs.Stat
+	if ps, err = pfs.Stat(); err != nil {
+		return
+	}
+	t = &CpuInfo{
 		tickPrev: tick,
 		tickThis: tick,
+		procfs:   pfs,
 		cores:    NumCores(),
 		data:     make(map[int]*CProcess),
+		cpusPrev: ps.CPU,
+		cpusThis: ps.CPU,
 	}
 	return
 }
 
-func (t *Table) Update(sortByUsage bool) (list []Process, err error) {
+func (t *CpuInfo) Update() (err error) {
 	t.markDirty()
-
+	t.tickPrev = t.tickThis
 	t.tickThis = CpuTick()
-	if err = t.updateTableData(); err != nil {
+	t.cpusPrev = t.cpusThis
+	err = t.updateTableData()
+	return
+}
+
+func (t *CpuInfo) getFactor() (factor float32) {
+	factor = float32(t.tickThis-t.tickPrev) / float32(t.cores) / 100.0
+	return
+}
+
+func (t *CpuInfo) GetStats() (stats Stats, err error) {
+	var ps procfs.Stat
+	if ps, err = t.procfs.Stat(); err != nil {
 		return
 	}
 
-	factor := float32(t.tickThis-t.tickPrev) / float32(t.cores) / 100.0
+	var mi procfs.Meminfo
+	if mi, err = t.procfs.Meminfo(); err != nil {
+		return
+	}
+
+	t.cpusThis = ps.CPU
+
+	bootTime := time.Unix(int64(ps.BootTime), 0)
+	uptime := time.Now().Sub(bootTime)
+
+	var usages []float32
+	for _, idx := range maps.SortedNumbers(ps.CPU) {
+		prev := t.cpusPrev[idx]
+		this := ps.CPU[idx]
+
+		prevIdle := prev.Idle + prev.Iowait
+		thisIdle := this.Idle + this.Iowait
+
+		prevNonIdle := prev.User + prev.Nice + prev.System + prev.IRQ + prev.SoftIRQ + prev.Steal
+		thisNonIdle := this.User + this.Nice + this.System + this.IRQ + this.SoftIRQ + this.Steal
+
+		prevTotal := prevIdle + prevNonIdle
+		thisTotal := thisIdle + thisNonIdle
+		// fmt.Println(PrevIdle, Idle, prevNonIdle, thisNonIdle, prevTotal, thisTotal)
+
+		//  differentiate: actual value minus the previous one
+		totald := thisTotal - prevTotal
+		idled := thisIdle - prevIdle
+
+		usage := (float32(totald) - float32(idled)) / float32(totald)
+		usages = append(usages, usage)
+	}
+
+	stats = Stats{
+		MemTotal: *mi.MemTotal,
+		MemFree:  *mi.MemAvailable,
+		MemUsed:  *mi.MemTotal - *mi.MemAvailable,
+		CpuUsage: usages,
+		Uptime:   uptime,
+	}
+	return
+}
+
+func (t *CpuInfo) GetProcesses(sortByUsage bool) (list []Process, err error) {
+
+	factor := t.getFactor()
 
 	for _, v := range t.data {
 		if v.Dirty == false && v.Active == true {
@@ -67,13 +144,12 @@ func (t *Table) Update(sortByUsage bool) (list []Process, err error) {
 				Usage:   0.0,
 			}
 			if v.TimeThis-v.TimePrev > 0 {
-				p.Usage = 1. / factor * float32(v.TimeThis-v.TimePrev)
+				p.Usage = 1.0 / factor * float32(v.TimeThis-v.TimePrev)
 			}
 			list = append(list, p)
 		}
 	}
 
-	t.tickPrev = t.tickThis
 	if sortByUsage {
 		sort.Sort(ByUsage(list))
 	} else {
@@ -82,7 +158,7 @@ func (t *Table) Update(sortByUsage bool) (list []Process, err error) {
 	return
 }
 
-func (t *Table) markDirty() {
+func (t *CpuInfo) markDirty() {
 	t.Lock()
 	defer t.Unlock()
 	for _, proc := range t.data {
@@ -91,7 +167,7 @@ func (t *Table) markDirty() {
 	}
 }
 
-func (t *Table) updateTableData() (err error) {
+func (t *CpuInfo) updateTableData() (err error) {
 	t.Lock()
 	defer t.Unlock()
 

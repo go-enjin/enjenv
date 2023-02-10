@@ -18,6 +18,11 @@
 
 package cpuinfo
 
+import (
+	"fmt"
+	"time"
+)
+
 type CProcess struct {
 	Pid      int
 	Ppid     int
@@ -38,4 +43,47 @@ type Process struct {
 	Nice    int
 	Threads int
 	Usage   float32
+}
+
+type Stats struct {
+	MemUsed  uint64
+	MemFree  uint64
+	MemTotal uint64
+	CpuUsage []float32
+	Uptime   time.Duration
+}
+
+func (s Stats) String() (text string) {
+	var cpuUsage string
+	for idx, usage := range s.CpuUsage {
+		if idx > 0 {
+			cpuUsage += ", "
+		}
+		cpuUsage += fmt.Sprintf("%0.02f", usage*100.0)
+	}
+	text = fmt.Sprintf(`{
+	"mem-used": %d,
+	"mem-free": %d,
+	"mem-total": %d,
+	"cpu-usage": [%v],
+	"uptime": "%s"
+}`,
+		s.MemUsed,
+		s.MemFree,
+		s.MemTotal,
+		cpuUsage,
+		s.UptimeString(),
+	)
+	return
+}
+
+func (s Stats) UptimeString() (up string) {
+	seconds := s.Uptime.Seconds()
+	hours := int(seconds / 3600)
+	days := hours / 24
+	minutes := int(seconds/60) % 60
+	second := int(seconds) % 60
+	hours -= days * 24
+	up = fmt.Sprintf("%d days, %02d:%02d:%02d", days, hours, minutes, second)
+	return
 }
