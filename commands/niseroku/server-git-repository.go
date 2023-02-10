@@ -65,7 +65,6 @@ func NewGitRepository(config *Config) (gr *GitRepository) {
 	gr.BindFn = gr.Bind
 	gr.StopFn = gr.Stop
 	gr.ReloadFn = gr.Reload
-	gr.DumpStatsFn = gr.DumpStats
 	return
 }
 
@@ -118,7 +117,6 @@ func (gr *GitRepository) Bind() (err error) {
 func (gr *GitRepository) Serve() (err error) {
 
 	go gr.HandleSIGHUP()
-	go gr.HandleSIGUSR1()
 
 	// SIGINT+TERM handler
 	idleConnectionsClosed := make(chan struct{})
@@ -173,11 +171,6 @@ func (gr *GitRepository) Reload() (err error) {
 			gr.LogErrorF("error updating git repo setup: %v - %v", app.Name, ee)
 		}
 	}
-	return
-}
-
-func (gr *GitRepository) DumpStats() (err error) {
-	err = fmt.Errorf("git-repository dump-stats not implemented")
 	return
 }
 
