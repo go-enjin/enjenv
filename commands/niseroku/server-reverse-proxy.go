@@ -83,7 +83,6 @@ func NewReverseProxy(config *Config) (rp *ReverseProxy) {
 	rp.ServeFn = rp.Serve
 	rp.StopFn = rp.Stop
 	rp.ReloadFn = rp.Reload
-	rp.DumpStatsFn = rp.DumpStats
 	return
 }
 
@@ -146,7 +145,6 @@ func (rp *ReverseProxy) Bind() (err error) {
 func (rp *ReverseProxy) Serve() (err error) {
 
 	go rp.HandleSIGHUP()
-	go rp.HandleSIGUSR1()
 
 	// SIGINT+TERM handler
 	idleConnectionsClosed := make(chan struct{})
@@ -208,9 +206,6 @@ func (rp *ReverseProxy) Stop() (err error) {
 			rp.LogErrorF("error shutting down https server: %v\n", ee)
 		}
 	}
-	if bePath.IsFile(rp.config.Paths.ProxyDumpStats) {
-		_ = os.Remove(rp.config.Paths.ProxyDumpStats)
-	}
 	return
 }
 
@@ -222,12 +217,6 @@ func (rp *ReverseProxy) Reload() (err error) {
 		rp.reloadRateLimiter()
 		beIo.LogFile = rp.config.LogFile
 	}
-	return
-}
-
-func (rp *ReverseProxy) DumpStats() (err error) {
-	// rp.LogInfoF("[dump-stats] current total: %v\n", rp.tracking.Get("__total__"))
-	_ = os.WriteFile(rp.config.Paths.ProxyDumpStats, []byte(rp.tracking.String()), 0660)
 	return
 }
 
