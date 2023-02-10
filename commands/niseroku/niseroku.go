@@ -111,6 +111,13 @@ handled directly.
 							UsageText: app.Name + " niseroku reverse-proxy reload",
 							Action:    c.actionReverseProxyReload,
 						},
+						{
+							Name:      "cmd",
+							Usage:     "run proxy-control commands",
+							UsageText: app.Name + " niseroku reverse-proxy cmd <name> [argv...]",
+							Action:    c.actionProxyControlCommand,
+							Hidden:    true,
+						},
 					},
 				},
 				{
