@@ -129,14 +129,16 @@ func (rp *ReverseProxy) Bind() (err error) {
 		rp.httpsListener = rp.autocert.Listener()
 	}
 
-	if rp.config.IncludeSlugs.OnStart {
-		rp.LogInfoF("restarting all applications")
-		if _, ee := pkgRun.EnjenvBg(rp.config.LogFile, "-", "niseroku", "app", "restart", "--all"); ee != nil {
-			rp.LogErrorF("error calling niseroku app restart --all: %v\n", ee)
+	go func() {
+		if rp.config.IncludeSlugs.OnStart {
+			rp.LogInfoF("restarting all applications")
+			if _, ee := pkgRun.EnjenvBg(rp.config.LogFile, "-", "niseroku", "app", "restart", "--all"); ee != nil {
+				rp.LogErrorF("error calling niseroku app restart --all: %v\n", ee)
+			}
+		} else {
+			rp.LogInfoF("not starting applications")
 		}
-	} else {
-		rp.LogInfoF("not starting applications")
-	}
+	}()
 
 	return
 }
