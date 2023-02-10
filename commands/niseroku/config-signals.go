@@ -48,11 +48,6 @@ func (c *Config) SignalStopReverseProxy() (sent bool) {
 	return
 }
 
-func (c *Config) SignalDumpStatsReverseProxy() (sent bool) {
-	sent = c.SignalReverseProxy(syscall.SIGUSR1)
-	return
-}
-
 func (c *Config) SignalGitRepository(sig process.Signal) (sent bool) {
 	c.RLock()
 	defer c.RUnlock()
@@ -74,10 +69,5 @@ func (c *Config) SignalReloadGitRepository() (sent bool) {
 
 func (c *Config) SignalStopGitRepository() (sent bool) {
 	sent = c.SignalGitRepository(syscall.SIGTERM)
-	return
-}
-
-func (c *Config) SignalDumpStatsGitRepository() (sent bool) {
-	sent = c.SignalGitRepository(syscall.SIGUSR1)
 	return
 }
