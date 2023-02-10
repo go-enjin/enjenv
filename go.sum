@@ -122,8 +122,8 @@ github.com/go-curses/term v1.2.2-gocurses.1 h1:wUi7qtaZQO9q7+YpX8nGBDoFJd7aWZeo2
 github.com/go-curses/term v1.2.2-gocurses.1/go.mod h1:ZuwRe9U+iLY2qTuhzg/kg0Pc9bZdfcJCtfHrjGvZtVA=
 github.com/go-curses/terminfo v1.0.0 h1:vU1G+oYsvSwmywZe6ZsoRQ8a8XDrzlM3rPeejUmpzc4=
 github.com/go-curses/terminfo v1.0.0/go.mod h1:3cAGarEfP6wdhHYmUI2xAx14cu+cfIIQYXehy2q/zUg=
-github.com/go-enjin/be v0.0.0-20230205182357-2733480a4466 h1:LXD/blXvHTbrpJkuozPfo/g498BgVCf2IK0PsHu5bhU=
-github.com/go-enjin/be v0.0.0-20230205182357-2733480a4466/go.mod h1:iemyvZGPu6Yyp14GB6SYsAZQhq/gUCI0SGHDIqeJeuI=
+github.com/go-enjin/be v0.0.0-20230210174820-32da180ed38a h1:HNNlYHt3gyFsSllm1F1Mo/lHKIMiZqFsd0qgpEXMnZg=
+github.com/go-enjin/be v0.0.0-20230210174820-32da180ed38a/go.mod h1:iemyvZGPu6Yyp14GB6SYsAZQhq/gUCI0SGHDIqeJeuI=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a h1:Qr7FpRTxEBnNJtyYj6TyVPs12bn45xSLFkygcSby1g4=
 github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a/go.mod h1:hId0+St26leJQkTRaFYATZHMGja4wrv0hzf5SwKs3hA=
 github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27 h1:aDbd1N1mD8V225rsaYCd7kbt7WFVaDCWwVPpEZscAs0=
@@ -364,6 +364,8 @@ github.com/polds/logrus-papertrail-hook v0.0.0-20180214143432-bcfe7b72c1a4 h1:ZZ
 github.com/polds/logrus-papertrail-hook v0.0.0-20180214143432-bcfe7b72c1a4/go.mod h1:xH53iKsQoiPWHUWum0urfcAivyYZhPgso3azdNNdrH0=
 github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c h1:ncq/mPwQF4JjgDlrVEn3C11VoGHZN7m8qihwgMEtzYw=
 github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c/go.mod h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=
+github.com/prometheus/procfs v0.9.0 h1:wzCHvIvM5SxWqYvwgVL7yJY8Lz3PKn49KQtpgMYJfhI=
+github.com/prometheus/procfs v0.9.0/go.mod h1:+pB4zwohETzFnmlpe6yd2lSc+0/46IYZRB/chUwxUZY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.2 h1:YwD0ulJSJytLpiaWua0sBDusfsCZohxjxzVTYjwxfV8=
 github.com/rivo/uniseg v0.4.2/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=

@@ -7,7 +7,7 @@ require (
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20230205182357-2733480a4466
+	github.com/go-enjin/be v0.0.0-20230210174820-32da180ed38a
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/goccy/go-json v0.10.0
@@ -15,6 +15,7 @@ require (
 	github.com/iancoleman/strcase v0.2.0
 	github.com/kataras/requestid v0.0.2
 	github.com/otiai10/copy v1.9.0
+	github.com/prometheus/procfs v0.9.0
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v3 v3.23.1
 	github.com/sosedoff/gitkit v0.3.0
