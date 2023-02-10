@@ -55,6 +55,8 @@ type ReverseProxy struct {
 	limiter *limiter.Limiter
 
 	tracking *Tracking
+
+	control net.Listener
 }
 
 func (c *Command) actionReverseProxy(ctx *cli.Context) (err error) {
@@ -128,6 +130,15 @@ func (rp *ReverseProxy) Bind() (err error) {
 		rp.httpsListener = rp.autocert.Listener()
 	}
 
+	if bePath.Exists(rp.config.Paths.ProxyControl) {
+		if err = os.Remove(rp.config.Paths.ProxyControl); err != nil {
+			err = fmt.Errorf("error removing enjin-proxy sock: %v\n", err)
+		}
+	}
+	if rp.control, err = net.Listen("unix", rp.config.Paths.ProxyControl); err != nil {
+		return
+	}
+
 	go func() {
 		if rp.config.IncludeSlugs.OnStart {
 			rp.LogInfoF("restarting all applications")
@@ -175,6 +186,15 @@ func (rp *ReverseProxy) Serve() (err error) {
 		}()
 	}
 
+	wg.Add(1)
+	go func() {
+		rp.LogInfoF("starting control service: %v\n", rp.config.Paths.ProxyControl)
+		if ee := rp.controlSocketServe(); ee != nil {
+			rp.LogErrorF("error running control service: %v\n", ee)
+		}
+		wg.Done()
+	}()
+
 	rp.LogInfoF("all services running")
 	if wg.Wait(); err == nil {
 		rp.LogInfoF("awaiting idle connections")
@@ -194,6 +214,14 @@ func (rp *ReverseProxy) Serve() (err error) {
 }
 
 func (rp *ReverseProxy) Stop() (err error) {
+	if rp.control != nil {
+		if ee := rp.control.Close(); ee != nil {
+			rp.LogErrorF("error closing control socket: %v\n", ee)
+		}
+		if ee := os.Remove(rp.config.Paths.ProxyControl); ee != nil {
+			rp.LogErrorF("error removing control socket: %v\n", ee)
+		}
+	}
 	if rp.http != nil {
 		rp.LogInfoF("shutting down http service")
 		if ee := rp.http.Shutdown(nil); ee != nil {
