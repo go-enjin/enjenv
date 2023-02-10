@@ -123,26 +123,23 @@ type PathsConfig struct {
 	Var string `toml:"var"`
 	Tmp string `toml:"tmp"`
 
-	EtcApps      string `toml:"-"` // EtcApps contains all app.toml files
-	EtcUsers     string `toml:"-"` // EtcUsers contains all the user.toml files
-	TmpRun       string `toml:"-"` // TmpRun is used when running enjenv slugs
-	TmpClone     string `toml:"-"` // TmpClone is used during deployment for buildpack clones
-	TmpBuild     string `toml:"-"` // TmpBuild is used during deployment for app build directories
-	VarLogs      string `toml:"-"` // VarLogs is where slug log files are stored
-	VarRepos     string `toml:"-"` // VarRepos is where git repos are stored
-	VarCache     string `toml:"-"` // VarCache is where build cache directories as stored
-	VarSlugs     string `toml:"-"` // VarSlugs is where slug archives are stored
-	VarSettings  string `toml:"-"` // VarSettings is where slug env directories are stored
-	RepoSecrets  string `toml:"-"` // RepoSecrets is where ssh-keys are stored
-	ProxySecrets string `toml:"-"` // ProxySecrets is where ssl-certs are stored
+	EtcApps     string `toml:"-"` // EtcApps contains all app.toml files
+	EtcUsers    string `toml:"-"` // EtcUsers contains all the user.toml files
+	TmpRun      string `toml:"-"` // TmpRun is used when running enjenv slugs
+	TmpClone    string `toml:"-"` // TmpClone is used during deployment for buildpack clones
+	TmpBuild    string `toml:"-"` // TmpBuild is used during deployment for app build directories
+	VarLogs     string `toml:"-"` // VarLogs is where slug log files are stored
+	VarRepos    string `toml:"-"` // VarRepos is where git repos are stored
+	VarCache    string `toml:"-"` // VarCache is where build cache directories as stored
+	VarSlugs    string `toml:"-"` // VarSlugs is where slug archives are stored
+	VarSettings string `toml:"-"` // VarSettings is where slug env directories are stored
 
-	Control string `toml:"-"` // Control is the path for local unix socket file
-	PidFile string `toml:"-"` // PidFile is the path for the process ID file
+	RepoSecrets string `toml:"-"` // RepoSecrets is where ssh-keys are stored
+	RepoPidFile string `toml:"-"` // RepoPidFile is the path for the git-repository service process ID file
 
-	RepoPidFile  string `toml:"-"` // RepoPidFile is the path for the git-repository service process ID file
 	ProxyPidFile string `toml:"-"` // ProxyPidFile is the path for the reverse-proxy service process ID file
-
-	ProxyDumpStats string `toml:"-"`
+	ProxySecrets string `toml:"-"` // ProxySecrets is where ssl-certs are stored
+	ProxyControl string `toml:"-"` // ProxyControl is the path for local unix socket file
 }
 
 func WriteDefaultConfig(niserokuConfig string) (err error) {
@@ -253,12 +250,10 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 		cfg.BuildPack = DefaultBuildPack
 	}
 
-	pidFile := cfg.Paths.Var + "/" + Name + ".pid"
 	controlFile := cfg.Paths.Var + "/" + Name + ".sock"
 
 	repoPidFile := cfg.Paths.Var + "/git-repository.pid"
 	proxyPidFile := cfg.Paths.Var + "/reverse-proxy.pid"
-	proxyDumpStats := cfg.Paths.Var + "/reverse-proxy.stats"
 
 	var needRootUser bool
 	checkPort := func(port, defaultPort int) (validPort int, err error) {
@@ -385,26 +380,24 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 			LogLimited: cfg.ProxyLimit.LogLimited,
 		},
 		Paths: PathsConfig{
-			Etc:            cfg.Paths.Etc,
-			Var:            cfg.Paths.Var,
-			Tmp:            cfg.Paths.Tmp,
-			EtcApps:        appsPath,
-			EtcUsers:       usersPath,
-			TmpRun:         tmpRun,
-			TmpClone:       tmpClone,
-			TmpBuild:       tmpBuild,
-			VarLogs:        varLogs,
-			VarRepos:       varReposPath,
-			VarCache:       varCache,
-			VarSlugs:       varSlugs,
-			VarSettings:    varSettings,
-			RepoSecrets:    repoSecrets,
-			ProxySecrets:   proxySecrets,
-			PidFile:        pidFile,
-			Control:        controlFile,
-			RepoPidFile:    repoPidFile,
-			ProxyPidFile:   proxyPidFile,
-			ProxyDumpStats: proxyDumpStats,
+			Etc:          cfg.Paths.Etc,
+			Var:          cfg.Paths.Var,
+			Tmp:          cfg.Paths.Tmp,
+			EtcApps:      appsPath,
+			EtcUsers:     usersPath,
+			TmpRun:       tmpRun,
+			TmpClone:     tmpClone,
+			TmpBuild:     tmpBuild,
+			VarLogs:      varLogs,
+			VarRepos:     varReposPath,
+			VarCache:     varCache,
+			VarSlugs:     varSlugs,
+			VarSettings:  varSettings,
+			RepoSecrets:  repoSecrets,
+			ProxySecrets: proxySecrets,
+			ProxyControl: controlFile,
+			RepoPidFile:  repoPidFile,
+			ProxyPidFile: proxyPidFile,
 		},
 		tomlMetaData: cfg.tomlMetaData,
 		tomlComments: cfg.tomlComments,
@@ -514,11 +507,9 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.Paths.VarSettings = cfg.Paths.VarSettings
 	c.Paths.RepoSecrets = cfg.Paths.RepoSecrets
 	c.Paths.ProxySecrets = cfg.Paths.ProxySecrets
-	c.Paths.Control = cfg.Paths.Control
-	c.Paths.PidFile = cfg.Paths.PidFile
+	c.Paths.ProxyControl = cfg.Paths.ProxyControl
 	c.Paths.RepoPidFile = cfg.Paths.RepoPidFile
 	c.Paths.ProxyPidFile = cfg.Paths.ProxyPidFile
-	c.Paths.ProxyDumpStats = cfg.Paths.ProxyDumpStats
 	c.Users = cfg.Users
 	c.Applications = cfg.Applications
 	c.PortLookup = cfg.PortLookup
