@@ -37,15 +37,13 @@ type Service struct {
 	PidFile string
 	LogFile string
 
-	SigINT  chan os.Signal
-	SigHUP  chan os.Signal
-	SigUSR1 chan os.Signal
+	SigINT chan os.Signal
+	SigHUP chan os.Signal
 
-	BindFn      func() (err error)
-	ServeFn     func() (err error)
-	StopFn      func() (err error)
-	ReloadFn    func() (err error)
-	DumpStatsFn func() (err error)
+	BindFn   func() (err error)
+	ServeFn  func() (err error)
+	StopFn   func() (err error)
+	ReloadFn func() (err error)
 
 	this interface{}
 

@@ -38,23 +38,6 @@ func (s *Service) HandleSIGINT() {
 	}
 }
 
-func (s *Service) HandleSIGUSR1() {
-	s.Lock()
-	s.SigUSR1 = make(chan os.Signal, 1)
-	s.Unlock()
-	signal.Notify(s.SigUSR1, syscall.SIGUSR1)
-	s.LogInfoF("listening for USR1 signals\n")
-	for {
-		switch <-s.SigUSR1 {
-		case syscall.SIGUSR1:
-			// s.LogInfoF("signal received: USR1 (dump stats)")
-			if err := s.DumpStatsFn(); err != nil {
-				s.LogErrorF("error during SIGUSR1: %v\n", err)
-			}
-		}
-	}
-}
-
 func (s *Service) HandleSIGHUP() {
 	s.Lock()
 	s.SigHUP = make(chan os.Signal, 1)
