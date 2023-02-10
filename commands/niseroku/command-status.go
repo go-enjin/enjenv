@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -28,7 +27,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/maps"
-	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/cpuinfo"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
@@ -40,30 +39,25 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 	}
 
 	var watching *Watching
-	if watching, err = NewWatching(c.config, 500*time.Millisecond); err != nil {
+	if watching, err = NewWatching(c.config, 100*time.Millisecond); err != nil {
 		return
 	}
 
 	if err = watching.Start(); err != nil {
 		return
 	}
-	time.Sleep(600 * time.Millisecond)
+
+	time.Sleep(200 * time.Millisecond)
 	snapshot := watching.Snapshot()
 	watching.Stop()
+
 	c.statusDisplayWatchingSystem(&snapshot.Stats)
 	beIo.STDOUT("\n")
 	c.statusDisplayWatchingSnapshot(&snapshot)
-	beIo.STDOUT("\n")
-	_ = os.Remove(c.config.Paths.ProxyDumpStats)
-	if c.config.SignalDumpStatsReverseProxy() {
-		for i := 0; bePath.IsFile(c.config.Paths.ProxyDumpStats) == false; i++ {
-			if i == 10 {
-				// dump stats not found within 1s
-				return
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-		c.statusDisplayWatchingProxyLimits()
+
+	if proxyLimits, ee := c.config.CallProxyControlCommand("proxy-limits"); ee == nil {
+		beIo.STDOUT("\n")
+		c.statusDisplayWatchingProxyLimits(proxyLimits)
 	}
 	return
 }
@@ -143,18 +137,18 @@ func (c *Command) statusDisplayWatchingSnapshot(snapshot *WatchSnapshot) {
 	return
 }
 
-func (c *Command) statusDisplayWatchingProxyLimits() {
+func (c *Command) statusDisplayWatchingProxyLimits(proxyLimits string) {
 	buf := bytes.NewBuffer([]byte(""))
 	tw := tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
 
-	data, _ := os.ReadFile(c.config.Paths.ProxyDumpStats)
 	var rTotal int64
 	rHosts := make(map[string]int64)
 	rAddrs := make(map[string]int64)
 	var dTotal int64
 	dHosts := make(map[string]int64)
 	dAddrs := make(map[string]int64)
-	for _, line := range strings.Split(string(data), "\n") {
+
+	for _, line := range strings.Split(proxyLimits, "\n") {
 		line = strings.TrimSpace(line)
 		if parts := strings.Split(line, "="); len(parts) == 2 {
 			nameParts := strings.Split(parts[0], ",")
