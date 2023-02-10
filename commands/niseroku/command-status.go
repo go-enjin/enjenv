@@ -24,9 +24,12 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/dustin/go-humanize"
+	"github.com/urfave/cli/v2"
+
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/urfave/cli/v2"
+	"github.com/go-enjin/enjenv/pkg/cpuinfo"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
@@ -36,14 +39,21 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 		return
 	}
 
-	watching := NewWatching(c.config, 500*time.Millisecond)
+	var watching *Watching
+	if watching, err = NewWatching(c.config, 500*time.Millisecond); err != nil {
+		return
+	}
+
 	if err = watching.Start(); err != nil {
 		return
 	}
 	time.Sleep(600 * time.Millisecond)
 	snapshot := watching.Snapshot()
 	watching.Stop()
+	c.statusDisplayWatchingSystem(&snapshot.Stats)
+	beIo.STDOUT("\n")
 	c.statusDisplayWatchingSnapshot(&snapshot)
+	beIo.STDOUT("\n")
 	_ = os.Remove(c.config.Paths.ProxyDumpStats)
 	if c.config.SignalDumpStatsReverseProxy() {
 		for i := 0; bePath.IsFile(c.config.Paths.ProxyDumpStats) == false; i++ {
@@ -56,6 +66,36 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 		c.statusDisplayWatchingProxyLimits()
 	}
 	return
+}
+
+func (c *Command) statusDisplayWatchingSystem(stats *cpuinfo.Stats) {
+	buf := bytes.NewBuffer([]byte(""))
+	tw := tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
+
+	var cpuUsage float32
+	var cpuList string
+	tabs := "\t\t"
+	for idx, usage := range stats.CpuUsage {
+		cpuUsage += usage
+		if idx > 0 {
+			cpuList += "\t"
+		}
+		cpuList += fmt.Sprintf("%0.02f", usage*100.0)
+		tabs += "\t"
+	}
+	cpuUsage = cpuUsage / float32(len(stats.CpuUsage)) * 100.0
+
+	_, _ = tw.Write([]byte(fmt.Sprintf(
+		"|\tMEM:\t%v/%v"+tabs+"\t|\n",
+		humanize.Bytes(stats.MemUsed*1024),
+		humanize.Bytes(stats.MemTotal*1024),
+	)))
+	_, _ = tw.Write([]byte(fmt.Sprintf("|\tCPU:\t%0.02f\t[\t%v\t]\t|\n", cpuUsage, cpuList)))
+	_, _ = tw.Write([]byte(fmt.Sprintf("|\tUptime:\t%v"+tabs+"\t|\n", stats.UptimeString())))
+
+	// Output
+	_ = tw.Flush()
+	beIo.STDOUT(buf.String())
 }
 
 func (c *Command) statusDisplayWatchingSnapshot(snapshot *WatchSnapshot) {
@@ -142,8 +182,6 @@ func (c *Command) statusDisplayWatchingProxyLimits() {
 			}
 		}
 	}
-
-	beIo.STDOUT("\n")
 
 	_, _ = tw.Write([]byte("[ PROXY LIMITS ]\t[ CURRENT ]\t[ DELAYED ]\n"))
 	_, _ = tw.Write([]byte(fmt.Sprintf("(total)\t%d\t%d\n", rTotal, dTotal)))
