@@ -38,6 +38,7 @@ type WatchProc struct {
 }
 
 type WatchSnapshot struct {
+	Stats        cpuinfo.Stats
 	Services     []WatchProc
 	Applications []WatchProc
 }
@@ -49,19 +50,21 @@ type Watching struct {
 	stop    chan bool
 
 	cpulist []cpuinfo.Process
-	cpuinfo *cpuinfo.Table
+	cpuinfo *cpuinfo.CpuInfo
 
 	snapshot *WatchSnapshot
 
 	sync.RWMutex
 }
 
-func NewWatching(config *Config, refresh time.Duration) (w *Watching) {
+func NewWatching(config *Config, refresh time.Duration) (w *Watching, err error) {
 	w = new(Watching)
 	w.config = config
 	w.stop = make(chan bool, 1)
 	w.refresh = refresh
-	w.cpuinfo = cpuinfo.New()
+	if w.cpuinfo, err = cpuinfo.New(); err != nil {
+		return
+	}
 	w.snapshot = &WatchSnapshot{}
 	return
 }
@@ -77,7 +80,13 @@ func (w *Watching) LogErrorF(format string, argv ...interface{}) {
 func (w *Watching) Snapshot() (s WatchSnapshot) {
 	w.RLock()
 	defer w.RUnlock()
+	var err error
+	var stats cpuinfo.Stats
+	if stats, err = w.cpuinfo.GetStats(); err != nil {
+		w.LogErrorF("error getting cpu stats: %v", err)
+	}
 	s = WatchSnapshot{
+		Stats:        stats,
 		Services:     append([]WatchProc{}, w.snapshot.Services...),
 		Applications: append([]WatchProc{}, w.snapshot.Applications...),
 	}
@@ -95,6 +104,9 @@ func (w *Watching) Stop() {
 
 func (w *Watching) watcher() {
 	for {
+		if err := w.cpuinfo.Update(); err != nil {
+			w.LogErrorF("error updating cpuinfo: %v", err)
+		}
 		w.updateCpuList()
 		w.updateSnapshot()
 		select {
@@ -109,8 +121,8 @@ func (w *Watching) watcher() {
 func (w *Watching) updateCpuList() {
 	w.Lock()
 	defer w.Unlock()
-	if list, err := w.cpuinfo.Update(false); err != nil {
-		w.LogErrorF("error updating cpuinfo: %v\n", err)
+	if list, err := w.cpuinfo.GetProcesses(false); err != nil {
+		w.LogErrorF("error getting cpuinfo processes: %v\n", err)
 	} else {
 		w.cpulist = list
 	}
