@@ -397,7 +397,7 @@ func formatPercFloat[T float32 | float64](stat T, format string) (text string) {
 	case stat > 25.0:
 		text = fmt.Sprintf(`<span foreground="yellow">`+format+`</span>`, stat)
 	default:
-		text = fmt.Sprintf(format, stat)
+		text = fmt.Sprintf(`<span foreground="white">`+format+`</span>`, stat)
 	}
 	return
 }
@@ -409,7 +409,7 @@ func formatPercNumber[T maps.Number](stat T, max float64) (text string) {
 	case float64(stat) > max/2:
 		text = fmt.Sprintf(`<span foreground="yellow">%d</span>`, int64(stat))
 	default:
-		text = fmt.Sprintf("%d", int64(stat))
+		text = fmt.Sprintf(`<span foreground="white">%d</span>`, int64(stat))
 	}
 	return
 }
