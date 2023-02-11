@@ -81,7 +81,12 @@ define _build_target =
 	echo "# building $(2)-$(3) (release): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"; \
 	${CMD} GOOS="$(2)" GOARCH="$(3)" go build -v \
 		-o "$(1)" \
-		-ldflags="-w -s -buildid='' -X 'main.BuildVersion=${BUILD_VERSION}' -X 'main.BuildRelease=${BUILD_RELEASE}'" \
+		-ldflags="\
+-s -w \
+-buildid='' \
+-X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
+-X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}'\
+" \
 		-gcflags="-trimpath='${TRIM_PATHS}'" \
 		-asmflags="-trimpath='${TRIM_PATHS}'" \
 		-trimpath \
@@ -95,8 +100,8 @@ define _build_debug =
 		-gcflags="all=-N -l" \
 		-ldflags="\
 -buildid='' \
--X 'main.BuildVersion=${BUILD_VERSION}' \
--X 'main.BuildRelease=${BUILD_RELEASE}' \
+-X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
+-X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}'\
 " \
 		-gcflags="-trimpath='${TRIM_PATHS}'" \
 		-asmflags="-trimpath='${TRIM_PATHS}'" \
