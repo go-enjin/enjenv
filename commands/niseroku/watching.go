@@ -47,25 +47,30 @@ type Watching struct {
 	config *Config
 
 	refresh time.Duration
-	stop    chan bool
+	fn      func()
 
 	cpulist []cpuinfo.Process
 	cpuinfo *cpuinfo.CpuInfo
 
 	snapshot *WatchSnapshot
 
+	stop chan bool
+
 	sync.RWMutex
 }
 
-func NewWatching(config *Config, refresh time.Duration) (w *Watching, err error) {
+func NewWatching(config *Config, refresh time.Duration, fn func()) (w *Watching, err error) {
 	w = new(Watching)
 	w.config = config
 	w.stop = make(chan bool, 1)
 	w.refresh = refresh
+	w.fn = fn
 	if w.cpuinfo, err = cpuinfo.New(); err != nil {
 		return
 	}
 	w.snapshot = &WatchSnapshot{}
+	w.updateCpuInfos()
+	w.updateSnapshot()
 	return
 }
 
@@ -77,7 +82,7 @@ func (w *Watching) LogErrorF(format string, argv ...interface{}) {
 	beIo.StderrF("[watcher] "+format, argv...)
 }
 
-func (w *Watching) Snapshot() (s WatchSnapshot) {
+func (w *Watching) Snapshot() (s *WatchSnapshot) {
 	w.RLock()
 	defer w.RUnlock()
 	var err error
@@ -85,7 +90,7 @@ func (w *Watching) Snapshot() (s WatchSnapshot) {
 	if stats, err = w.cpuinfo.GetStats(); err != nil {
 		w.LogErrorF("error getting cpu stats: %v", err)
 	}
-	s = WatchSnapshot{
+	s = &WatchSnapshot{
 		Stats:        stats,
 		Services:     append([]WatchProc{}, w.snapshot.Services...),
 		Applications: append([]WatchProc{}, w.snapshot.Applications...),
@@ -104,11 +109,11 @@ func (w *Watching) Stop() {
 
 func (w *Watching) watcher() {
 	for {
-		if err := w.cpuinfo.Update(); err != nil {
-			w.LogErrorF("error updating cpuinfo: %v", err)
-		}
-		w.updateCpuList()
+		w.updateCpuInfos()
 		w.updateSnapshot()
+		if w.fn != nil {
+			w.fn()
+		}
 		select {
 		case <-w.stop:
 			// w.LogInfoF("stop signal received")
@@ -118,9 +123,12 @@ func (w *Watching) watcher() {
 	}
 }
 
-func (w *Watching) updateCpuList() {
+func (w *Watching) updateCpuInfos() {
 	w.Lock()
 	defer w.Unlock()
+	if err := w.cpuinfo.Update(); err != nil {
+		w.LogErrorF("error updating cpuinfo: %v", err)
+	}
 	if list, err := w.cpuinfo.GetProcesses(false); err != nil {
 		w.LogErrorF("error getting cpuinfo processes: %v\n", err)
 	} else {
