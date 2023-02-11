@@ -105,7 +105,7 @@ func (rp *ReverseProxy) controlSocketProcessCommand(cmd string, argv []string) (
 
 	case "proxy-limits":
 		out = rp.tracking.String()
-		rp.LogInfoF("[control] processed command: %v %v\n", cmd, argv)
+		// rp.LogInfoF("[control] processed command: %v %v\n", cmd, argv)
 		return
 
 	case "nop":
