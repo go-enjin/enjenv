@@ -109,6 +109,19 @@ define _build_debug =
 		./cmd/enjenv
 endef
 
+define _upx_build =
+	if [ -x /usr/bin/upx ]; then \
+		echo -n "# packing: $(1) - "; \
+		du -hs "$(1)" | awk '{print $$1}'; \
+		/usr/bin/upx -qq -7 --no-color --no-progress "$(1)"; \
+		echo -n "# packed: $(1) - "; \
+		du -hs "$(1)" | awk '{print $$1}'; \
+		sha256sum "$(1)"; \
+	else \
+		echo "# upx command not found, skipping binary packing stage"; \
+	fi
+endef
+
 .PHONY: all help clean build install local unlocal tidy
 
 help:
@@ -159,6 +172,17 @@ build-arm64:
 	@sha256sum "${BIN_NAME}.linux.arm64"
 
 build-all: build-amd64 build-arm64
+
+release: build
+	@$(call _upx_build,"${BIN_NAME}.linux.${BUILD_ARCH}")
+
+release-arm64: build-arm64
+	@$(call _upx_build,"${BIN_NAME}.linux.arm64")
+
+release-amd64: build-amd64
+	@$(call _upx_build,"${BIN_NAME}.linux.amd64")
+
+release-all: release-amd64 release-arm64
 
 define _install_build =
 	echo "# installing $(1) to: $(2)"; \
