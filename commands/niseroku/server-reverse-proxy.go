@@ -130,15 +130,6 @@ func (rp *ReverseProxy) Bind() (err error) {
 		rp.httpsListener = rp.autocert.Listener()
 	}
 
-	if bePath.Exists(rp.config.Paths.ProxyControl) {
-		if err = os.Remove(rp.config.Paths.ProxyControl); err != nil {
-			err = fmt.Errorf("error removing enjin-proxy sock: %v\n", err)
-		}
-	}
-	if rp.control, err = net.Listen("unix", rp.config.Paths.ProxyControl); err != nil {
-		return
-	}
-
 	go func() {
 		if rp.config.IncludeSlugs.OnStart {
 			rp.LogInfoF("restarting all applications")
@@ -154,6 +145,17 @@ func (rp *ReverseProxy) Bind() (err error) {
 }
 
 func (rp *ReverseProxy) Serve() (err error) {
+
+	if bePath.Exists(rp.config.Paths.ProxyControl) {
+		if err = os.Remove(rp.config.Paths.ProxyControl); err != nil {
+			err = fmt.Errorf("error removing enjin-proxy sock: %v\n", err)
+		}
+	}
+	if rp.control, err = net.Listen("unix", rp.config.Paths.ProxyControl); err != nil {
+		return
+	}
+	// _ = common.RepairOwnership(rp.config.Paths.ProxyControl, rp.config.RunAs.User, rp.config.RunAs.Group)
+	_ = os.Chmod(rp.config.Paths.ProxyControl, 0770)
 
 	go rp.HandleSIGHUP()
 
