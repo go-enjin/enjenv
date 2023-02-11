@@ -20,6 +20,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"text/tabwriter"
 	"time"
 
@@ -38,22 +39,29 @@ func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 		return
 	}
 
+	var snapshot *WatchSnapshot
 	var watching *Watching
-	if watching, err = NewWatching(c.config, 100*time.Millisecond); err != nil {
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	counter := 0
+	if watching, err = NewWatching(c.config, 50*time.Millisecond, func() {
+		if counter += 1; counter > 2 {
+			watching.Stop()
+			snapshot = watching.Snapshot()
+			wg.Done()
+		}
+	}); err != nil {
 		return
 	}
-
 	if err = watching.Start(); err != nil {
 		return
 	}
-
-	time.Sleep(200 * time.Millisecond)
-	snapshot := watching.Snapshot()
-	watching.Stop()
+	wg.Wait()
 
 	c.statusDisplayWatchingSystem(&snapshot.Stats)
 	beIo.STDOUT("\n")
-	c.statusDisplayWatchingSnapshot(&snapshot)
+	c.statusDisplayWatchingSnapshot(snapshot)
 
 	if proxyLimits, ee := c.config.CallProxyControlCommand("proxy-limits"); ee == nil {
 		beIo.STDOUT("\n")
@@ -137,16 +145,11 @@ func (c *Command) statusDisplayWatchingSnapshot(snapshot *WatchSnapshot) {
 	return
 }
 
-func (c *Command) statusDisplayWatchingProxyLimits(proxyLimits string) {
-	buf := bytes.NewBuffer([]byte(""))
-	tw := tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
-
-	var rTotal int64
-	rHosts := make(map[string]int64)
-	rAddrs := make(map[string]int64)
-	var dTotal int64
-	dHosts := make(map[string]int64)
-	dAddrs := make(map[string]int64)
+func parseProxyLimits(proxyLimits string) (rTotal, dTotal int64, rHosts, rAddrs, dHosts, dAddrs map[string]int64) {
+	rHosts = make(map[string]int64)
+	rAddrs = make(map[string]int64)
+	dHosts = make(map[string]int64)
+	dAddrs = make(map[string]int64)
 
 	for _, line := range strings.Split(proxyLimits, "\n") {
 		line = strings.TrimSpace(line)
@@ -176,6 +179,15 @@ func (c *Command) statusDisplayWatchingProxyLimits(proxyLimits string) {
 			}
 		}
 	}
+
+	return
+}
+
+func (c *Command) statusDisplayWatchingProxyLimits(proxyLimits string) {
+	buf := bytes.NewBuffer([]byte(""))
+	tw := tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
+
+	rTotal, dTotal, rHosts, rAddrs, dHosts, dAddrs := parseProxyLimits(proxyLimits)
 
 	_, _ = tw.Write([]byte("[ PROXY LIMITS ]\t[ CURRENT ]\t[ DELAYED ]\n"))
 	_, _ = tw.Write([]byte(fmt.Sprintf("(total)\t%d\t%d\n", rTotal, dTotal)))
