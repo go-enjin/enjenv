@@ -145,6 +145,14 @@ handled directly.
 					Usage:     "display the status of all niseroku services",
 					UsageText: app.Name + " niseroku status",
 					Action:    c.actionStatus,
+					Subcommands: []*cli.Command{
+						{
+							Name:      "watch",
+							Usage:     "continually display the status of all niseroku services",
+							UsageText: app.Name + " niseroku status watch",
+							Action:    c.actionStatusWatch,
+						},
+					},
 				},
 				{
 					Name:      "config",
