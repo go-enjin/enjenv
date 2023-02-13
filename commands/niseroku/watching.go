@@ -143,18 +143,22 @@ func (w *Watching) updateSnapshot() {
 	w.snapshot.Applications = []WatchProc{}
 	w.snapshot.Services = []WatchProc{
 		{
-			Name: "reverse-proxy",
-			Pid:  -1.0,
-			Cpu:  -1.0,
-			Mem:  -1.0,
-			Nice: 0,
+			Name:    "reverse-proxy",
+			Pid:     -1.0,
+			Cpu:     -1.0,
+			Mem:     -1.0,
+			Nice:    0,
+			Num:     0,
+			Threads: 0,
 		},
 		{
-			Name: "git-repository",
-			Pid:  -1.0,
-			Cpu:  -1.0,
-			Mem:  -1.0,
-			Nice: 0,
+			Name:    "git-repository",
+			Pid:     -1.0,
+			Cpu:     -1.0,
+			Mem:     -1.0,
+			Nice:    0,
+			Num:     0,
+			Threads: 0,
 		},
 	}
 
@@ -180,11 +184,13 @@ func (w *Watching) updateSnapshot() {
 
 func (w *Watching) updateSnapshotApplication(app *Application) (stat WatchProc) {
 	stat = WatchProc{
-		Name: app.Name,
-		Pid:  -1.0,
-		Cpu:  -1.0,
-		Mem:  -1.0,
-		Nice: 0,
+		Name:    app.Name,
+		Pid:     -1.0,
+		Cpu:     -1.0,
+		Mem:     -1.0,
+		Nice:    0,
+		Num:     0,
+		Threads: 0,
 	}
 	if slug := app.GetThisSlug(); slug != nil {
 		w.updateSnapshotEntry(&stat, slug.PidFile, []int{slug.Port})
