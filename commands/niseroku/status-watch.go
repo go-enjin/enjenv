@@ -421,11 +421,13 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	rTotal, dTotal, rHosts, rAddrs, dHosts, dAddrs := parseProxyLimits(proxyLimits)
 	stats := &snapshot.Stats
 
-	var cpuUsage float32
-	for _, usage := range stats.CpuUsage {
-		cpuUsage += usage
+	var cpuUsage float32 = 0.0
+	if len(stats.CpuUsage) > 0 {
+		for _, usage := range stats.CpuUsage {
+			cpuUsage += usage
+		}
+		cpuUsage = cpuUsage / float32(len(stats.CpuUsage)) * 100.0
 	}
-	cpuUsage = cpuUsage / float32(len(stats.CpuUsage)) * 100.0
 
 	memUsed := humanize.Bytes(stats.MemUsed * 1024)
 	memTotal := humanize.Bytes(stats.MemTotal * 1024)
