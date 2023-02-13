@@ -27,13 +27,12 @@ import (
 	"time"
 
 	"github.com/didip/tollbooth/v7/limiter"
-	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/acme/autocert"
-
 	"github.com/go-enjin/be/pkg/maps"
 	beNet "github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/serve"
+	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/acme/autocert"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
@@ -88,6 +87,15 @@ func NewReverseProxy(config *Config) (rp *ReverseProxy) {
 	return
 }
 
+func (rp *ReverseProxy) autocertHostPolicy(_ context.Context, host string) (err error) {
+	rp.config.RLock()
+	defer rp.config.RUnlock()
+	if _, ok := rp.config.DomainLookup[host]; !ok {
+		return fmt.Errorf("reverse-proxy: host %q not configured", host)
+	}
+	return
+}
+
 func (rp *ReverseProxy) Bind() (err error) {
 
 	if err = rp.config.PrepareDirectories(); err != nil {
@@ -102,12 +110,11 @@ func (rp *ReverseProxy) Bind() (err error) {
 	http.Handle("/", handler)
 
 	if rp.config.EnableSSL {
-		lookupDomains := maps.Keys(rp.config.DomainLookup)
 		rp.autocert = &autocert.Manager{
 			Cache:      autocert.DirCache(rp.config.Paths.ProxySecrets),
 			Prompt:     autocert.AcceptTOS,
 			Email:      rp.config.AccountEmail,
-			HostPolicy: autocert.HostWhitelist(lookupDomains...),
+			HostPolicy: rp.autocertHostPolicy,
 		}
 		handler = rp.autocert.HTTPHandler(nil)
 	}
