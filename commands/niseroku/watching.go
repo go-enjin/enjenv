@@ -71,6 +71,7 @@ func NewWatching(config *Config, refresh time.Duration, fn func()) (w *Watching,
 	w.snapshot = &WatchSnapshot{}
 	w.updateCpuInfos()
 	w.updateSnapshot()
+	time.Sleep(50 * time.Millisecond)
 	return
 }
 
