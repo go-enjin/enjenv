@@ -18,10 +18,15 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (c *Command) actionStatusWatch(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
+		return
+	}
+	if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
 		return
 	}
 	var sw *StatusWatch

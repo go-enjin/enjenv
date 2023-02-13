@@ -30,12 +30,16 @@ import (
 	"github.com/go-enjin/be/pkg/maps"
 
 	"github.com/go-enjin/enjenv/pkg/cpuinfo"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
+		return
+	}
+	if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
 		return
 	}
 
