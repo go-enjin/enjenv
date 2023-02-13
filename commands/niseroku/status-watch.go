@@ -371,6 +371,9 @@ func (sw *StatusWatch) update() {
 }
 
 func (sw *StatusWatch) gather() (snapshot *WatchSnapshot, proxyLimits string, err error) {
+	if err = sw.cliCmd.config.Reload(); err != nil {
+		return
+	}
 	if proxyLimits, err = sw.cliCmd.config.CallProxyControlCommand("proxy-limits"); err != nil {
 		return
 	}
