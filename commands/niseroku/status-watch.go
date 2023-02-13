@@ -32,6 +32,7 @@ import (
 	"github.com/go-curses/ctk"
 	"github.com/go-curses/ctk/lib/enums"
 	"github.com/go-enjin/be/pkg/maps"
+	beStrings "github.com/go-enjin/be/pkg/strings"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/enjenv/pkg/globals"
@@ -466,9 +467,9 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	/* SERVICES SECTION */
 
 	writeEntry := func(tw *tabwriter.Writer, stat WatchProc, requests, delayed int64) {
-		var pid, ports, nice, cpu, mem, num, threads, req, delay string
+		var pid, ports, nice, cpu, mem, num, threads, reqDelay string
 		if stat.Pid <= 0 {
-			pid, nice, cpu, mem, num, threads, req, delay = "-", "-", "-", "-", "-", "-", "-", "-"
+			pid, nice, cpu, mem, num, threads, reqDelay = "-", "-", "-", "-", "-", "-", "-"
 		} else {
 			pid = strconv.Itoa(stat.Pid)
 			nice = fmt.Sprintf("%+2d", stat.Nice)
@@ -476,8 +477,11 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 			mem = formatPercFloat(stat.Mem, "%.2f")
 			num = fmt.Sprintf("%d", stat.Num)
 			threads = fmt.Sprintf("%d", stat.Threads)
-			req = formatPercNumber(requests, sw.cliCmd.config.ProxyLimit.Max)
-			delay = formatPercNumber(delayed, sw.cliCmd.config.ProxyLimit.Max)
+			reqDelay = formatPercNumber(requests, sw.cliCmd.config.ProxyLimit.Max)
+			if delayed > 0 {
+				delay := formatPercNumber(delayed, sw.cliCmd.config.ProxyLimit.Max)
+				reqDelay += " (" + delay + ")"
+			}
 		}
 		for idx, port := range stat.Ports {
 			if idx > 0 {
@@ -485,7 +489,19 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 			}
 			ports += strconv.Itoa(port)
 		}
-		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s/%s\t%s\t%s\n", stat.Name, pid, ports, cpu, nice, mem, num, threads, req, delay)))
+		var commitId string = "--------"
+		if app, ok := sw.cliCmd.config.Applications[stat.Name]; ok {
+			if app.ThisSlug != "" {
+				if RxSlugFileName.MatchString(app.ThisSlug) {
+					m := RxSlugFileName.FindAllStringSubmatch(app.ThisSlug, 1)
+					fullCommitId := m[0][2]
+					commitId = fullCommitId[:8]
+				}
+			}
+		} else if beStrings.StringInStrings(stat.Name, "reverse-proxy", "git-repository") {
+			commitId = globals.BuildBinHash[:8]
+		}
+		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s/%s\t%s\n", stat.Name, commitId, pid, ports, cpu, nice, mem, num, threads, reqDelay)))
 	}
 
 	var biggest int
@@ -502,7 +518,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 6, 0, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte("SERVICE" + pad + "\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\tDELAY\n"))
+	_, _ = tw.Write([]byte("SERVICE" + pad + "\tID\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
 	for _, stat := range snapshot.Services {
 		if stat.Name == "reverse-proxy" {
 			writeEntry(tw, stat, rTotal, dTotal)
@@ -517,7 +533,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 6, 0, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte("APPLICATION\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\tDELAY\n"))
+	_, _ = tw.Write([]byte("APPLICATION\tID\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
 	for _, stat := range snapshot.Applications {
 		var current, delayed int64
 		for _, app := range sw.cliCmd.config.Applications {
