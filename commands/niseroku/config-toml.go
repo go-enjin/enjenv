@@ -76,6 +76,14 @@ var configTomlComments = TomlComments{
 		},
 	},
 	{
+		Statement: "keep-slugs",
+		Lines: []string{
+			": keep-slugs        (bool)",
+			":     * keep slugs after new deployments",
+			"",
+		},
+	},
+	{
 		Statement: "slug-nice",
 		Lines: []string{
 			": slug-nice         (number: -20 to 20)",

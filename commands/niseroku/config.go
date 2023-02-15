@@ -58,6 +58,8 @@ type Config struct {
 	BuildPack    string `toml:"buildpack-path"`
 	LogFile      string `toml:"log-file"`
 
+	KeepSlugs bool `toml:"keep-slugs"`
+
 	SlugNice int `toml:"slug-nice"`
 
 	IncludeSlugs IncludeSlugsConfig `toml:"include-slugs"`
@@ -191,6 +193,10 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 		return
 	} else {
 		cfg.tomlMetaData = tmd
+	}
+
+	if !tmd.IsDefined("keep-slugs") {
+		cfg.KeepSlugs = true
 	}
 
 	if tcs, ee := ParseComments(contents); ee != nil {
@@ -351,6 +357,7 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 		EnableSSL:    cfg.EnableSSL,
 		BuildPack:    cfg.BuildPack,
 		AccountEmail: cfg.AccountEmail,
+		KeepSlugs:    cfg.KeepSlugs,
 		SlugNice:     cfg.SlugNice,
 		IncludeSlugs: cfg.IncludeSlugs,
 		Timeouts: TimeoutsConfig{
@@ -473,6 +480,7 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.EnableSSL = cfg.EnableSSL
 	c.BuildPack = cfg.BuildPack
 	c.AccountEmail = cfg.AccountEmail
+	c.KeepSlugs = cfg.KeepSlugs
 	c.IncludeSlugs = cfg.IncludeSlugs
 	c.Timeouts.SlugStartup = cfg.Timeouts.SlugStartup
 	c.Timeouts.ReadyInterval = cfg.Timeouts.ReadyInterval
