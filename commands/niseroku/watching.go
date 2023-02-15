@@ -208,7 +208,7 @@ func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports [
 		var nice int32
 		var usage, mem float32 = -1.0, -1.0
 
-		if v, ee := common.GetPidFromFile(pidfile); ee == nil {
+		if v, ee := common.GetIntFromFile(pidfile); ee == nil {
 			pid = v
 			for _, proc := range w.cpulist {
 				if isRunning = proc.Pid == pid; isRunning {

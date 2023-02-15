@@ -47,18 +47,18 @@ func GetProcessFromPid(pid int) (proc *process.Process, err error) {
 
 func GetProcessFromPidFile(pidFile string) (proc *process.Process, err error) {
 	var pid int
-	if pid, err = GetPidFromFile(pidFile); err != nil {
+	if pid, err = GetIntFromFile(pidFile); err != nil {
 		return
 	}
 	proc, err = GetProcessFromPid(pid)
 	return
 }
 
-func GetPidFromFile(pidFile string) (pid int, err error) {
+func GetIntFromFile(src string) (v int, err error) {
 	var data []byte
-	if data, err = os.ReadFile(pidFile); err != nil {
+	if data, err = os.ReadFile(src); err != nil {
 		return
 	}
-	pid, err = strconv.Atoi(string(data))
+	v, err = strconv.Atoi(string(data))
 	return
 }
