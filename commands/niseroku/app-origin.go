@@ -22,21 +22,11 @@ import (
 type AppOrigin struct {
 	Scheme string `toml:"scheme,omitempty"`
 	Host   string `toml:"host,omitempty"`
-	Port   int    `toml:"port,omitempty,omitempty"`
-}
-
-func (o AppOrigin) String() (s string) {
-	s = fmt.Sprintf("%s://%s:%d", o.Scheme, o.Host, o.Port)
-	return
+	Port   int    `toml:"port,omitempty"`
 }
 
 func (o AppOrigin) NetIP() (ip net.IP) {
 	ip = net.ParseIP(o.Host)
-	return
-}
-
-func (o AppOrigin) DialAddr() (addr string) {
-	addr = fmt.Sprintf("%s:%d", o.Host, o.Port)
 	return
 }
 
@@ -50,7 +40,8 @@ func (o AppOrigin) Dialer() (dialer *net.Dialer) {
 	return
 }
 
-func (o AppOrigin) Dial() (conn net.Conn, err error) {
-	conn, err = o.Dialer().Dial("tcp", o.DialAddr())
+func (o AppOrigin) Dial(port int) (conn net.Conn, err error) {
+	addr := fmt.Sprintf("%s:%d", o.Host, port)
+	conn, err = o.Dialer().Dial("tcp", addr)
 	return
 }

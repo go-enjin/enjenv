@@ -349,7 +349,7 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter,
 			ExpectContinueTimeout: originRequestTimeout,
 			TLSHandshakeTimeout:   originRequestTimeout,
 			DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
-				conn, err = app.Origin.Dial()
+				conn, err = app.Origin.Dial(app.ThisPort)
 				return
 			},
 		},
