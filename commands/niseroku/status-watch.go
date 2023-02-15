@@ -31,10 +31,10 @@ import (
 	cstrings "github.com/go-curses/cdk/lib/strings"
 	"github.com/go-curses/ctk"
 	"github.com/go-curses/ctk/lib/enums"
-	"github.com/go-enjin/be/pkg/maps"
-	beStrings "github.com/go-enjin/be/pkg/strings"
 	"github.com/urfave/cli/v2"
 
+	"github.com/go-enjin/be/pkg/maps"
+	beStrings "github.com/go-enjin/be/pkg/strings"
 	"github.com/go-enjin/enjenv/pkg/globals"
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
@@ -467,10 +467,9 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	/* SERVICES SECTION */
 
 	writeEntry := func(tw *tabwriter.Writer, stat WatchProc, requests, delayed int64) {
-		var pid, ports, nice, cpu, mem, num, threads, reqDelay string
-		if stat.Pid <= 0 {
-			pid, nice, cpu, mem, num, threads, reqDelay = "-", "-", "-", "-", "-", "-", "-"
-		} else {
+		// var pid, ports, nice, cpu, mem, num, threads, reqDelay string
+		pid, ports, nice, cpu, mem, num, threads, reqDelay := "-", "-", "-", "-", "-", "-", "-", "-"
+		if stat.Pid > 0 {
 			pid = strconv.Itoa(stat.Pid)
 			nice = fmt.Sprintf("%+2d", stat.Nice)
 			cpu = formatPercFloat(stat.Cpu, "%.2f")
@@ -483,11 +482,14 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 				reqDelay += " (" + delay + ")"
 			}
 		}
-		for idx, port := range stat.Ports {
-			if idx > 0 {
-				ports += ","
+		if len(stat.Ports) > 0 {
+			ports = ""
+			for idx, port := range stat.Ports {
+				if idx > 0 {
+					ports += ","
+				}
+				ports += strconv.Itoa(port)
 			}
-			ports += strconv.Itoa(port)
 		}
 		var commitId string = "--------"
 		if app, ok := sw.cliCmd.config.Applications[stat.Name]; ok {
