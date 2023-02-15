@@ -27,13 +27,13 @@ import (
 	"time"
 
 	"github.com/didip/tollbooth/v7/limiter"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/acme/autocert"
+
 	"github.com/go-enjin/be/pkg/maps"
 	beNet "github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/serve"
 	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/acme/autocert"
-
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service"
@@ -349,7 +349,7 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter,
 			ExpectContinueTimeout: originRequestTimeout,
 			TLSHandshakeTimeout:   originRequestTimeout,
 			DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
-				conn, err = app.Origin.Dial(app.ThisPort)
+				conn, err = app.Origin.Dial(app.Origin.Port)
 				return
 			},
 		},
