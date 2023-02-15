@@ -145,7 +145,7 @@ debug: BUILD_VERSION=$(call _tag_ver)
 debug: BUILD_RELEASE=$(call _rel_ver)
 debug: TRIM_PATHS=$(call _trim_path)
 debug:
-	@$(call _build_debug,"${BIN_NAME}",`go env GOOS`,`go env GOARCH`)
+	@$(call _build_debug,"${BIN_NAME}.linux.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
 
 build: BUILD_VERSION=$(call _tag_ver)
 build: BUILD_RELEASE=$(call _rel_ver)
