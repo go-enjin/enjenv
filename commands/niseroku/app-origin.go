@@ -25,6 +25,11 @@ type AppOrigin struct {
 	Port   int    `toml:"port,omitempty"`
 }
 
+func (o AppOrigin) String() (baseUrl string) {
+	baseUrl = o.Scheme + "://" + o.Host
+	return
+}
+
 func (o AppOrigin) NetIP() (ip net.IP) {
 	ip = net.ParseIP(o.Host)
 	return
