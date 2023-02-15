@@ -18,13 +18,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"net"
-	"regexp"
 	"strings"
-)
-
-var (
-	RxSockCommand         = regexp.MustCompile(`^\s*([a-z][-.a-z0-9]+?)\s*$`)
-	RxSockCommandWithArgs = regexp.MustCompile(`^\s*([a-z][-.a-z0-9]+?)\s+(.+?)\s*$`)
 )
 
 func (rp *ReverseProxy) controlSocketListen() (err error) {

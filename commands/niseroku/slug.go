@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -104,8 +103,6 @@ func (s *Slug) Unpack() (err error) {
 	}
 	return
 }
-
-var RxSlugProcfileWebEntry = regexp.MustCompile(`(?ms)^web:\s*(.+?)\s*$`)
 
 func (s *Slug) ReadProcfile() (web string, err error) {
 	// TODO: ReadProcfile needs to return a map[string]string containing all Procfile entries

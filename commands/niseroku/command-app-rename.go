@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"syscall"
 
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -27,10 +26,6 @@ import (
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service/common"
-)
-
-var (
-	RxLogFileName = regexp.MustCompile(`(?:/|^)([^/]+?)\.?(access|info|error|)\.log$`)
 )
 
 func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
@@ -70,8 +65,8 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 
 	// - rename this-slug and next-slug values and files
 	if oldApp.ThisSlug != "" {
-		if basename := filepath.Base(oldApp.ThisSlug); RxSlugFileName.MatchString(basename) {
-			m := RxSlugFileName.FindAllStringSubmatch(basename, 1)
+		if basename := filepath.Base(oldApp.ThisSlug); RxSlugArchiveName.MatchString(basename) {
+			m := RxSlugArchiveName.FindAllStringSubmatch(basename, 1)
 			if name := m[0][1]; name == oldName {
 				newSlug := filepath.Join(c.config.Paths.VarSlugs, newName+"--"+m[0][2]+".zip")
 				if ee := os.Rename(oldApp.ThisSlug, newSlug); ee != nil {
@@ -85,8 +80,8 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 		}
 	}
 	if oldApp.NextSlug != "" {
-		if basename := filepath.Base(oldApp.NextSlug); RxSlugFileName.MatchString(basename) {
-			m := RxSlugFileName.FindAllStringSubmatch(basename, 1)
+		if basename := filepath.Base(oldApp.NextSlug); RxSlugArchiveName.MatchString(basename) {
+			m := RxSlugArchiveName.FindAllStringSubmatch(basename, 1)
 			if name := m[0][1]; name == oldName {
 				newSlug := filepath.Join(c.config.Paths.VarSlugs, newName+"--"+m[0][2]+".zip")
 				if ee := os.Rename(oldApp.NextSlug, newSlug); ee != nil {
@@ -124,8 +119,8 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 		return
 	}
 	for _, filename := range filenames {
-		if basename := filepath.Base(filename); RxSlugFileName.MatchString(basename) {
-			m := RxSlugFileName.FindAllStringSubmatch(basename, 1)
+		if basename := filepath.Base(filename); RxSlugArchiveName.MatchString(basename) {
+			m := RxSlugArchiveName.FindAllStringSubmatch(basename, 1)
 			if name := m[0][1]; name == oldName {
 				newSlug := filepath.Join(c.config.Paths.VarSlugs, newName+"--"+m[0][2]+".zip")
 				if ee := os.Rename(filename, newSlug); ee != nil {

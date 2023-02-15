@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -31,10 +30,6 @@ import (
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service/common"
-)
-
-var (
-	RxSlugFileName = regexp.MustCompile(`(?:/|^)([^/]+?)--([a-f0-9]+)\.zip$`)
 )
 
 func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
@@ -58,11 +53,11 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 		}
 		slugPath, _ := filepath.Abs(arg)
 		slugName := filepath.Base(slugPath)
-		if !RxSlugFileName.MatchString(slugPath) {
+		if !RxSlugArchiveName.MatchString(slugPath) {
 			beIo.StderrF("error: invalid slug file name - %v\n", slugName)
 			continue
 		}
-		m := RxSlugFileName.FindAllStringSubmatch(slugPath, 1)
+		m := RxSlugArchiveName.FindAllStringSubmatch(slugPath, 1)
 		slugAppName := m[0][1]
 		if app, ok := c.config.Applications[slugAppName]; ok {
 			slugDestPath := c.config.Paths.VarSlugs + "/" + slugName

@@ -492,8 +492,8 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		var commitId string = "--------"
 		if app, ok := sw.cliCmd.config.Applications[stat.Name]; ok {
 			if app.ThisSlug != "" {
-				if RxSlugFileName.MatchString(app.ThisSlug) {
-					m := RxSlugFileName.FindAllStringSubmatch(app.ThisSlug, 1)
+				if RxSlugArchiveName.MatchString(app.ThisSlug) {
+					m := RxSlugArchiveName.FindAllStringSubmatch(app.ThisSlug, 1)
 					fullCommitId := m[0][2]
 					commitId = fullCommitId[:8]
 				}
