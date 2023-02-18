@@ -22,7 +22,6 @@ import (
 type AppOrigin struct {
 	Scheme string `toml:"scheme,omitempty"`
 	Host   string `toml:"host,omitempty"`
-	Port   int    `toml:"port,omitempty"`
 }
 
 func (o AppOrigin) String() (baseUrl string) {
