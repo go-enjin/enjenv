@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
-	"syscall"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -106,29 +104,10 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 	}
 
 	time.Sleep(2500 * time.Millisecond) // necessary to allow background processes time
-	beIo.StdoutF("# slug deployment completed, signaling reload of proxy and repo services\n")
+	beIo.StdoutF("# slug deployment completed, signaling services to reload\n")
 
-	if bePath.IsFile(c.config.Paths.ProxyPidFile) {
-		if ee := common.SendSignalToPidFromFile(c.config.Paths.ProxyPidFile, syscall.SIGUSR1); ee != nil {
-			if strings.Contains(ee.Error(), "process not found") {
-				_ = os.Remove(c.config.Paths.ProxyPidFile)
-			} else {
-				beIo.StderrF("error sending signal to reverse-proxy process: %v\n", ee)
-			}
-		} else {
-			beIo.StdoutF("# sent SIGUSR1 signal to reverse-proxy process\n")
-		}
-	}
-	if bePath.IsFile(c.config.Paths.RepoPidFile) {
-		if ee := common.SendSignalToPidFromFile(c.config.Paths.RepoPidFile, syscall.SIGUSR1); ee != nil {
-			if strings.Contains(ee.Error(), "process not found") {
-				_ = os.Remove(c.config.Paths.RepoPidFile)
-			} else {
-				beIo.StderrF("error sending signal to git-repository process: %v\n", ee)
-			}
-		} else {
-			beIo.StdoutF("# sent SIGUSR1 signal to git-repository process\n")
-		}
-	}
+	c.config.SignalReloadReverseProxy()
+	c.config.SignalReloadGitRepository()
+
 	return
 }
