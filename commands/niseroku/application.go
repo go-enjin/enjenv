@@ -209,7 +209,7 @@ func (a *Application) LoadAllSlugs() (err error) {
 	}
 	for _, file := range files {
 		name := bePath.Base(file)
-		if strings.HasPrefix(name, a.Name+"-") {
+		if strings.HasPrefix(name, a.Name+"--") {
 			a.RLock()
 			if _, exists := a.Slugs[name]; exists {
 				a.RUnlock()
