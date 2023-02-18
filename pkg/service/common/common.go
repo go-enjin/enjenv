@@ -17,11 +17,21 @@ package common
 import (
 	"encoding/csv"
 	"strings"
+
+	"github.com/gofrs/uuid"
+
+	"github.com/go-enjin/be/pkg/hash/sha"
 )
 
 func ParseControlArgv(input string) (argv []string, err error) {
 	r := csv.NewReader(strings.NewReader(input))
 	r.Comma = ' '
 	argv, err = r.Read()
+	return
+}
+
+func UniqueHash() (hash string) {
+	unique, _ := uuid.NewV4()
+	hash, _ = sha.DataHash10(unique.Bytes())
 	return
 }
