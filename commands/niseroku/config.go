@@ -442,10 +442,6 @@ func loadUsersApps(config *Config) (err error) {
 			}
 			config.DomainLookup[domain] = app
 		}
-		if err = app.LoadAllSlugs(); err != nil {
-			err = fmt.Errorf("error loading all slugs: %v", err)
-			return
-		}
 	}
 
 	return

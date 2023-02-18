@@ -209,22 +209,30 @@ func (rp *ReverseProxy) Serve() (err error) {
 		<-idleConnectionsClosed
 		rp.LogInfoF("all idle connections closed")
 		if rp.config.IncludeSlugs.OnStop {
+			_ = rp.config.Reload()
 			rp.LogInfoF("stopping applications")
-			for _, app := range maps.ValuesSortedByKeys(rp.config.Applications) {
-				_ = app.SendStopSignal()
-				rp.LogInfoF("stop signal sent to: %v", app.Name)
+			o, e, _ := pkgRun.EnjenvCmd("niseroku", "--config", rp.config.Source, "app", "stop", "--all")
+			if o != "" {
+				rp.LogInfoF("%v", o)
+			}
+			if e != "" {
+				rp.LogErrorF("%v", e)
 			}
 		} else {
-			rp.LogInfoF("not stopping applications")
+			rp.LogInfoF("not stopping applications on shutdown")
 		}
 	}
 	return
 }
 
 func (rp *ReverseProxy) Stop() (err error) {
+	rp.Lock()
+	defer rp.Unlock()
 	if rp.control != nil {
 		if ee := rp.control.Close(); ee != nil {
 			rp.LogErrorF("error closing control socket: %v\n", ee)
+		} else {
+			rp.LogInfoF("rpc service shutdown")
 		}
 		if ee := recover(); ee != nil {
 			rp.LogErrorF("panic caught control: %v", ee)
@@ -236,15 +244,23 @@ func (rp *ReverseProxy) Stop() (err error) {
 		}
 	}
 	if rp.http != nil {
-		rp.LogInfoF("shutting down http service")
-		if ee := rp.http.Shutdown(nil); ee != nil {
+		if ee := rp.http.Shutdown(context.Background()); ee != nil {
 			rp.LogErrorF("error shutting down http server: %v\n", ee)
+		} else {
+			rp.LogInfoF("http service shutdown")
+		}
+		if ee := recover(); ee != nil {
+			rp.LogErrorF("panic caught http: %v", ee)
 		}
 	}
 	if rp.config.EnableSSL && rp.https != nil {
-		rp.LogInfoF("shutting down https service")
-		if ee := rp.https.Shutdown(nil); ee != nil {
+		if ee := rp.https.Shutdown(context.Background()); ee != nil {
 			rp.LogErrorF("error shutting down https server: %v\n", ee)
+		} else {
+			rp.LogInfoF("https service shutdown")
+		}
+		if ee := recover(); ee != nil {
+			rp.LogErrorF("panic caught https: %v", ee)
 		}
 	}
 	return
@@ -261,8 +277,7 @@ func (rp *ReverseProxy) Reload() (err error) {
 	return
 }
 
-func (rp *ReverseProxy) ServeProxyHTTP(w http.ResponseWriter, r *http.Request) {
-	var domain string
+func (rp *ReverseProxy) GetAppDomain(r *http.Request) (domain string, app *Application, ok bool) {
 	if strings.Contains(r.Host, ":") {
 		if h, p, err := net.SplitHostPort(r.Host); err == nil {
 			switch {
@@ -278,8 +293,13 @@ func (rp *ReverseProxy) ServeProxyHTTP(w http.ResponseWriter, r *http.Request) {
 		domain = r.Host
 	}
 	rp.RLock()
-	origin, exists := rp.config.DomainLookup[domain]
-	rp.RUnlock()
+	defer rp.RUnlock()
+	app, ok = rp.config.DomainLookup[domain]
+	return
+}
+
+func (rp *ReverseProxy) ServeProxyHTTP(w http.ResponseWriter, r *http.Request) {
+	_, origin, exists := rp.GetAppDomain(r)
 	if exists {
 		if err := rp.ServeOriginHTTP(origin, w, r); err != nil {
 			rp.LogErrorF("error handling origin request: %v\n", err)
@@ -309,10 +329,6 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter,
 		return
 	}
 
-	if err = app.LoadAllSlugs(); err != nil {
-		return
-	}
-
 	req := r.Clone(r.Context())
 	req.Host = r.Host
 	req.URL.Host = r.Host
@@ -321,13 +337,15 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter,
 	req.Header.Set("X-Proxy", "niseroku")
 	req.Header.Set("X-Forwarded-For", remoteAddr)
 
+	var slugPort int
 	var originRequestTimeout time.Duration
 	if slug := app.GetThisSlug(); slug == nil {
 		err = fmt.Errorf("origin missing this-slug: %v\n", app.Name)
 		return
 	} else {
 		originRequestTimeout = slug.GetOriginRequestTimeout()
-		running, ready := slug.IsRunningReady()
+		running, ready := slug.IsRunningReady(0)
+		slugPort = slug.GetPort(0)
 		switch {
 		case running && !ready:
 			rp.LogInfoF("origin running and not ready: [503] %v\n", slug.Name)
@@ -340,7 +358,7 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter,
 			serve.Serve502(w, r)
 			return
 		case !running && ready:
-			rp.LogErrorF("origin pidfile error, yet is ready: [port=%d] %v\n", slug.Port, slug.Name)
+			rp.LogErrorF("origin pidfile error, yet is ready: [port=%d] %v\n", slugPort, slug.Name)
 		case running && ready:
 		}
 	}
@@ -353,7 +371,7 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter,
 			ExpectContinueTimeout: originRequestTimeout,
 			TLSHandshakeTimeout:   originRequestTimeout,
 			DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
-				conn, err = app.Origin.Dial(app.Origin.Port)
+				conn, err = app.Origin.Dial(slugPort)
 				return
 			},
 		},

@@ -60,8 +60,6 @@ type Application struct {
 
 	await chan bool
 
-	deployPid int
-
 	tomlComments TomlComments
 
 	sync.RWMutex
@@ -98,8 +96,14 @@ func NewApplication(source string, config *Config) (app *Application, err error)
 		Source: source,
 		Config: config,
 		Slugs:  make(map[string]*Slug),
+		await:  make(chan bool, 1),
 	}
-	err = app.Load()
+	if err = app.Load(); err != nil {
+		return
+	}
+	if err = app.LoadAllSlugs(); err != nil {
+		err = fmt.Errorf("error loading app slugs: %v - %v", app.Name, err)
+	}
 	return
 }
 
@@ -149,7 +153,6 @@ func (a *Application) Load() (err error) {
 			a.ThisSlug = ""
 		}
 	}
-
 	return
 }
 
@@ -228,6 +231,22 @@ func (a *Application) LoadAllSlugs() (err error) {
 	return
 }
 
+func (a *Application) GetSlugInstanceByPid(pid int) (si *SlugInstance) {
+	a.RLock()
+	defer a.RUnlock()
+	for _, slug := range a.Slugs {
+		for _, instance := range slug.Instances {
+			if instancePid, err := instance.GetPid(); err == nil {
+				if instancePid == pid {
+					si = instance
+					return
+				}
+			}
+		}
+	}
+	return
+}
+
 func (a *Application) GetThisSlug() (slug *Slug) {
 	a.RLock()
 	defer a.RUnlock()
@@ -235,9 +254,6 @@ func (a *Application) GetThisSlug() (slug *Slug) {
 		name := bePath.Base(a.ThisSlug)
 		if found, ok := a.Slugs[name]; ok {
 			slug = found
-			if slug.Port <= 0 {
-				slug.Port = a.Origin.Port
-			}
 		}
 	}
 	return
@@ -250,9 +266,6 @@ func (a *Application) GetNextSlug() (slug *Slug) {
 		name := bePath.Base(a.NextSlug)
 		if found, ok := a.Slugs[name]; ok {
 			slug = found
-			if slug.Port <= 0 {
-				slug.Port = a.Config.GetUnusedPort()
-			}
 		}
 	}
 	return
