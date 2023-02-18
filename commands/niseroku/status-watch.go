@@ -570,15 +570,17 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		_, _ = tw.Write([]byte("REMOTE IP ADDRESS\tREQUESTS\tDELAYED\n"))
 		max := sw.cliCmd.config.ProxyLimit.Max
 		for _, key := range maps.SortedKeys(rAddrs) {
+			requests := rAddrs[key]
+			line := key + "\t"
+			line += formatPercNumber(requests, max)
+			line += "\t"
 			if delayed, ok := dAddrs[key]; ok {
-				requests := rAddrs[key]
-				line := key + "\t"
-				line += formatPercNumber(requests, max)
-				line += "\t"
 				line += formatPercNumber(delayed, max)
-				line += "\n"
-				_, _ = tw.Write([]byte(line))
+			} else {
+				line += formatPercNumber(0, max)
 			}
+			line += "\n"
+			_, _ = tw.Write([]byte(line))
 		}
 		_ = tw.Flush()
 		_ = sw.plLabel.SetMarkup(buf.String())
