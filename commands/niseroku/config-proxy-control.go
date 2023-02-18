@@ -24,7 +24,7 @@ const (
 )
 
 func (c *Config) DialProxyControl() (conn net.Conn, err error) {
-	conn, err = net.Dial("unix", c.Paths.ProxyControl)
+	conn, err = net.Dial("unix", c.Paths.ProxyRpcSock)
 	return
 }
 

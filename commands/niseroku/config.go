@@ -141,7 +141,7 @@ type PathsConfig struct {
 
 	ProxyPidFile string `toml:"-"` // ProxyPidFile is the path for the reverse-proxy service process ID file
 	ProxySecrets string `toml:"-"` // ProxySecrets is where ssl-certs are stored
-	ProxyControl string `toml:"-"` // ProxyControl is the path for local unix socket file
+	ProxyRpcSock string `toml:"-"` // ProxyRpcSock is the path for local unix socket file
 }
 
 func WriteDefaultConfig(niserokuConfig string) (err error) {
@@ -256,10 +256,9 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 		cfg.BuildPack = DefaultBuildPack
 	}
 
-	controlFile := cfg.Paths.Var + "/" + Name + ".sock"
-
 	repoPidFile := cfg.Paths.Var + "/git-repository.pid"
 	proxyPidFile := cfg.Paths.Var + "/reverse-proxy.pid"
+	proxyRpcSock := cfg.Paths.Var + "/reverse-proxy.sock"
 
 	var needRootUser bool
 	checkPort := func(port, defaultPort int) (validPort int, err error) {
@@ -402,7 +401,7 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 			VarSettings:  varSettings,
 			RepoSecrets:  repoSecrets,
 			ProxySecrets: proxySecrets,
-			ProxyControl: controlFile,
+			ProxyRpcSock: proxyRpcSock,
 			RepoPidFile:  repoPidFile,
 			ProxyPidFile: proxyPidFile,
 		},
@@ -515,7 +514,7 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.Paths.VarSettings = cfg.Paths.VarSettings
 	c.Paths.RepoSecrets = cfg.Paths.RepoSecrets
 	c.Paths.ProxySecrets = cfg.Paths.ProxySecrets
-	c.Paths.ProxyControl = cfg.Paths.ProxyControl
+	c.Paths.ProxyRpcSock = cfg.Paths.ProxyRpcSock
 	c.Paths.RepoPidFile = cfg.Paths.RepoPidFile
 	c.Paths.ProxyPidFile = cfg.Paths.ProxyPidFile
 	c.Users = cfg.Users
