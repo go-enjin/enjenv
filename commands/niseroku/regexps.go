@@ -20,7 +20,7 @@ var (
 	RxLogFileName = regexp.MustCompile(`(?:/|^)([^/]+?)\.?(access|info|error|)\.log$`)
 
 	RxSlugArchiveName = regexp.MustCompile(`(?:/|^)([^/]+?)--([a-f0-9]+)\.zip$`)
-	RxSlugRunningName = regexp.MustCompile(`(?:/|^)([^/]+?)--([a-f0-9]+).([a-f0-9]{10})(\.pid|\.port)$`)
+	RxSlugRunningName = regexp.MustCompile(`(?:/|^)([^/]+?)--([a-f0-9]+).([a-f0-9]{10})(\.pid|\.port|)$`)
 
 	RxSlugProcfileWebEntry = regexp.MustCompile(`(?ms)^web:\s*(.+?)\s*$`)
 
