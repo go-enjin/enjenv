@@ -7,7 +7,9 @@ require (
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.0.2
-	github.com/go-enjin/be v0.0.0-20230210174820-32da180ed38a
+	github.com/go-curses/cdk v0.5.12
+	github.com/go-curses/ctk v0.5.3
+	github.com/go-enjin/be v0.0.0-20230215185214-9d5f705ee661
 	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/goccy/go-json v0.10.0
@@ -61,8 +63,6 @@ require (
 	github.com/gin-gonic/gin v1.8.1 // indirect
 	github.com/go-chi/chi/v5 v5.0.7 // indirect
 	github.com/go-chi/hostrouter v0.2.0 // indirect
-	github.com/go-curses/cdk v0.5.12 // indirect
-	github.com/go-curses/ctk v0.5.3 // indirect
 	github.com/go-curses/term v1.2.2-gocurses.1 // indirect
 	github.com/go-curses/terminfo v1.0.0 // indirect
 	github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a // indirect
