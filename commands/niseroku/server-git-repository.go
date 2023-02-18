@@ -20,12 +20,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-enjin/be/pkg/maps"
 	"github.com/sosedoff/gitkit"
 	"github.com/urfave/cli/v2"
 
+	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
-
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/service"
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -198,14 +197,15 @@ func (gr *GitRepository) publicKeyLookupFunc(inputPubKey string) (pubkey *gitkit
 }
 
 const (
-	gPreReceiveHookTemplate  = "#!/bin/bash\ncat - | %v niseroku --config=%v app git-pre-receive-hook"
-	gPostReceiveHookTemplate = "#!/bin/bash\ncat - | %v niseroku --config=%v app git-post-receive-hook"
+	gPreReceiveHookTemplate  = "#!/bin/bash\ncat - | %v niseroku --config=%v app git-pre-receive-hook\n"
+	gPostReceiveHookTemplate = "#!/bin/bash\ncat - | %v niseroku --config=%v app git-post-receive-hook\n"
 )
 
 func (gr *GitRepository) updateGitHookScripts() (err error) {
 
-	preReceiveHookSource := fmt.Sprintf(gPreReceiveHookTemplate, basepath.WhichBin(), gr.config.Source)
-	postReceiveHookSource := fmt.Sprintf(gPostReceiveHookTemplate, basepath.WhichBin(), gr.config.Source)
+	binPath := basepath.WhichBin()
+	preReceiveHookSource := fmt.Sprintf(gPreReceiveHookTemplate, binPath, gr.config.Source)
+	postReceiveHookSource := fmt.Sprintf(gPostReceiveHookTemplate, binPath, gr.config.Source)
 
 	for _, app := range gr.config.Applications {
 		if app.RepoPath == "" {
@@ -213,21 +213,23 @@ func (gr *GitRepository) updateGitHookScripts() (err error) {
 			continue
 		}
 		hookDir := app.RepoPath + "/hooks"
-		if bePath.IsDir(hookDir) {
-			if preReceiveHookPath := hookDir + "/pre-receive"; !bePath.IsFile(preReceiveHookPath) {
-				if err = os.WriteFile(preReceiveHookPath, []byte(preReceiveHookSource), 0660); err != nil {
-					gr.LogErrorF("error writing git pre-receive hook: %v - %v\n", preReceiveHookPath, err)
-				} else if err = os.Chmod(preReceiveHookPath, 0770); err != nil {
-					gr.LogErrorF("error changing mode of git pre-receive hook: %v - %v\n", preReceiveHookPath, err)
-				}
+		if !bePath.IsDir(hookDir) {
+			if err = os.Mkdir(hookDir, 0770); err != nil {
+				gr.LogErrorF("error making git hooks directory: %v - %v\n", hookDir, err)
+				continue
 			}
-			if postReceiveHookPath := hookDir + "/post-receive"; !bePath.IsFile(postReceiveHookPath) {
-				if err = os.WriteFile(postReceiveHookPath, []byte(postReceiveHookSource), 0660); err != nil {
-					gr.LogErrorF("error writing git post-receive hook: %v - %v\n", postReceiveHookPath, err)
-				} else if err = os.Chmod(postReceiveHookPath, 0770); err != nil {
-					gr.LogErrorF("error changing mode of git post-receive hook: %v - %v\n", postReceiveHookPath, err)
-				}
-			}
+		}
+		preReceiveHookPath := hookDir + "/pre-receive"
+		if err = os.WriteFile(preReceiveHookPath, []byte(preReceiveHookSource), 0660); err != nil {
+			gr.LogErrorF("error writing git pre-receive hook: %v - %v\n", preReceiveHookPath, err)
+		} else if err = os.Chmod(preReceiveHookPath, 0770); err != nil {
+			gr.LogErrorF("error changing mode of git pre-receive hook: %v - %v\n", preReceiveHookPath, err)
+		}
+		postReceiveHookPath := hookDir + "/post-receive"
+		if err = os.WriteFile(postReceiveHookPath, []byte(postReceiveHookSource), 0660); err != nil {
+			gr.LogErrorF("error writing git post-receive hook: %v - %v\n", postReceiveHookPath, err)
+		} else if err = os.Chmod(postReceiveHookPath, 0770); err != nil {
+			gr.LogErrorF("error changing mode of git post-receive hook: %v - %v\n", postReceiveHookPath, err)
 		}
 		if ee := common.RepairOwnership(hookDir, gr.User, gr.Group); ee != nil {
 			gr.LogErrorF("error repairing ownership of git-hooks: %v - %v", hookDir, ee)
