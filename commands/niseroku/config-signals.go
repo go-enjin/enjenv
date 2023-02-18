@@ -20,21 +20,25 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 
 	bePath "github.com/go-enjin/be/pkg/path"
+	beIo "github.com/go-enjin/enjenv/pkg/io"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (c *Config) SignalReverseProxy(sig process.Signal) (sent bool) {
-	c.RLock()
-	defer c.RUnlock()
+	// c.RLock()
+	// defer c.RUnlock()
 	if bePath.IsFile(c.Paths.ProxyPidFile) {
 		if proc, err := common.GetProcessFromPidFile(c.Paths.ProxyPidFile); err == nil {
 			if running, ee := proc.IsRunning(); ee == nil && running {
+				beIo.StdoutF("signal reverse proxy: %v\n", c.Paths.ProxyPidFile)
 				_ = proc.SendSignal(sig)
 				sent = true
+				return
 			}
 		}
 	}
+	beIo.StderrF("error signaling reverse proxy: %v\n", c.Paths.ProxyPidFile)
 	return
 }
 
