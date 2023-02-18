@@ -112,6 +112,12 @@ handled directly.
 							Action:    c.actionReverseProxyReload,
 						},
 						{
+							Name:      "stop",
+							Usage:     "stop reverse-proxy services",
+							UsageText: app.Name + " niseroku reverse-proxy stop",
+							Action:    c.actionReverseProxyStop,
+						},
+						{
 							Name:      "cmd",
 							Usage:     "run proxy-control commands",
 							UsageText: app.Name + " niseroku reverse-proxy cmd <name> [argv...]",
@@ -132,6 +138,12 @@ handled directly.
 							UsageText: app.Name + " niseroku git-repository reload",
 							Action:    c.actionGitRepositoryReload,
 						},
+						{
+							Name:      "stop",
+							Usage:     "stop git-repository services",
+							UsageText: app.Name + " niseroku git-repository stop",
+							Action:    c.actionGitRepositoryStop,
+						},
 					},
 				},
 				{
@@ -139,6 +151,12 @@ handled directly.
 					Usage:     "reload all niseroku services",
 					UsageText: app.Name + " niseroku reload",
 					Action:    c.actionReload,
+				},
+				{
+					Name:      "stop",
+					Usage:     "stop all niseroku services",
+					UsageText: app.Name + " niseroku stop",
+					Action:    c.actionStop,
 				},
 				{
 					Name:      "status",
