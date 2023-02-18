@@ -424,11 +424,17 @@ func loadUsersApps(config *Config) (err error) {
 	config.PortLookup = make(map[int]*Application)
 	config.DomainLookup = make(map[string]*Application)
 	for _, app := range config.Applications {
-		if _, exists := config.PortLookup[app.Origin.Port]; exists {
-			err = fmt.Errorf("port %d duplicated by: %v", app.Origin.Port, app.Source)
-			return
+		for _, slug := range app.Slugs {
+			for _, si := range slug.Instances {
+				if si.Port > 0 {
+					if _, exists := config.PortLookup[si.Port]; exists {
+						err = fmt.Errorf("port %d duplicated by: %v", si.Port, app.Source)
+						return
+					}
+					config.PortLookup[si.Port] = app
+				}
+			}
 		}
-		config.PortLookup[app.Origin.Port] = app
 		for _, domain := range app.Domains {
 			if _, exists := config.DomainLookup[domain]; exists {
 				err = fmt.Errorf("domain %v duplicated by: %v", domain, app.Source)
