@@ -21,11 +21,11 @@ import (
 )
 
 func (a *Application) SendSignal(sig process.Signal) (err error) {
-	if thisSlug := a.GetThisSlug(); thisSlug != nil {
-		var proc *process.Process
-		if proc, err = thisSlug.GetBinProcess(); err == nil {
-			err = proc.SendSignal(sig)
-		}
+	if slug := a.GetThisSlug(); slug != nil {
+		slug.SendSignalToAll(sig)
+	}
+	if slug := a.GetNextSlug(); slug != nil {
+		slug.SendSignalToAll(sig)
 	}
 	return
 }
