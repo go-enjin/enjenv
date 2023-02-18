@@ -101,10 +101,6 @@ var applicationTomlComments = TomlComments{
 		Statement: "host",
 		Inline:    ": the localhost IP address to proxy requests with",
 	},
-	{
-		Statement: "port",
-		Inline:    ": this-slug's port number; changed with app restarts and deployments",
-	},
 }
 
 func MergeApplicationToml(current TomlComments, keepCustomComments bool) (modified TomlComments) {
