@@ -30,7 +30,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/acme/autocert"
 
-	"github.com/go-enjin/be/pkg/maps"
 	beNet "github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/serve"
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -153,16 +152,16 @@ func (rp *ReverseProxy) Bind() (err error) {
 
 func (rp *ReverseProxy) Serve() (err error) {
 
-	if bePath.Exists(rp.config.Paths.ProxyControl) {
-		if err = os.Remove(rp.config.Paths.ProxyControl); err != nil {
+	if bePath.Exists(rp.config.Paths.ProxyRpcSock) {
+		if err = os.Remove(rp.config.Paths.ProxyRpcSock); err != nil {
 			err = fmt.Errorf("error removing enjin-proxy sock: %v\n", err)
 		}
 	}
-	if rp.control, err = net.Listen("unix", rp.config.Paths.ProxyControl); err != nil {
+	if rp.control, err = net.Listen("unix", rp.config.Paths.ProxyRpcSock); err != nil {
 		return
 	}
-	// _ = common.RepairOwnership(rp.config.Paths.ProxyControl, rp.config.RunAs.User, rp.config.RunAs.Group)
-	_ = os.Chmod(rp.config.Paths.ProxyControl, 0770)
+	// _ = common.RepairOwnership(rp.config.Paths.ProxyRpcSock, rp.config.RunAs.User, rp.config.RunAs.Group)
+	_ = os.Chmod(rp.config.Paths.ProxyRpcSock, 0770)
 
 	go rp.HandleSIGHUP()
 
@@ -197,7 +196,7 @@ func (rp *ReverseProxy) Serve() (err error) {
 
 	wg.Add(1)
 	go func() {
-		rp.LogInfoF("starting control service: %v\n", rp.config.Paths.ProxyControl)
+		rp.LogInfoF("starting control service: %v\n", rp.config.Paths.ProxyRpcSock)
 		if ee := rp.controlSocketServe(); ee != nil {
 			rp.LogErrorF("error running control service: %v\n", ee)
 		}
@@ -227,8 +226,13 @@ func (rp *ReverseProxy) Stop() (err error) {
 		if ee := rp.control.Close(); ee != nil {
 			rp.LogErrorF("error closing control socket: %v\n", ee)
 		}
-		if ee := os.Remove(rp.config.Paths.ProxyControl); ee != nil {
-			rp.LogErrorF("error removing control socket: %v\n", ee)
+		if ee := recover(); ee != nil {
+			rp.LogErrorF("panic caught control: %v", ee)
+		}
+		if bePath.IsFile(rp.config.Paths.ProxyRpcSock) {
+			if ee := os.Remove(rp.config.Paths.ProxyRpcSock); ee != nil {
+				rp.LogErrorF("error removing control socket: %v\n", ee)
+			}
 		}
 	}
 	if rp.http != nil {
