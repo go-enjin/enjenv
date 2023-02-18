@@ -375,8 +375,8 @@ func (sw *StatusWatch) gather() (snapshot *WatchSnapshot, proxyLimits string, er
 	if err = sw.cliCmd.config.Reload(); err != nil {
 		return
 	}
-	if proxyLimits, err = sw.cliCmd.config.CallProxyControlCommand("proxy-limits"); err != nil {
-		return
+	if response, ee := sw.cliCmd.config.CallProxyControlCommand("proxy-limits"); ee == nil {
+		proxyLimits = response
 	}
 	snapshot = sw.watching.Snapshot()
 	return
@@ -406,6 +406,24 @@ func formatPercFloat[T float32 | float64](stat T, format string) (text string) {
 	return
 }
 
+func formatMemUsed(kbUsed uint64, max uint64) (text string) {
+	size := humanize.Bytes(kbUsed * 1024)
+	// percent := fmt.Sprintf("%05.1f", float64(kbUsed)/float64(max)*100.0)
+	// percent := fmt.Sprintf("%05.1f", float64(kbUsed)/float64(max)*100.0)
+	switch {
+	case kbUsed >= max/2:
+		// text = fmt.Sprintf(`<span foreground="red">%s%% (%s)</span>`, percent, size)
+		text = fmt.Sprintf(`<span foreground="red">%s</span>`, size)
+	case kbUsed > (1024 * 512):
+		// text = fmt.Sprintf(`<span foreground="yellow">%s%% (%s)</span>`, percent, size)
+		text = fmt.Sprintf(`<span foreground="yellow">%s</span>`, size)
+	default:
+		// text = fmt.Sprintf(`<span foreground="white">%s%% (%s)</span>`, percent, size)
+		text = fmt.Sprintf(`<span foreground="white">%s</span>`, size)
+	}
+	return
+}
+
 func formatPercNumber[T maps.Number](stat T, max float64) (text string) {
 	switch {
 	case float64(stat) >= max:
@@ -419,7 +437,7 @@ func formatPercNumber[T maps.Number](stat T, max float64) (text string) {
 }
 
 func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits string) {
-	rTotal, dTotal, rHosts, rAddrs, dHosts, dAddrs := parseProxyLimits(proxyLimits)
+	rTotal, dTotal, rHosts, rAddrs, rPorts, dHosts, dAddrs, dPorts := parseProxyLimits(proxyLimits)
 	stats := &snapshot.Stats
 
 	var cpuUsage float32 = 0.0
@@ -466,21 +484,25 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	/* SERVICES SECTION */
 
-	writeEntry := func(tw *tabwriter.Writer, stat WatchProc, requests, delayed int64) {
-		// var pid, ports, nice, cpu, mem, num, threads, reqDelay string
+	formatReqDelay := func(requests, delayed int64) (reqDelay string) {
+		reqDelay = formatPercNumber(requests, sw.cliCmd.config.ProxyLimit.Max)
+		if delayed > 0 {
+			delay := formatPercNumber(delayed, sw.cliCmd.config.ProxyLimit.Max)
+			reqDelay += " (" + delay + ")"
+		}
+		return
+	}
+
+	writeEntry := func(tw *tabwriter.Writer, appName, commitId string, stat WatchProc, requests, delayed int64, includeHash bool) {
 		pid, ports, nice, cpu, mem, num, threads, reqDelay := "-", "-", "-", "-", "-", "-", "-", "-"
 		if stat.Pid > 0 {
 			pid = strconv.Itoa(stat.Pid)
 			nice = fmt.Sprintf("%+2d", stat.Nice)
 			cpu = formatPercFloat(stat.Cpu, "%.2f")
-			mem = formatPercFloat(stat.Mem, "%.2f")
+			mem = formatMemUsed(stat.Mem, stats.MemTotal)
 			num = fmt.Sprintf("%d", stat.Num)
 			threads = fmt.Sprintf("%d", stat.Threads)
-			reqDelay = formatPercNumber(requests, sw.cliCmd.config.ProxyLimit.Max)
-			if delayed > 0 {
-				delay := formatPercNumber(delayed, sw.cliCmd.config.ProxyLimit.Max)
-				reqDelay += " (" + delay + ")"
-			}
+			reqDelay = formatReqDelay(requests, delayed)
 		}
 		if len(stat.Ports) > 0 {
 			ports = ""
@@ -491,16 +513,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 				ports += strconv.Itoa(port)
 			}
 		}
-		var commitId string = "--------"
-		if app, ok := sw.cliCmd.config.Applications[stat.Name]; ok {
-			if app.ThisSlug != "" {
-				if RxSlugArchiveName.MatchString(app.ThisSlug) {
-					m := RxSlugArchiveName.FindAllStringSubmatch(app.ThisSlug, 1)
-					fullCommitId := m[0][2]
-					commitId = fullCommitId[:8]
-				}
-			}
-		} else if beStrings.StringInStrings(stat.Name, "reverse-proxy", "git-repository") {
+		if beStrings.StringInStrings(stat.Name, "reverse-proxy", "git-repository") {
 			commitId = globals.BuildBinHash[:8]
 		}
 		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s/%s\t%s\n", stat.Name, commitId, pid, ports, cpu, nice, mem, num, threads, reqDelay)))
@@ -520,12 +533,12 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 6, 0, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte("SERVICE" + pad + "\tID\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
+	_, _ = tw.Write([]byte("SERVICE" + pad + "\tVER\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
 	for _, stat := range snapshot.Services {
 		if stat.Name == "reverse-proxy" {
-			writeEntry(tw, stat, rTotal, dTotal)
+			writeEntry(tw, stat.Name, "", stat, rTotal, dTotal, false)
 		} else {
-			writeEntry(tw, stat, 0, 0)
+			writeEntry(tw, stat.Name, "", stat, 0, 0, false)
 		}
 	}
 	_ = tw.Flush()
@@ -535,30 +548,123 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 6, 0, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte("APPLICATION\tID\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
+	_, _ = tw.Write([]byte("APPLICATION\tGIT\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
+
+	appSnaps := make(map[string][]WatchProc)
 	for _, stat := range snapshot.Applications {
+		if app, ok := sw.cliCmd.config.Applications[stat.Name]; ok {
+			appSnaps[app.Name] = append(appSnaps[app.Name], stat)
+		}
+	}
+
+	// beIo.StdoutF("app stat: %+v\n", appSnaps)
+
+	for _, appName := range maps.SortedKeys(sw.cliCmd.config.Applications) {
+		app, _ := sw.cliCmd.config.Applications[appName]
+
+		var appStats []WatchProc
 		var current, delayed int64
-		for _, app := range sw.cliCmd.config.Applications {
-			if app.Name == stat.Name {
-				for _, domain := range app.Domains {
-					for limitDomain, count := range rHosts {
-						if domain == limitDomain {
-							current += count
-							break
-						}
-					}
-					for limitDomain, count := range dHosts {
-						if domain == limitDomain {
-							delayed += count
-							break
-						}
-					}
+
+		if v, ok := appSnaps[app.Name]; ok {
+			appStats = v
+		} else {
+			_, _ = tw.Write([]byte(app.Name + "\t-\t-\t-\t-\t-\t-\t-/-\t-\n"))
+			continue
+		}
+
+		appThisSlug := app.GetThisSlug()
+		appNextSlug := app.GetNextSlug()
+		slugInstances := make(map[int]*SlugInstance)
+		statInstances := make(map[int]WatchProc)
+		for _, as := range appStats {
+			if as.Pid > 0 {
+				if si := app.GetSlugInstanceByPid(as.Pid); si != nil {
+					slugInstances[as.Pid] = si
+					statInstances[as.Pid] = as
 				}
-				break
 			}
 		}
-		writeEntry(tw, stat, current, delayed)
+
+		trimCommit := func(commit string) (trimmed string) {
+			if len(commit) > 8 {
+				trimmed = commit[:8]
+			} else {
+				trimmed = commit
+			}
+			return
+		}
+
+		if len(slugInstances) == 0 {
+			if appThisSlug != nil && appNextSlug != nil {
+				thisCommit := trimCommit(appThisSlug.Commit)
+				nextCommit := trimCommit(appNextSlug.Commit)
+				_, _ = tw.Write([]byte(app.Name + "\t \t \t \t \t \t \t \t-\n"))
+				_, _ = tw.Write([]byte(" |- slug:-this-" + "\t" + thisCommit + "\t-\t-\t-\t-\t-\t-/-\t-\n"))
+				_, _ = tw.Write([]byte(" `- slug:-next-" + "\t" + nextCommit + "\t-\t-\t-\t-\t-\t-/-\t-\n"))
+			} else if appThisSlug != nil {
+				commit := trimCommit(appThisSlug.Commit)
+				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t-\t-\t-\t-\t-\t-/-\t-\n"))
+			} else if appNextSlug != nil {
+				commit := trimCommit(appNextSlug.Commit)
+				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t-\t-\t-\t-\t-\t-/-\t-\n"))
+			} else {
+				_, _ = tw.Write([]byte(app.Name + "\t-\t-\t-\t-\t-\t-\t-/-\t-\n"))
+			}
+			continue
+		}
+
+		for _, domain := range app.Domains {
+			for limitDomain, count := range rHosts {
+				if domain == limitDomain {
+					current += count
+					break
+				}
+			}
+			for limitDomain, count := range dHosts {
+				if domain == limitDomain {
+					delayed += count
+					break
+				}
+			}
+		}
+
+		if len(statInstances) == 1 {
+			for pid, st := range statInstances {
+				si, _ := slugInstances[pid]
+				writeEntry(tw, app.Name, si.Slug.Commit[:8], st, current, delayed, false)
+				break
+			}
+			continue
+		}
+
+		_, _ = tw.Write([]byte(app.Name + "\t \t \t \t \t \t \t \t" + formatReqDelay(current, delayed) + "\n"))
+		numInstances := len(slugInstances)
+		var count int
+		for pid, si := range slugInstances {
+			var label string
+			if count != numInstances-1 {
+				label = " |- slug:" + si.Hash[:6]
+			} else {
+				label = " `- slug:" + si.Hash[:6]
+			}
+			st, _ := statInstances[pid]
+			st.Name = label
+
+			port := strconv.Itoa(si.Port)
+			var c, d int64
+			if v, ok := rPorts[port]; ok {
+				c = v
+			}
+			if v, ok := dPorts[port]; ok {
+				d = v
+			}
+
+			writeEntry(tw, app.Name, si.Slug.Commit[:8], st, c, d, false)
+			count += 1
+		}
+
 	}
+
 	_ = tw.Flush()
 	_ = sw.appLabel.SetMarkup(buf.String())
 
