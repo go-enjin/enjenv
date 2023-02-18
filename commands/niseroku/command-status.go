@@ -149,11 +149,13 @@ func (c *Command) statusDisplayWatchingSnapshot(snapshot *WatchSnapshot) {
 	return
 }
 
-func parseProxyLimits(proxyLimits string) (rTotal, dTotal int64, rHosts, rAddrs, dHosts, dAddrs map[string]int64) {
+func parseProxyLimits(proxyLimits string) (rTotal, dTotal int64, rHosts, rAddrs, rPorts, dHosts, dAddrs, dPorts map[string]int64) {
 	rHosts = make(map[string]int64)
 	rAddrs = make(map[string]int64)
+	rPorts = make(map[string]int64)
 	dHosts = make(map[string]int64)
 	dAddrs = make(map[string]int64)
+	dPorts = make(map[string]int64)
 
 	for _, line := range strings.Split(proxyLimits, "\n") {
 		line = strings.TrimSpace(line)
@@ -165,6 +167,8 @@ func parseProxyLimits(proxyLimits string) (rTotal, dTotal int64, rHosts, rAddrs,
 					rHosts[nameParts[1]], _ = strconv.ParseInt(parts[1], 10, 64)
 				} else if nameParts[0] == "addr" {
 					rAddrs[nameParts[1]], _ = strconv.ParseInt(parts[1], 10, 64)
+				} else if nameParts[0] == "port" {
+					rPorts[nameParts[1]], _ = strconv.ParseInt(parts[1], 10, 64)
 				}
 			case 3:
 				if nameParts[0] == "delay" {
@@ -172,6 +176,8 @@ func parseProxyLimits(proxyLimits string) (rTotal, dTotal int64, rHosts, rAddrs,
 						dHosts[nameParts[2]], _ = strconv.ParseInt(parts[1], 10, 64)
 					} else if nameParts[1] == "addr" {
 						dAddrs[nameParts[2]], _ = strconv.ParseInt(parts[1], 10, 64)
+					} else if nameParts[1] == "port" {
+						rPorts[nameParts[2]], _ = strconv.ParseInt(parts[1], 10, 64)
 					}
 				}
 			default:
@@ -191,7 +197,7 @@ func (c *Command) statusDisplayWatchingProxyLimits(proxyLimits string) {
 	buf := bytes.NewBuffer([]byte(""))
 	tw := tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
 
-	rTotal, dTotal, rHosts, rAddrs, dHosts, dAddrs := parseProxyLimits(proxyLimits)
+	rTotal, dTotal, rHosts, rAddrs, _, dHosts, dAddrs, _ := parseProxyLimits(proxyLimits)
 
 	_, _ = tw.Write([]byte("[ PROXY LIMITS ]\t[ CURRENT ]\t[ DELAYED ]\n"))
 	_, _ = tw.Write([]byte(fmt.Sprintf("(total)\t%d\t%d\n", rTotal, dTotal)))
