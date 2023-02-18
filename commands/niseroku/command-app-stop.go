@@ -17,8 +17,9 @@ package niseroku
 import (
 	"fmt"
 
-	"github.com/go-enjin/be/pkg/maps"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/be/pkg/maps"
 
 	"github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -47,14 +48,24 @@ func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
 	for _, name := range appNames {
 		if app, ok := c.config.Applications[name]; !ok {
 			io.STDERR("%v application not found\n", name)
-		} else if slug := app.GetThisSlug(); slug != nil {
-			if slug.Stop() {
-				io.STDOUT("%v stopped\n", app.Name)
+		} else {
+			found := false
+			stopped := 0
+			if slug := app.GetThisSlug(); slug != nil {
+				found = true
+				stopped += slug.StopAll()
+			}
+			if slug := app.GetNextSlug(); slug != nil {
+				found = true
+				stopped += slug.StopAll()
+			}
+			if !found {
+				io.STDERR("%v this slug not found\n", name)
+			} else if stopped > 0 {
+				io.STDOUT("%v stopped %d instances\n", app.Name, stopped)
 			} else {
 				io.STDOUT("%v not running\n", app.Name)
 			}
-		} else {
-			io.STDERR("%v slug not found\n", name)
 		}
 	}
 
