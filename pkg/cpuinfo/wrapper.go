@@ -18,10 +18,16 @@
 
 package cpuinfo
 
-// #include "wrapper.h"
 import (
-	"C"
+	"bufio"
+	"fmt"
+	"os"
+	"regexp"
+	"strconv"
 )
+
+// #include "wrapper.h"
+import "C"
 
 func CpuTick() (t int64) {
 	return int64(C.read_cpu_tick())
@@ -47,6 +53,24 @@ func GetPidStats(pid int) (t int64, ppid, pgrp, nice, threads int) {
 		pgrp = int(cpgrp)
 		nice = int(cnice)
 		threads = int(cthreads)
+	}
+	return
+}
+
+var RxProcSmapsPssLine = regexp.MustCompile(`^\s*(Pss|SwapPss):\s*(\d+)\s*\S*\s*$`)
+
+func GetMemStats(pid int) (used uint64) {
+	if fh, err := os.OpenFile(fmt.Sprintf("/proc/%d/smaps", pid), os.O_RDONLY, 0); err == nil {
+		s := bufio.NewScanner(fh)
+		s.Split(bufio.ScanLines)
+		for s.Scan() {
+			text := s.Text()
+			if RxProcSmapsPssLine.MatchString(text) {
+				m := RxProcSmapsPssLine.FindAllStringSubmatch(text, 1)
+				v, _ := strconv.ParseUint(m[0][2], 10, 64)
+				used += v
+			}
+		}
 	}
 	return
 }

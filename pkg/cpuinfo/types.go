@@ -43,6 +43,7 @@ type Process struct {
 	Nice    int
 	Threads int
 	Usage   float32
+	MemUsed uint64
 }
 
 type Stats struct {

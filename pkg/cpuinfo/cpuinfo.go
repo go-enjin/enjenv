@@ -109,7 +109,6 @@ func (t *CpuInfo) GetStats() (stats Stats, err error) {
 
 		prevTotal := prevIdle + prevNonIdle
 		thisTotal := thisIdle + thisNonIdle
-		// fmt.Println(PrevIdle, Idle, prevNonIdle, thisNonIdle, prevTotal, thisTotal)
 
 		//  differentiate: actual value minus the previous one
 		totald := thisTotal - prevTotal
@@ -135,18 +134,19 @@ func (t *CpuInfo) GetProcesses(sortByUsage bool) (list []Process, err error) {
 
 	for _, v := range t.data {
 		if v.Dirty == false && v.Active == true {
-			p := Process{
+			var usage float32
+			if v.TimeThis-v.TimePrev > 0 {
+				usage = 1.0 / factor * float32(v.TimeThis-v.TimePrev)
+			}
+			list = append(list, Process{
 				Pid:     v.Pid,
 				Ppid:    v.Ppid,
 				Pgrp:    v.Pgrp,
 				Nice:    v.Nice,
 				Threads: v.Threads,
-				Usage:   0.0,
-			}
-			if v.TimeThis-v.TimePrev > 0 {
-				p.Usage = 1.0 / factor * float32(v.TimeThis-v.TimePrev)
-			}
-			list = append(list, p)
+				Usage:   usage,
+				MemUsed: GetMemStats(v.Pid),
+			})
 		}
 	}
 
