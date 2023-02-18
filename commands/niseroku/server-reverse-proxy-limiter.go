@@ -17,12 +17,18 @@ package niseroku
 import (
 	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/didip/tollbooth/v7"
 	"github.com/didip/tollbooth/v7/limiter"
-	"github.com/go-enjin/be/pkg/net"
 	"github.com/kataras/requestid"
+
+	"github.com/go-enjin/be/pkg/net"
+)
+
+var (
+	DefaultProxyLimitsStatLifetime = time.Second
 )
 
 func (rp *ReverseProxy) initRateLimiter() {
@@ -59,6 +65,16 @@ func (rp *ReverseProxy) reloadRateLimiter() {
 func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 	rp.initRateLimiter()
 	return requestid.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		var portKey string
+		if _, app, exists := rp.GetAppDomain(r); exists {
+			if thisSlug := app.GetThisSlug(); thisSlug != nil {
+				if port := thisSlug.GetPort(0); port > 0 {
+					portKey = "port," + strconv.Itoa(port)
+				}
+			}
+		}
+
 		rateLimits := rp.config.ProxyLimit
 		remoteAddr := "err"
 		if addr, err := net.GetIpFromRequest(r); err == nil {
@@ -69,7 +85,7 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 
 		go rp.tracking.Increment("__total__")
 		defer func() {
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(DefaultProxyLimitsStatLifetime)
 			rp.tracking.Decrement("__total__")
 		}()
 
@@ -77,10 +93,14 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 			var delayCount int
 			itrDelay := time.Duration(rateLimits.MaxDelay.Nanoseconds() / int64(rateLimits.DelayScale))
 			totalDelay := time.Duration(0)
-			go rp.tracking.Increment("__delay__", "delay,host,"+reqHost, "delay,addr,"+remoteAddr)
+			delayTrackingKeys := []string{"__delay__", "delay,host," + reqHost, "delay,addr," + remoteAddr}
+			if portKey != "" {
+				delayTrackingKeys = append(delayTrackingKeys, "delay,"+portKey)
+			}
+			go rp.tracking.Increment(delayTrackingKeys...)
 			defer func() {
-				time.Sleep(10 * time.Millisecond)
-				rp.tracking.Decrement("__delay__", "delay,host,"+reqHost, "delay,addr,"+remoteAddr)
+				time.Sleep(DefaultProxyLimitsStatLifetime)
+				rp.tracking.Decrement(delayTrackingKeys...)
 			}()
 			for delayCount = 1; delayCount <= rateLimits.DelayScale; delayCount++ {
 				time.Sleep(itrDelay)
@@ -111,10 +131,14 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 		}
 
 		// request is allowed
-		go rp.tracking.Increment("host,"+reqHost, "addr,"+remoteAddr)
+		trackingKeys := []string{"host," + reqHost, "addr," + remoteAddr}
+		if portKey != "" {
+			trackingKeys = append(trackingKeys, portKey)
+		}
+		go rp.tracking.Increment(trackingKeys...)
 		defer func() {
-			time.Sleep(10 * time.Millisecond)
-			rp.tracking.Decrement("host,"+reqHost, "addr,"+remoteAddr)
+			time.Sleep(DefaultProxyLimitsStatLifetime)
+			rp.tracking.Decrement(trackingKeys...)
 		}()
 		rp.ServeProxyHTTP(w, r)
 	}))
