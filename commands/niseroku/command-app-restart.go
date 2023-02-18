@@ -50,7 +50,7 @@ func (c *Command) actionAppRestart(ctx *cli.Context) (err error) {
 		app.NextSlug = app.ThisSlug
 		if ee := app.Save(true); ee != nil {
 			err = fmt.Errorf("error saving %v application config: %v\n", app.Name, ee)
-		} else if _, _, eee := pkgRun.EnjenvCmd("niseroku", "app", "start", app.Name); eee != nil {
+		} else if _, _, eee := pkgRun.EnjenvCmd("niseroku", "--config", c.config.Source, "app", "start", app.Name); eee != nil {
 			err = fmt.Errorf("error starting %v application: %v\n", app.Name, eee)
 		}
 		return

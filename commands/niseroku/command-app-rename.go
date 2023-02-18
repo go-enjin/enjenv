@@ -192,7 +192,7 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 
 	// - start new app name
 	if app, ok := c.config.Applications[newName]; ok {
-		if _, _, eee := pkgRun.EnjenvCmd("niseroku", "app", "start", app.Name); eee != nil {
+		if _, _, eee := pkgRun.EnjenvCmd("niseroku", "--config", c.config.Source, "app", "start", app.Name); eee != nil {
 			err = fmt.Errorf("error starting %v application: %v\n", app.Name, eee)
 			return
 		}

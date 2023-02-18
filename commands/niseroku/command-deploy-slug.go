@@ -100,7 +100,7 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 	}
 
 	for _, app := range maps.ValuesSortedByKeys(c.config.Applications) {
-		if _, _, ee := pkgRun.EnjenvCmd("niseroku", "app", "start", app.Name); ee != nil {
+		if _, _, ee := pkgRun.EnjenvCmd("niseroku", "--config", c.config.Source, "app", "start", app.Name); ee != nil {
 			beIo.StderrF("error running application: %v\n", app.Name)
 		}
 	}
