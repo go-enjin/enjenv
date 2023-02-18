@@ -28,10 +28,11 @@ import (
 
 type WatchProc struct {
 	Name    string
+	Hash    string
 	Pid     int
 	Cpu     float32
-	Mem     float32
-	Nice    int32
+	Mem     uint64
+	Nice    int
 	Ports   []int
 	Num     int
 	Threads int
@@ -145,18 +146,20 @@ func (w *Watching) updateSnapshot() {
 	w.snapshot.Services = []WatchProc{
 		{
 			Name:    "reverse-proxy",
-			Pid:     -1.0,
-			Cpu:     -1.0,
-			Mem:     -1.0,
+			Hash:    "",
+			Pid:     -1,
+			Cpu:     0,
+			Mem:     0,
 			Nice:    0,
 			Num:     0,
 			Threads: 0,
 		},
 		{
 			Name:    "git-repository",
-			Pid:     -1.0,
-			Cpu:     -1.0,
-			Mem:     -1.0,
+			Hash:    "",
+			Pid:     -1,
+			Cpu:     0,
+			Mem:     0,
 			Nice:    0,
 			Num:     0,
 			Threads: 0,
@@ -177,24 +180,54 @@ func (w *Watching) updateSnapshot() {
 	for _, app := range w.config.Applications {
 		w.snapshot.Applications = append(
 			w.snapshot.Applications,
-			w.updateSnapshotApplication(app),
+			w.updateSnapshotApplication(app)...,
 		)
 	}
 	sort.Sort(WatchingByUsage(w.snapshot.Applications))
 }
 
-func (w *Watching) updateSnapshotApplication(app *Application) (stat WatchProc) {
-	stat = WatchProc{
-		Name:    app.Name,
-		Pid:     -1.0,
-		Cpu:     -1.0,
-		Mem:     -1.0,
-		Nice:    0,
-		Num:     0,
-		Threads: 0,
+func (w *Watching) updateSnapshotApplication(app *Application) (stats []WatchProc) {
+
+	updateSlug := func(slug *Slug, next string) {
+		if slug.NumInstances() == 0 {
+			stat := WatchProc{
+				Name:    app.Name,
+				Hash:    next,
+				Pid:     -1,
+				Cpu:     0,
+				Mem:     0,
+				Nice:    0,
+				Num:     0,
+				Threads: 0,
+			}
+			stats = append(stats, stat)
+		} else {
+			for _, si := range slug.Instances {
+				stat := WatchProc{
+					Name:    app.Name,
+					Hash:    si.Hash,
+					Pid:     -1,
+					Cpu:     0,
+					Mem:     0,
+					Nice:    0,
+					Num:     0,
+					Threads: 0,
+				}
+				w.updateSnapshotEntry(&stat, si.PidFile, []int{si.Port})
+				stats = append(stats, stat)
+			}
+		}
 	}
+
+	var thisSlug string
 	if slug := app.GetThisSlug(); slug != nil {
-		w.updateSnapshotEntry(&stat, slug.PidFile, []int{slug.Port})
+		thisSlug = slug.Archive
+		updateSlug(slug, "0000000000")
+	}
+	if slug := app.GetNextSlug(); slug != nil {
+		if thisSlug != "" && thisSlug != slug.Archive {
+			updateSlug(slug, "0000000000")
+		}
 	}
 	return
 }
@@ -205,14 +238,17 @@ func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports [
 		var isRunning, isReady bool
 		var pid int = -1
 		var num, threads int
-		var nice int32
-		var usage, mem float32 = -1.0, -1.0
+		var nice int
+		var usage float32 = -1.0
+		var mem uint64 = 0
 
 		if v, ee := common.GetIntFromFile(pidfile); ee == nil {
 			pid = v
 			for _, proc := range w.cpulist {
 				if isRunning = proc.Pid == pid; isRunning {
 					usage, num, threads = w.getProcUsage(pid)
+					nice = proc.Nice
+					mem = w.getProcMemUsed(pid)
 					break
 				}
 			}
@@ -224,13 +260,6 @@ func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports [
 			}
 		}
 
-		if isRunning {
-			if proc, ee := common.GetProcessFromPid(pid); ee == nil {
-				mem, _ = proc.MemoryPercent()
-				nice, _ = proc.Nice()
-			}
-		}
-
 		entry.Pid = pid
 		entry.Cpu = usage
 		entry.Mem = mem
@@ -239,6 +268,20 @@ func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports [
 		entry.Num = num
 		entry.Threads = threads
 	}
+}
+
+func (w *Watching) getProcMemUsed(pid int) (used uint64) {
+	for _, proc := range w.cpulist {
+		if proc.Pid == pid {
+			// is this
+			used += proc.MemUsed
+		} else if proc.Ppid == pid || proc.Pgrp == pid {
+			// is related
+			u := w.getProcMemUsed(proc.Pid)
+			used += u
+		}
+	}
+	return
 }
 
 func (w *Watching) getProcUsage(pid int) (usage float32, num, threads int) {
