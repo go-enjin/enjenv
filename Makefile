@@ -18,6 +18,8 @@
 #CMD=echo
 
 BE_PATH ?= ../be
+CDK_PATH ?= ../../go-curses/cdk
+CTK_PATH ?= ../../go-curses/ctk
 
 BIN_NAME ?= enjenv
 
@@ -263,13 +265,26 @@ local:
 	else \
 		echo "BE_PATH not set or not a directory: \"${BE_PATH}\""; \
 	fi
+	@if [ -d "${CDK_PATH}" ]; then \
+		go mod edit -replace="github.com/go-curses/cdk=${CDK_PATH}"; \
+	else \
+		echo "CDK_PATH not set or not a directory: \"${CDK_PATH}\""; \
+	fi
+	@if [ -d "${CTK_PATH}" ]; then \
+		go mod edit -replace="github.com/go-curses/ctk=${CTK_PATH}"; \
+	else \
+		echo "CTK_PATH not set or not a directory: \"${CTK_PATH}\""; \
+	fi
 
 unlocal:
 	@go mod edit -dropreplace="github.com/go-enjin/be"
+	@go mod edit -dropreplace="github.com/go-curses/cdk"
+	@go mod edit -dropreplace="github.com/go-curses/ctk"
 
 tidy:
 	@go mod tidy
 
 be-update: export GOPROXY=direct
 be-update:
-	@go get github.com/go-enjin/be@latest
+	@echo "# go get github.com/go-enjin/be@latest github.com/go-curses/cdk@latest github.com/go-curses/ctk@latest"
+	@go get github.com/go-enjin/be@latest github.com/go-curses/ctk@latest
