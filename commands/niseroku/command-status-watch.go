@@ -22,6 +22,10 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
+var (
+	DefaultStatusWatchUpdateFrequency = time.Second
+)
+
 func (c *Command) actionStatusWatch(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
@@ -29,8 +33,14 @@ func (c *Command) actionStatusWatch(ctx *cli.Context) (err error) {
 	if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
 		return
 	}
+	var freq time.Duration
+	if ctx.IsSet("update-frequency") {
+		freq = ctx.Duration("update-frequency")
+	} else {
+		freq = DefaultStatusWatchUpdateFrequency
+	}
 	var sw *StatusWatch
-	if sw, err = NewStatusWatch(c, time.Second); err != nil {
+	if sw, err = NewStatusWatch(c, freq, ctx.Path("tty-path")); err != nil {
 		return
 	}
 	err = sw.Run(ctx)

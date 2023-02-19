@@ -35,6 +35,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/maps"
 	beStrings "github.com/go-enjin/be/pkg/strings"
+
 	"github.com/go-enjin/enjenv/pkg/globals"
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
@@ -55,6 +56,10 @@ var (
 	IncludeLogTimestamps      = "false"
 	IncludeLogTimestampFormat = "false"
 	IncludeLogOutput          = "true"
+)
+
+var (
+	DefaultStatusWatchTtyPath = "/dev/tty"
 )
 
 func init() {
@@ -104,32 +109,70 @@ type StatusWatch struct {
 	sync.RWMutex
 }
 
-func NewStatusWatch(cmd *Command, freq time.Duration) (sw *StatusWatch, err error) {
+func NewStatusWatch(cmd *Command, freq time.Duration, ttyPath string) (sw *StatusWatch, err error) {
+	if ttyPath == "" {
+		ttyPath = DefaultStatusWatchTtyPath
+	}
 	app := ctk.NewApplication(
-		"niseroku",
+		"niseroku-status-watch",
 		"Niseroku status watch",
 		"Basically 'top' for niseroku services and applications",
 		globals.BuildVersion,
-		"status-watch",
+		"niseroku-status-watch",
 		fmt.Sprintf("niseroku status watch - %v", globals.DisplayVersion),
-		"/dev/tty",
+		ttyPath,
 	)
+	if cliApp := app.CLI(); cliApp != nil {
+		cliApp.UsageText = "enjenv niseroku status watch [options] -- [curses options]"
+		cliApp.Flags = append(
+			cliApp.Flags,
+			[]cli.Flag{
+				&cli.DurationFlag{
+					Name:    "update-frequency",
+					Usage:   "time.Duration between update cycles",
+					Aliases: []string{"n"},
+				},
+			}...,
+		)
+	}
 	sw = &StatusWatch{
 		cliCmd: cmd,
 		ctkApp: app,
 		freq:   freq,
 	}
-	if sw.watching, err = NewWatching(cmd.config, freq, sw.update); err != nil {
-		return
-	}
-	app.Connect(cdk.SignalStartup, "status-watch-startup-handler", sw.startup)
-	app.Connect(cdk.SignalShutdown, "status-watch-quit-handler", sw.shutdown)
 	return
 }
 
 func (sw *StatusWatch) Run(ctx *cli.Context) (err error) {
-	err = sw.ctkApp.Run(ctx.Args().Slice())
+	sw.ctkApp.Connect(cdk.SignalPrepare, "status-watch-prepare-handler", sw.prepare)
+	sw.ctkApp.Connect(cdk.SignalStartup, "status-watch-startup-handler", sw.startup)
+	sw.ctkApp.Connect(cdk.SignalShutdown, "status-watch-quit-handler", sw.shutdown)
+	err = sw.ctkApp.Run(append([]string{"enjenv--niseroku--status--watch"}, ctx.Args().Slice()...))
 	return
+}
+
+func (sw *StatusWatch) prepare(data []interface{}, argv ...interface{}) cenums.EventFlag {
+	var ok bool
+	var ctx *cli.Context
+	if len(argv) >= 2 {
+		if ctx, ok = argv[1].(*cli.Context); !ok {
+			beIo.STDERR("internal error\n")
+			return cenums.EVENT_STOP
+		}
+	} else {
+		beIo.STDERR("internal error\n")
+		return cenums.EVENT_STOP
+	}
+	freq := sw.freq
+	if ctx.IsSet("update-frequency") {
+		freq = ctx.Duration("update-frequency")
+	}
+	var err error
+	if sw.watching, err = NewWatching(sw.cliCmd.config, freq, sw.update); err != nil {
+		beIo.STDERR("error with new watching: %v\n", err)
+		return cenums.EVENT_STOP
+	}
+	return cenums.EVENT_PASS
 }
 
 func (sw *StatusWatch) quitAction(argv ...interface{}) (handled bool) {
