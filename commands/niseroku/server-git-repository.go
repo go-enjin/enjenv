@@ -21,11 +21,11 @@ import (
 	"sync"
 
 	"github.com/sosedoff/gitkit"
-	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
 	"github.com/go-enjin/enjenv/pkg/basepath"
+	"github.com/go-enjin/enjenv/pkg/profiling"
 	"github.com/go-enjin/enjenv/pkg/service"
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -37,19 +37,6 @@ type GitRepository struct {
 
 	repo  *gitkit.SSH
 	gkcfg gitkit.Config
-}
-
-func (c *Command) actionGitRepository(ctx *cli.Context) (err error) {
-	if err = c.Prepare(ctx); err != nil {
-		return
-	}
-	gr := NewGitRepository(c.config)
-	if gr.IsRunning() {
-		err = fmt.Errorf("git-repository already running")
-		return
-	}
-	err = gr.Start()
-	return
 }
 
 func NewGitRepository(config *Config) (gr *GitRepository) {
@@ -157,6 +144,7 @@ func (gr *GitRepository) Stop() (err error) {
 			gr.LogErrorF("error shutting down repo service: %v", ee)
 		}
 	}
+	profiling.Stop()
 	return
 }
 
