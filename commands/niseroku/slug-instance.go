@@ -28,6 +28,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
@@ -73,12 +74,30 @@ func NewSlugInstanceWithHash(slug *Slug, hash string) (si *SlugInstance, err err
 	return
 }
 
+func (s *SlugInstance) SendSignal(sig process.Signal) (sent bool) {
+	if pid, _ := s.GetPid(); pid > 0 {
+		if proc, err := common.GetProcessFromPid(s.Pid); err == nil {
+			ee := proc.SendSignal(sig)
+			sent = ee == nil
+		}
+	}
+	return
+}
+
+func (s *SlugInstance) SendStopSignal() (sent bool) {
+	sent = s.SendSignal(syscall.SIGTERM)
+	return
+}
+
+func (s *SlugInstance) SendReloadSignal() (sent bool) {
+	sent = s.SendSignal(syscall.SIGHUP)
+	return
+}
+
 func (s *SlugInstance) GetPid() (pid int, err error) {
 	s.Lock()
 	defer s.Unlock()
-	if s.Pid <= 0 {
-		pid = -1
-	}
+	s.Pid = -1
 	if bePath.IsFile(s.PidFile) {
 		if pid, err = common.GetIntFromFile(s.PidFile); err == nil {
 			s.Pid = pid
@@ -115,8 +134,8 @@ func (s *SlugInstance) Unpack() (err error) {
 	return
 }
 
-func (s *SlugInstance) ReadProcfile() (web string, err error) {
-	// TODO: ReadProcfile needs to return a map[string]string containing all Procfile entries
+func (s *SlugInstance) ReadProcfile() (procTypes map[string]string, err error) {
+	procTypes = make(map[string]string)
 	if bePath.IsDir(s.RunPath) {
 		procfile := s.RunPath + "/Procfile"
 		if bePath.IsFile(procfile) {
@@ -124,12 +143,14 @@ func (s *SlugInstance) ReadProcfile() (web string, err error) {
 			if data, err = os.ReadFile(procfile); err != nil {
 				return
 			}
-			procdata := string(data)
-			if RxSlugProcfileWebEntry.MatchString(procdata) {
-				m := RxSlugProcfileWebEntry.FindAllStringSubmatch(procdata, 1)
-				web = m[0][1]
+			contents := string(data)
+			if RxSlugProcfileEntries.MatchString(contents) {
+				m := RxSlugProcfileEntries.FindAllStringSubmatch(contents, 1)
+				for _, mm := range m {
+					procTypes[mm[1]] = mm[2]
+				}
 			} else {
-				err = fmt.Errorf("slug procfile missing web entry:\n%v", procdata)
+				err = fmt.Errorf("slug procfile missing web entry:\n%v", contents)
 			}
 		} else {
 			err = fmt.Errorf("slug missing Procfile: %v", s.Slug.Name)
@@ -143,15 +164,19 @@ func (s *SlugInstance) ReadProcfile() (web string, err error) {
 func (s *SlugInstance) IsReady() (ready bool) {
 	s.RLock()
 	defer s.RUnlock()
-	ready = s.Port > 0 && common.IsAddressPortOpen(s.Slug.App.Origin.Host, s.Port)
+	ready = s.Port > 0
 	return
 }
 
 func (s *SlugInstance) IsRunning() (running bool) {
 	s.RLock()
 	defer s.RUnlock()
-	if proc, err := s.GetBinProcess(); err == nil && proc != nil {
-		running = proc.Pid > 0
+	if running = s.Pid > 0; !running {
+		if proc, err := s.GetBinProcess(); err == nil && proc != nil {
+			if running = proc.Pid > 0; running {
+				s.Pid = int(proc.Pid)
+			}
+		}
 	}
 	return
 }
@@ -163,7 +188,11 @@ func (s *SlugInstance) IsRunningReady() (running, ready bool) {
 }
 
 func (s *SlugInstance) GetBinProcess() (proc *process.Process, err error) {
-	proc, err = common.GetProcessFromPidFile(s.PidFile)
+	if s.Pid > 0 {
+		proc, err = common.GetProcessFromPid(s.Pid)
+	} else if proc, err = common.GetProcessFromPidFile(s.PidFile); err == nil && proc.Pid > 0 {
+		s.Pid = int(proc.Pid)
+	}
 	return
 }
 
@@ -189,10 +218,13 @@ func (s *SlugInstance) PrepareStart(port int) (webCmd string, webArgv, environ [
 		return
 	}
 
-	var web string
-	if web, err = s.ReadProcfile(); err != nil {
-		err = fmt.Errorf("error reading Procfile: %v", err)
-		return
+	web := "make run" // default Enjin.mk invocation
+	if procTypes, ee := s.ReadProcfile(); ee == nil {
+		if found, ok := procTypes["web"]; !ok {
+			s.Slug.App.LogInfoF("slug Procfile exists, web type not found: %v", s.Slug.Name)
+		} else {
+			web = found
+		}
 	}
 
 	s.Slug.App.LogInfoF("preparing slug instance: PORT=%d %v (%v)\n", port, web, s.Slug.Name)
@@ -276,20 +308,6 @@ func (s *SlugInstance) Start(port int) (err error) {
 }
 
 func (s *SlugInstance) Stop() (stopped bool) {
-	if bePath.IsDir(s.RunPath) {
-		if err := os.RemoveAll(s.RunPath); err != nil {
-			s.Slug.App.LogErrorF("error removing slug run path: %v - %v\n", s.RunPath, err)
-		} else {
-			s.Slug.App.LogInfoF("removed slug run path: %v\n", s.RunPath)
-		}
-	}
-	if bePath.IsFile(s.PortFile) {
-		if err := os.Remove(s.PortFile); err != nil {
-			s.Slug.App.LogErrorF("error removing slug port file: %v - %v\n", s.PortFile, err)
-		} else {
-			s.Slug.App.LogInfoF("removed slug port file: %v\n", s.PortFile)
-		}
-	}
 	if bePath.IsFile(s.PidFile) {
 		if proc, err := s.GetBinProcess(); err == nil && proc != nil {
 			if err = proc.SendSignal(syscall.SIGTERM); err != nil {
@@ -304,6 +322,20 @@ func (s *SlugInstance) Stop() (stopped bool) {
 			s.Slug.App.LogErrorF("error removing slug pid file: %v - %v\n", s.PidFile, err)
 		} else {
 			s.Slug.App.LogInfoF("removed slug pid file: %v\n", s.PidFile)
+		}
+	}
+	if bePath.IsDir(s.RunPath) {
+		if err := os.RemoveAll(s.RunPath); err != nil {
+			s.Slug.App.LogErrorF("error removing slug run path: %v - %v\n", s.RunPath, err)
+		} else {
+			s.Slug.App.LogInfoF("removed slug run path: %v\n", s.RunPath)
+		}
+	}
+	if bePath.IsFile(s.PortFile) {
+		if err := os.Remove(s.PortFile); err != nil {
+			s.Slug.App.LogErrorF("error removing slug port file: %v - %v\n", s.PortFile, err)
+		} else {
+			s.Slug.App.LogInfoF("removed slug port file: %v\n", s.PortFile)
 		}
 	}
 	return

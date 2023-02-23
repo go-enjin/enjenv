@@ -26,6 +26,9 @@ import (
 
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
+	beStrings "github.com/go-enjin/be/pkg/strings"
+
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 type Slug struct {
@@ -34,7 +37,13 @@ type Slug struct {
 	Commit  string
 	Archive string
 
-	Instances []*SlugInstance
+	SettingsFile string
+
+	Settings *SlugSettings
+	Workers  map[string]*SlugInstance
+
+	liveHash     int
+	liveHashLock *sync.RWMutex
 
 	sync.RWMutex
 }
@@ -45,10 +54,12 @@ func NewSlugFromZip(app *Application, archive string) (slug *Slug, err error) {
 		return
 	}
 	slug = &Slug{
-		App:     app,
-		Name:    bePath.Base(archive),
-		Archive: archive,
+		App:          app,
+		Name:         bePath.Base(archive),
+		Archive:      archive,
+		liveHashLock: &sync.RWMutex{},
 	}
+	slug.SettingsFile = filepath.Join(app.Config.Paths.TmpRun, slug.Name+".settings")
 	if RxSlugArchiveName.MatchString(slug.Archive) {
 		m := RxSlugArchiveName.FindAllStringSubmatch(slug.Archive, 1)
 		slug.Commit = m[0][2]
@@ -57,13 +68,22 @@ func NewSlugFromZip(app *Application, archive string) (slug *Slug, err error) {
 	return
 }
 
+func (s *Slug) String() string {
+	s.RLock()
+	defer s.RUnlock()
+	var workers []string
+	for _, worker := range s.Workers {
+		workers = append(workers, worker.String())
+	}
+	return fmt.Sprintf("*%s{\"workers\":[%v]}", s.Name, strings.Join(workers, ","))
+}
+
 func (s *Slug) ReloadSlugInstances() {
 	s.Lock()
 	defer s.Unlock()
 
-	s.Instances = make([]*SlugInstance, 0)
+	s.Workers = make(map[string]*SlugInstance)
 
-	hashes := make(map[string]bool)
 	if paths, err := bePath.List(s.App.Config.Paths.TmpRun); err == nil {
 		for _, path := range paths {
 			baseName := filepath.Base(path)
@@ -72,18 +92,56 @@ func (s *Slug) ReloadSlugInstances() {
 					m := RxSlugRunningName.FindAllStringSubmatch(path, 1)
 					// appName, commitId, hash, extn := m[0][1], m[0][2], m[0][3], m[0][4]
 					hash := m[0][3]
-					hashes[hash] = true
+					if _, exists := s.Workers[hash]; !exists {
+						if si, ee := NewSlugInstanceWithHash(s, hash); ee == nil {
+							s.Workers[hash] = si
+						} else {
+							s.App.LogErrorF("error loading slug instance: %v [%v] - %v", s.Name, hash, ee)
+						}
+					}
 				}
 			}
 		}
 	}
 
-	for _, hash := range maps.SortedKeys(hashes) {
-		// s.App.LogInfoF("loading slug instance with hash: %v.%v", s.Name, hash)
-		if si, err := NewSlugInstanceWithHash(s, hash); err == nil {
-			s.Instances = append(s.Instances, si)
+	if s.Settings == nil {
+		s.Settings, _ = NewSlugSettings(s.SettingsFile)
+	} else {
+		_ = s.Settings.Reload()
+	}
+
+	if numWorkers := len(s.Workers); numWorkers == 0 {
+		// no workers
+		return
+	} else if numLive := len(s.Settings.Live); numLive > 0 {
+		// already live
+		return
+	} else if numNext := len(s.Settings.Next); numNext > 0 {
+		// already starting
+	} else {
+		// have workers yet no settings
+		s.Settings.Live = maps.SortedKeys(s.Workers)
+		_ = s.Settings.Save()
+		return
+	}
+
+	var live []string
+	for _, hash := range s.Settings.Live {
+		if _, exists := s.Workers[hash]; exists {
+			live = append(live, hash)
 		}
 	}
+	s.Settings.Live = live
+
+	var next []string
+	for _, hash := range s.Settings.Live {
+		if _, exists := s.Workers[hash]; exists {
+			next = append(next, hash)
+		}
+	}
+	s.Settings.Next = next
+
+	_ = s.Settings.Save()
 }
 
 func (s *Slug) GetSlugStartupTimeout() (timeout time.Duration) {
@@ -122,59 +180,110 @@ func (s *Slug) GetReadyIntervalTimeout() (timeout time.Duration) {
 	return
 }
 
-func (s *Slug) NumInstances() (num int) {
+func (s *Slug) GetNumWorkers() (num int) {
 	s.RLock()
 	defer s.RUnlock()
-	num = len(s.Instances)
+	num = len(s.Workers)
 	return
 }
 
-func (s *Slug) GetPort(idx int) (port int) {
-	s.RLock()
-	defer s.RUnlock()
-	if num := len(s.Instances); num > 0 && idx < num {
-		port = s.Instances[idx].Port
+func (s *Slug) GetLivePort() (livePort int) {
+	s.liveHashLock.RLock()
+	defer s.liveHashLock.RUnlock()
+	livePort = -1
+	var hash string
+	if liveCount := len(s.Settings.Live); s.liveHash >= 0 && s.liveHash < liveCount {
+		hash = s.Settings.Live[s.liveHash]
+	} else if liveCount > 0 {
+		s.liveHash = 0
+		hash = s.Settings.Live[0]
+	} else {
+		// no slug instances
+		s.App.LogErrorF("slug workers not found, no live ports to give: %v", s.Name)
+		return
+	}
+	if worker, ok := s.Workers[hash]; ok {
+		livePort = worker.Port
+	} else {
+		s.App.LogErrorF("slug worker by live hash not found: %v - %v", hash, s.Name)
 	}
 	return
 }
 
-func (s *Slug) IsRunning(idx int) (running bool) {
-	s.RLock()
-	defer s.RUnlock()
-	if num := len(s.Instances); num > 0 && idx < num {
-		running = s.Instances[idx].IsRunning()
+func (s *Slug) ConsumeLivePort() (consumedPort int) {
+	consumedPort = s.GetLivePort()
+	s.liveHashLock.Lock()
+	defer s.liveHashLock.Unlock()
+	s.liveHash += 1
+	if liveCount := len(s.Settings.Live); s.liveHash < 0 || s.liveHash > liveCount {
+		s.liveHash = 0
 	}
 	return
 }
 
-func (s *Slug) IsReady(idx int) (ready bool) {
+func (s *Slug) GetInstanceByPid(pid int) (si *SlugInstance) {
 	s.RLock()
 	defer s.RUnlock()
-	if num := len(s.Instances); num > 0 && idx < num {
-		ready = s.Instances[idx].IsReady()
+	for _, worker := range s.Workers {
+		if worker.Pid > 0 {
+			if worker.Pid == pid {
+				si = worker
+				return
+			}
+		}
+		if workerPid, _ := worker.GetPid(); workerPid == pid {
+			si = worker
+			return
+		}
 	}
 	return
 }
 
-func (s *Slug) IsRunningReady(idx int) (running, ready bool) {
+func (s *Slug) IsRunning(hash string) (running bool) {
 	s.RLock()
 	defer s.RUnlock()
-	if num := len(s.Instances); num > 0 && idx < num {
-		running, ready = s.Instances[idx].IsRunningReady()
+	if worker, ok := s.Workers[hash]; ok {
+		running = worker.IsRunning()
 	}
 	return
 }
 
-func (s *Slug) Stop(idx int) (stopped bool) {
+func (s *Slug) IsReady(hash string) (ready bool) {
+	s.RLock()
+	defer s.RUnlock()
+	if worker, ok := s.Workers[hash]; ok {
+		ready = worker.IsReady()
+	}
+	return
+}
+
+func (s *Slug) IsRunningReady() (running, ready bool) {
+	s.RLock()
+	defer s.RUnlock()
+	for _, worker := range s.Workers {
+		ru, re := worker.IsRunningReady()
+		if ru && !running {
+			running = true
+		}
+		if re && !ready {
+			if ready = true; running {
+				return
+			}
+		}
+	}
+	return
+}
+
+func (s *Slug) StopWorker(hash string) (stopped bool) {
 	s.Lock()
 	defer s.Unlock()
-	if num := len(s.Instances); num > 0 && idx < num {
-		stopped = s.Instances[idx].Stop()
-		if last := len(s.Instances) - 1; idx < last {
-			s.Instances = append(s.Instances[:idx], s.Instances[idx+1:]...)
-		} else {
-			s.Instances = s.Instances[:idx]
+	if worker, ok := s.Workers[hash]; ok {
+		stopped = worker.SendStopSignal()
+		delete(s.Workers, hash)
+		if idx := beStrings.StringIndexInSlice(hash, s.Settings.Live); idx >= 0 {
+			s.Settings.Live = beStrings.RemoveIndexFromStrings(idx, s.Settings.Live)
 		}
+		_ = s.Settings.Save()
 	}
 	return
 }
@@ -182,69 +291,110 @@ func (s *Slug) Stop(idx int) (stopped bool) {
 func (s *Slug) StopAll() (stopped int) {
 	s.Lock()
 	defer s.Unlock()
-	for _, si := range s.Instances {
+	for _, si := range s.Workers {
 		if si.Stop() {
 			stopped += 1
 		}
 	}
-	s.Instances = make([]*SlugInstance, 0)
+	s.Workers = make(map[string]*SlugInstance)
+	_ = os.Remove(s.SettingsFile)
 	return
 }
 
-func (s *Slug) SendSignal(idx int, signal process.Signal) {
+func (s *Slug) SendSignalToAll(sig process.Signal) {
 	s.Lock()
 	defer s.Unlock()
-	if num := len(s.Instances); num > 0 && idx < num {
-		if proc, err := s.Instances[idx].GetBinProcess(); err == nil && proc != nil {
-			_ = proc.SendSignal(signal)
-		}
-	}
-}
-
-func (s *Slug) SendSignalToAll(signal process.Signal) {
-	s.Lock()
-	defer s.Unlock()
-	for _, si := range s.Instances {
-		if proc, err := si.GetBinProcess(); err == nil && proc != nil {
-			_ = proc.SendSignal(signal)
-		}
+	for _, worker := range s.Workers {
+		worker.SendSignal(sig)
 	}
 }
 
 func (s *Slug) Destroy() (err error) {
+	s.StopAll()
 	s.Lock()
 	defer s.Unlock()
-	for _, si := range s.Instances {
-		si.Stop()
-	}
 	if bePath.IsFile(s.Archive) {
-		if err = os.Remove(s.Archive); err != nil {
+		err = os.Remove(s.Archive)
+	}
+	return
+}
+
+func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
+	if len(s.Settings.Next) > 0 {
+		err = fmt.Errorf("already starting next workers: %v", s.Name)
+		return
+	}
+
+	slugStartupTimeout := s.GetSlugStartupTimeout()
+	readyIntervalTimeout := s.GetReadyIntervalTimeout()
+
+	var numReady int
+	wg := &sync.WaitGroup{}
+
+	for i := 0; i < s.App.GetWebWorkers(); i++ {
+
+		start := time.Now()
+
+		reservedPort := s.App.Config.GetUnusedPort()
+		_ = s.App.Config.ReservePort(reservedPort, s.App)
+
+		var si *SlugInstance
+		if si, err = NewSlugInstance(s); err != nil {
+			return
+		}
+
+		wg.Add(1)
+		go func() {
+			if ee := si.StartForeground(reservedPort); ee != nil {
+				s.App.LogErrorF("slug instance start error: %v [%v] - %v", s.Name, si.Hash, ee)
+			}
+			wg.Done()
+		}()
+
+		go func() {
+			s.App.LogInfoF("polling slug startup: %v - %v\n", s.Name, slugStartupTimeout)
+			for now := time.Now(); now.Sub(start) < slugStartupTimeout; now = time.Now() {
+				if common.IsAddressPortOpenWithTimeout(s.App.Origin.Host, reservedPort, readyIntervalTimeout) {
+					if numReady += 1; numReady >= s.App.GetWebWorkers() {
+						s.liveHashLock.Lock()
+						_ = s.App.Config.PromotePortReservation(reservedPort)
+						for _, hash := range s.Settings.Live {
+							if worker, ok := s.Workers[hash]; ok {
+								if worker.Port > 0 {
+									s.App.Config.RemoveFromPortLookup(worker.Port)
+								}
+								worker.Stop()
+							}
+						}
+						s.Settings.Live = s.Settings.Next
+						s.Settings.Next = make([]string, 0)
+						if ee := s.Settings.Save(); ee != nil {
+							s.App.LogErrorF("error saving settings on all workers ready: %v - %v", s.Name, ee)
+						}
+						s.liveHashLock.Unlock()
+						if workersReady != nil {
+							workersReady <- true
+						}
+					}
+					s.App.LogInfoF("slug %d of %d ready: %v [%v] on port %d (%v)\n", numReady, s.App.GetWebWorkers(), s.Name, si.Hash, reservedPort, time.Now().Sub(start))
+					return
+				}
+			}
+
+			s.App.LogInfoF("slug startup timeout reached: %v [%v] on port %d\n", s.Name, si.Hash, reservedPort)
+			s.StopWorker(si.Hash)
+			err = fmt.Errorf("slug startup timeout reached")
+			if workersReady != nil {
+				workersReady <- true
+			}
+		}()
+
+		s.Settings.Next = append(s.Settings.Next, si.Hash)
+		if err = s.Settings.Save(); err != nil {
 			return
 		}
 	}
-	return
-}
 
-func (s *Slug) StartForeground(port int) (err error) {
-	var si *SlugInstance
-	if si, err = NewSlugInstance(s); err != nil {
-		return
-	}
-	s.Lock()
-	s.Instances = append(s.Instances, si)
-	s.Unlock()
-	err = si.StartForeground(port)
-	return
-}
-
-func (s *Slug) Start(port int) (err error) {
-	var si *SlugInstance
-	if si, err = NewSlugInstance(s); err != nil {
-		return
-	}
-	s.Lock()
-	s.Instances = append(s.Instances, si)
-	s.Unlock()
-	err = si.Start(port)
+	wg.Wait()
 	return
 }
