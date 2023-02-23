@@ -119,11 +119,14 @@ func (t *CpuInfo) GetStats() (stats Stats, err error) {
 	}
 
 	stats = Stats{
-		MemTotal: *mi.MemTotal,
-		MemFree:  *mi.MemAvailable,
-		MemUsed:  *mi.MemTotal - *mi.MemAvailable,
-		CpuUsage: usages,
-		Uptime:   uptime,
+		MemTotal:  *mi.MemTotal,
+		MemFree:   *mi.MemAvailable,
+		MemUsed:   *mi.MemTotal - *mi.MemAvailable,
+		SwapTotal: *mi.SwapTotal,
+		SwapFree:  *mi.SwapFree,
+		SwapUsed:  *mi.SwapTotal - *mi.SwapFree,
+		CpuUsage:  usages,
+		Uptime:    uptime,
 	}
 	return
 }

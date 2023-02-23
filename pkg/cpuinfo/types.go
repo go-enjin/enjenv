@@ -47,11 +47,14 @@ type Process struct {
 }
 
 type Stats struct {
-	MemUsed  uint64
-	MemFree  uint64
-	MemTotal uint64
-	CpuUsage []float32
-	Uptime   time.Duration
+	MemUsed   uint64
+	MemFree   uint64
+	MemTotal  uint64
+	SwapUsed  uint64
+	SwapFree  uint64
+	SwapTotal uint64
+	CpuUsage  []float32
+	Uptime    time.Duration
 }
 
 func (s Stats) String() (text string) {
