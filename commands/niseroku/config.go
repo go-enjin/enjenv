@@ -78,6 +78,7 @@ type Config struct {
 	Users        []*User                 `toml:"-"`
 	Applications map[string]*Application `toml:"-"`
 	PortLookup   map[int]*Application    `toml:"-"`
+	ReservePorts map[int]*Application    `toml:"-"`
 	DomainLookup map[string]*Application `toml:"-"`
 
 	tomlMetaData toml.MetaData
@@ -422,6 +423,7 @@ func loadUsersApps(config *Config) (err error) {
 	}
 
 	config.PortLookup = make(map[int]*Application)
+	config.ReservePorts = make(map[int]*Application)
 	config.DomainLookup = make(map[string]*Application)
 	for _, app := range config.Applications {
 		for _, slug := range app.Slugs {

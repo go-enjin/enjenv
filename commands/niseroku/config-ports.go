@@ -15,6 +15,7 @@
 package niseroku
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -27,8 +28,51 @@ func (c *Config) GetUnusedPort() (port int) {
 	for loop := delta; loop > 0; loop -= 1 {
 		port = rand.Intn(delta) + c.Ports.AppStart
 		if _, exists := c.PortLookup[port]; !exists {
-			break
+			if _, reserved := c.ReservePorts[port]; !reserved {
+				break
+			}
 		}
 	}
+	return
+}
+
+func (c *Config) AddToPortLookup(port int, app *Application) {
+	c.Lock()
+	defer c.Unlock()
+	c.PortLookup[port] = app
+}
+
+func (c *Config) RemoveFromPortLookup(port int) {
+	c.Lock()
+	defer c.Unlock()
+	delete(c.PortLookup, port)
+}
+
+func (c *Config) ReservePort(port int, app *Application) (err error) {
+	c.Lock()
+	defer c.Unlock()
+	if existingApp, exists := c.ReservePorts[port]; exists {
+		err = fmt.Errorf("port already reserved by: %v", existingApp.Name)
+		return
+	}
+	c.ReservePorts[port] = app
+	return
+}
+
+func (c *Config) RemovePortReservation(port int) {
+	c.Lock()
+	defer c.Unlock()
+	delete(c.ReservePorts, port)
+}
+
+func (c *Config) PromotePortReservation(port int) (err error) {
+	c.Lock()
+	defer c.Unlock()
+	if app, reservationExists := c.ReservePorts[port]; reservationExists {
+		c.PortLookup[port] = app
+		delete(c.ReservePorts, port)
+		return
+	}
+	err = fmt.Errorf("port not reserved")
 	return
 }
