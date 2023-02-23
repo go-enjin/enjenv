@@ -32,6 +32,17 @@ var applicationTomlComments = TomlComments{
 		},
 	},
 	{
+		Statement: "[workers]",
+		Lines: []string{
+			": workers           (section)",
+			":    * specify number of slug workers per process type",
+		},
+	},
+	{
+		Statement: "web",
+		Inline:    ": default web worker type",
+	},
+	{
 		Statement: "this-slug",
 		Lines: []string{
 			": this-slug         (path)",

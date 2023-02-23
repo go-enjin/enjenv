@@ -19,29 +19,26 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/go-git/go-git/v5"
-	"github.com/iancoleman/strcase"
 
-	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
-	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 type Application struct {
-	Name        string   `toml:"-"`
-	BinName     string   `toml:"bin-name,omitempty"`
-	Domains     []string `toml:"domains,omitempty"`
 	Maintenance bool     `toml:"maintenance,omitempty"`
-	ThisSlug    string   `toml:"this-slug,omitempty"`
-	NextSlug    string   `toml:"next-slug,omitempty"`
+	Domains     []string `toml:"domains,omitempty"`
+
+	ThisSlug string `toml:"this-slug,omitempty"`
+	NextSlug string `toml:"next-slug,omitempty"`
+
+	Workers map[string]int `toml:"workers,omitempty"`
 
 	Timeouts AppTimeouts `toml:"timeouts,omitempty"`
 
@@ -49,16 +46,18 @@ type Application struct {
 
 	Origin AppOrigin `toml:"origin"`
 
+	Name      string           `toml:"-"`
 	Slugs     map[string]*Slug `toml:"-"`
 	Config    *Config          `toml:"-"`
 	Source    string           `toml:"-"`
 	GitRepo   *git.Repository  `toml:"-"`
+	PidFile   string           `toml:"-"`
 	RepoPath  string           `toml:"-"`
 	ErrorLog  string           `toml:"-"`
 	AccessLog string           `toml:"-"`
 	NoticeLog string           `toml:"-"`
 
-	await chan bool
+	awaitWorkersDone chan bool
 
 	tomlComments TomlComments
 
@@ -93,10 +92,11 @@ func LoadApplications(config *Config) (foundApps map[string]*Application, err er
 
 func NewApplication(source string, config *Config) (app *Application, err error) {
 	app = &Application{
-		Source: source,
-		Config: config,
-		Slugs:  make(map[string]*Slug),
-		await:  make(chan bool, 1),
+		Source:           source,
+		Config:           config,
+		Slugs:            make(map[string]*Slug),
+		awaitWorkersDone: make(chan bool, 1),
+		Workers:          make(map[string]int),
 	}
 	if err = app.Load(); err != nil {
 		return
@@ -119,8 +119,13 @@ func (a *Application) Load() (err error) {
 		contents = string(b)
 	}
 
-	if _, err = toml.Decode(contents, &a); err != nil {
+	var md toml.MetaData
+	if md, err = toml.Decode(contents, &a); err != nil {
 		return
+	}
+
+	if !md.IsDefined("workers") {
+		a.Workers["web"] = 1
 	}
 
 	if tcs, ee := ParseComments(contents); ee != nil {
@@ -131,10 +136,6 @@ func (a *Application) Load() (err error) {
 	}
 
 	a.Name = bePath.Base(a.Source)
-
-	if a.BinName != "" {
-		a.BinName = filepath.Base(a.BinName)
-	}
 
 	a.RepoPath = fmt.Sprintf("%v/%v.git", a.Config.Paths.VarRepos, a.Name)
 	a.ErrorLog = fmt.Sprintf("%s/%v.error.log", a.Config.Paths.VarLogs, a.Name)
@@ -148,10 +149,13 @@ func (a *Application) Load() (err error) {
 		err = fmt.Errorf("host setting not found")
 	case len(a.Domains) == 0:
 		err = fmt.Errorf("domains setting not found")
-	case a.ThisSlug != "":
-		if !bePath.IsFile(a.ThisSlug) {
-			a.ThisSlug = ""
-		}
+	}
+
+	if a.ThisSlug != "" && !bePath.IsFile(a.ThisSlug) {
+		a.ThisSlug = ""
+	}
+	if a.NextSlug != "" && !bePath.IsFile(a.NextSlug) {
+		a.NextSlug = ""
 	}
 	return
 }
@@ -179,119 +183,26 @@ func (a *Application) String() string {
 	return fmt.Sprintf("*%s{\"%s\":[%v]}", a.Name, a.Origin.String(), strings.Join(a.Domains, ","))
 }
 
-func (a *Application) SetupRepo() (err error) {
+func (a *Application) LoadAllSlugs() (err error) {
 	a.Lock()
 	defer a.Unlock()
-	if a.GitRepo != nil {
-		return
-	}
-	if !bePath.IsDir(a.RepoPath) {
-		if err = bePath.Mkdir(a.RepoPath); err != nil {
-			err = fmt.Errorf("error making application repo path: %v - %v", a.RepoPath, err)
-			return
-		}
-		repoHooksPath := a.RepoPath + "/hooks"
-		if err = bePath.Mkdir(repoHooksPath); err != nil {
-			err = fmt.Errorf("error making application repo hooks path: %v - %v", repoHooksPath, err)
-			return
-		}
-	}
-	if a.GitRepo, err = git.PlainInit(a.RepoPath, true); err != nil && err == git.ErrRepositoryAlreadyExists {
-		a.GitRepo, err = git.PlainOpen(a.RepoPath)
-	}
-	if ee := common.RepairOwnership(a.RepoPath, a.Config.RunAs.User, a.Config.RunAs.Group); ee != nil {
-		a.LogErrorF("error repairing git repo ownership: %v - %v", a.RepoPath, ee)
-	}
-	return
-}
 
-func (a *Application) LoadAllSlugs() (err error) {
 	var files []string
 	if files, err = bePath.ListFiles(a.Config.Paths.VarSlugs); err != nil {
 		return
 	}
+
 	for _, file := range files {
 		name := bePath.Base(file)
-		if strings.HasPrefix(name, a.Name+"--") {
-			a.RLock()
-			if _, exists := a.Slugs[name]; exists {
-				a.RUnlock()
-				continue
-			}
-			a.RUnlock()
-			if slug, ee := NewSlugFromZip(a, file); ee != nil {
-				a.LogErrorF("error making slug from %v: %v\n", file, ee)
-			} else {
-				a.Lock()
-				a.Slugs[slug.Name] = slug
-				a.Unlock()
-			}
-		}
-	}
-	return
-}
-
-func (a *Application) GetSlugInstanceByPid(pid int) (si *SlugInstance) {
-	a.RLock()
-	defer a.RUnlock()
-	for _, slug := range a.Slugs {
-		for _, instance := range slug.Instances {
-			if instancePid, err := instance.GetPid(); err == nil {
-				if instancePid == pid {
-					si = instance
-					return
+		if _, exists := a.Slugs[name]; !exists {
+			if strings.HasPrefix(name, a.Name+"--") {
+				if slug, ee := NewSlugFromZip(a, file); ee != nil {
+					a.LogErrorF("error making slug from %v: %v\n", file, ee)
+				} else {
+					a.Slugs[slug.Name] = slug
 				}
 			}
 		}
-	}
-	return
-}
-
-func (a *Application) GetThisSlug() (slug *Slug) {
-	a.RLock()
-	defer a.RUnlock()
-	if a.ThisSlug != "" {
-		name := bePath.Base(a.ThisSlug)
-		if found, ok := a.Slugs[name]; ok {
-			slug = found
-		}
-	}
-	return
-}
-
-func (a *Application) GetNextSlug() (slug *Slug) {
-	a.RLock()
-	defer a.RUnlock()
-	if a.NextSlug != "" {
-		name := bePath.Base(a.NextSlug)
-		if found, ok := a.Slugs[name]; ok {
-			slug = found
-		}
-	}
-	return
-}
-
-func (a *Application) ApplySettings(envDir string) (err error) {
-	// a.LogInfoF("applying settings to: %v\n", envDir)
-	a.RLock()
-	defer a.RUnlock()
-	for _, k := range maps.SortedKeys(a.Settings) {
-		key := strcase.ToScreamingSnake(k)
-		value := fmt.Sprintf("%v", a.Settings[k])
-		if err = os.WriteFile(envDir+"/"+key, []byte(value), 0660); err != nil {
-			return
-		}
-	}
-	return
-}
-
-func (a *Application) OsEnviron() (environment []string) {
-	a.RLock()
-	defer a.RUnlock()
-	environment = os.Environ()
-	for _, k := range maps.SortedKeys(a.Settings) {
-		key := strcase.ToScreamingSnake(k)
-		environment = append(environment, fmt.Sprintf("%v=%v", key, a.Settings[k]))
 	}
 	return
 }
@@ -300,9 +211,9 @@ func (a *Application) LogInfoF(format string, argv ...interface{}) {
 	beIo.AppendF(a.NoticeLog, "["+a.Name+"] "+format, argv...)
 }
 
-func (a *Application) LogAccessF(status int, remoteAddr string, r *http.Request) {
+func (a *Application) LogAccessF(status int, remoteAddr string, r *http.Request, start time.Time) {
 	beIo.AppendF(a.AccessLog,
-		"[%v] [%v] %v - %v - (%d) - %v %v\n",
+		"[%v] [%v] %v - %v - (%d) - %v %v (%v)\n",
 		a.Name,
 		time.Now().Format("20060102-150405"),
 		remoteAddr,
@@ -310,6 +221,7 @@ func (a *Application) LogAccessF(status int, remoteAddr string, r *http.Request)
 		status,
 		r.Method,
 		r.URL.Path,
+		time.Now().Sub(start).String(),
 	)
 }
 
