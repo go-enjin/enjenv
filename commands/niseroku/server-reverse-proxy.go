@@ -29,6 +29,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/profiling"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
@@ -262,12 +263,12 @@ func (rp *ReverseProxy) Reload() (err error) {
 		}
 		for _, app := range rp.config.Applications {
 			if thisSlug := app.GetThisSlug(); thisSlug != nil {
-				thisSlug.ReloadSlugInstances()
+				thisSlug.RefreshWorkers()
 			} else {
 				rp.LogInfoF("this slug not found: %v", app.Name)
 			}
 			if nextSlug := app.GetNextSlug(); nextSlug != nil {
-				nextSlug.ReloadSlugInstances()
+				nextSlug.RefreshWorkers()
 			}
 		}
 	}

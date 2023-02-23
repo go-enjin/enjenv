@@ -73,7 +73,7 @@ func (a *Application) OsEnviron() (environment []string) {
 	return
 }
 
-func (a *Application) GetSlugInstanceByPid(pid int) (si *SlugInstance) {
+func (a *Application) GetSlugWorkerByPid(pid int) (si *SlugWorker) {
 	a.RLock()
 	defer a.RUnlock()
 	for _, slug := range a.Slugs {

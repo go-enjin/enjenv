@@ -751,11 +751,11 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 		appThisSlug := app.GetThisSlug()
 		appNextSlug := app.GetNextSlug()
-		slugInstances := make(map[int]*SlugInstance)
+		slugInstances := make(map[int]*SlugWorker)
 		statInstances := make(map[int]WatchProc)
 		for _, as := range appStats {
 			if as.Pid > 0 {
-				if si := app.GetSlugInstanceByPid(as.Pid); si != nil {
+				if si := app.GetSlugWorkerByPid(as.Pid); si != nil {
 					slugInstances[as.Pid] = si
 					statInstances[as.Pid] = as
 				}

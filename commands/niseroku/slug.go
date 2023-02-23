@@ -40,7 +40,7 @@ type Slug struct {
 	SettingsFile string
 
 	Settings *SlugSettings
-	Workers  map[string]*SlugInstance
+	Workers  map[string]*SlugWorker
 
 	liveHash     int
 	liveHashLock *sync.RWMutex
@@ -64,7 +64,7 @@ func NewSlugFromZip(app *Application, archive string) (slug *Slug, err error) {
 		m := RxSlugArchiveName.FindAllStringSubmatch(slug.Archive, 1)
 		slug.Commit = m[0][2]
 	}
-	slug.ReloadSlugInstances()
+	slug.RefreshWorkers()
 	return
 }
 
@@ -78,11 +78,11 @@ func (s *Slug) String() string {
 	return fmt.Sprintf("*%s{\"workers\":[%v]}", s.Name, strings.Join(workers, ","))
 }
 
-func (s *Slug) ReloadSlugInstances() {
+func (s *Slug) RefreshWorkers() {
 	s.Lock()
 	defer s.Unlock()
 
-	s.Workers = make(map[string]*SlugInstance)
+	s.Workers = make(map[string]*SlugWorker)
 
 	if paths, err := bePath.List(s.App.Config.Paths.TmpRun); err == nil {
 		for _, path := range paths {
@@ -93,7 +93,7 @@ func (s *Slug) ReloadSlugInstances() {
 					// appName, commitId, hash, extn := m[0][1], m[0][2], m[0][3], m[0][4]
 					hash := m[0][3]
 					if _, exists := s.Workers[hash]; !exists {
-						if si, ee := NewSlugInstanceWithHash(s, hash); ee == nil {
+						if si, ee := NewSlugWorkerWithHash(s, hash); ee == nil {
 							s.Workers[hash] = si
 						} else {
 							s.App.LogErrorF("error loading slug instance: %v [%v] - %v", s.Name, hash, ee)
@@ -221,7 +221,7 @@ func (s *Slug) ConsumeLivePort() (consumedPort int) {
 	return
 }
 
-func (s *Slug) GetInstanceByPid(pid int) (si *SlugInstance) {
+func (s *Slug) GetInstanceByPid(pid int) (si *SlugWorker) {
 	s.RLock()
 	defer s.RUnlock()
 	for _, worker := range s.Workers {
@@ -296,7 +296,7 @@ func (s *Slug) StopAll() (stopped int) {
 			stopped += 1
 		}
 	}
-	s.Workers = make(map[string]*SlugInstance)
+	s.Workers = make(map[string]*SlugWorker)
 	_ = os.Remove(s.SettingsFile)
 	return
 }
@@ -338,8 +338,8 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 		reservedPort := s.App.Config.GetUnusedPort()
 		_ = s.App.Config.ReservePort(reservedPort, s.App)
 
-		var si *SlugInstance
-		if si, err = NewSlugInstance(s); err != nil {
+		var si *SlugWorker
+		if si, err = NewSlugWorker(s); err != nil {
 			return
 		}
 

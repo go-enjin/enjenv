@@ -31,7 +31,7 @@ func (a *Application) Deploy() (err error) {
 			a.LogInfoF("deploying next: %v\n", nextSlug)
 		}
 	} else {
-		thisSlug.ReloadSlugInstances()
+		thisSlug.RefreshWorkers()
 		a.LogInfoF("deploying this: %v\n", thisSlug)
 	}
 
@@ -51,7 +51,7 @@ func (a *Application) Deploy() (err error) {
 		a.LogErrorF("error migrating next slug: %v\n", tgtSlug.Name)
 		return
 	}
-	tgtSlug.ReloadSlugInstances()
+	tgtSlug.RefreshWorkers()
 	a.LogInfoF("migrated to slug: %v\n", tgtSlug)
 	<-a.awaitWorkersDone
 

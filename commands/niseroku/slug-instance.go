@@ -32,7 +32,7 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
-type SlugInstance struct {
+type SlugWorker struct {
 	Slug *Slug  `toml:"-"`
 	Hash string `toml:"hash"`
 	Name string `toml:"name"`
@@ -48,13 +48,13 @@ type SlugInstance struct {
 	sync.RWMutex
 }
 
-func NewSlugInstance(slug *Slug) (si *SlugInstance, err error) {
-	si, err = NewSlugInstanceWithHash(slug, common.UniqueHash())
+func NewSlugWorker(slug *Slug) (si *SlugWorker, err error) {
+	si, err = NewSlugWorkerWithHash(slug, common.UniqueHash())
 	return
 }
 
-func NewSlugInstanceWithHash(slug *Slug, hash string) (si *SlugInstance, err error) {
-	si = &SlugInstance{
+func NewSlugWorkerWithHash(slug *Slug, hash string) (si *SlugWorker, err error) {
+	si = &SlugWorker{
 		Slug: slug,
 		Hash: hash,
 		Port: -1,
@@ -74,7 +74,7 @@ func NewSlugInstanceWithHash(slug *Slug, hash string) (si *SlugInstance, err err
 	return
 }
 
-func (s *SlugInstance) SendSignal(sig process.Signal) (sent bool) {
+func (s *SlugWorker) SendSignal(sig process.Signal) (sent bool) {
 	if pid, _ := s.GetPid(); pid > 0 {
 		if proc, err := common.GetProcessFromPid(s.Pid); err == nil {
 			ee := proc.SendSignal(sig)
@@ -84,17 +84,17 @@ func (s *SlugInstance) SendSignal(sig process.Signal) (sent bool) {
 	return
 }
 
-func (s *SlugInstance) SendStopSignal() (sent bool) {
+func (s *SlugWorker) SendStopSignal() (sent bool) {
 	sent = s.SendSignal(syscall.SIGTERM)
 	return
 }
 
-func (s *SlugInstance) SendReloadSignal() (sent bool) {
+func (s *SlugWorker) SendReloadSignal() (sent bool) {
 	sent = s.SendSignal(syscall.SIGHUP)
 	return
 }
 
-func (s *SlugInstance) GetPid() (pid int, err error) {
+func (s *SlugWorker) GetPid() (pid int, err error) {
 	s.Lock()
 	defer s.Unlock()
 	s.Pid = -1
@@ -106,13 +106,13 @@ func (s *SlugInstance) GetPid() (pid int, err error) {
 	return
 }
 
-func (s *SlugInstance) String() (text string) {
+func (s *SlugWorker) String() (text string) {
 	running, ready := s.IsRunningReady()
 	text = fmt.Sprintf("{slug=%v,port=%v;running=%v;ready=%v;}", s.Slug.Name, s.Port, running, ready)
 	return
 }
 
-func (s *SlugInstance) Unpack() (err error) {
+func (s *SlugWorker) Unpack() (err error) {
 	if bePath.IsDir(s.RunPath) {
 		s.Slug.App.LogInfoF("slug already unpacked: %v\n", s.Slug.Name)
 		return
@@ -134,7 +134,7 @@ func (s *SlugInstance) Unpack() (err error) {
 	return
 }
 
-func (s *SlugInstance) ReadProcfile() (procTypes map[string]string, err error) {
+func (s *SlugWorker) ReadProcfile() (procTypes map[string]string, err error) {
 	procTypes = make(map[string]string)
 	if bePath.IsDir(s.RunPath) {
 		procfile := s.RunPath + "/Procfile"
@@ -161,14 +161,14 @@ func (s *SlugInstance) ReadProcfile() (procTypes map[string]string, err error) {
 	return
 }
 
-func (s *SlugInstance) IsReady() (ready bool) {
+func (s *SlugWorker) IsReady() (ready bool) {
 	s.RLock()
 	defer s.RUnlock()
 	ready = s.Port > 0
 	return
 }
 
-func (s *SlugInstance) IsRunning() (running bool) {
+func (s *SlugWorker) IsRunning() (running bool) {
 	s.RLock()
 	defer s.RUnlock()
 	if running = s.Pid > 0; !running {
@@ -181,13 +181,13 @@ func (s *SlugInstance) IsRunning() (running bool) {
 	return
 }
 
-func (s *SlugInstance) IsRunningReady() (running, ready bool) {
+func (s *SlugWorker) IsRunningReady() (running, ready bool) {
 	running = s.IsRunning()
 	ready = s.IsReady()
 	return
 }
 
-func (s *SlugInstance) GetBinProcess() (proc *process.Process, err error) {
+func (s *SlugWorker) GetBinProcess() (proc *process.Process, err error) {
 	if s.Pid > 0 {
 		proc, err = common.GetProcessFromPid(s.Pid)
 	} else if proc, err = common.GetProcessFromPidFile(s.PidFile); err == nil && proc.Pid > 0 {
@@ -196,7 +196,7 @@ func (s *SlugInstance) GetBinProcess() (proc *process.Process, err error) {
 	return
 }
 
-func (s *SlugInstance) PrepareStart(port int) (webCmd string, webArgv, environ []string, err error) {
+func (s *SlugWorker) PrepareStart(port int) (webCmd string, webArgv, environ []string, err error) {
 	if err = s.Unpack(); err != nil {
 		err = fmt.Errorf("error unpacking this slug: %v - %v", s.Slug.Name, err)
 		return
@@ -254,7 +254,7 @@ func (s *SlugInstance) PrepareStart(port int) (webCmd string, webArgv, environ [
 	return
 }
 
-func (s *SlugInstance) StartForeground(port int) (err error) {
+func (s *SlugWorker) StartForeground(port int) (err error) {
 	var webCmd string
 	var webArgv, environ []string
 	if webCmd, webArgv, environ, err = s.PrepareStart(port); err != nil {
@@ -278,7 +278,7 @@ func (s *SlugInstance) StartForeground(port int) (err error) {
 	return
 }
 
-func (s *SlugInstance) Start(port int) (err error) {
+func (s *SlugWorker) Start(port int) (err error) {
 	var webCmd string
 	var webArgv, environ []string
 	if webCmd, webArgv, environ, err = s.PrepareStart(port); err != nil {
@@ -307,7 +307,7 @@ func (s *SlugInstance) Start(port int) (err error) {
 	return
 }
 
-func (s *SlugInstance) Stop() (stopped bool) {
+func (s *SlugWorker) Stop() (stopped bool) {
 	if bePath.IsFile(s.PidFile) {
 		if proc, err := s.GetBinProcess(); err == nil && proc != nil {
 			if err = proc.SendSignal(syscall.SIGTERM); err != nil {
@@ -341,7 +341,7 @@ func (s *SlugInstance) Stop() (stopped bool) {
 	return
 }
 
-func (s *SlugInstance) Destroy() (err error) {
+func (s *SlugWorker) Destroy() (err error) {
 	s.Stop()
 	if bePath.IsDir(s.RunPath) {
 		if err = os.RemoveAll(s.RunPath); err != nil {
