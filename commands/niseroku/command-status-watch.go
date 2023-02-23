@@ -19,6 +19,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/go-enjin/enjenv/pkg/profiling"
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
@@ -27,6 +28,9 @@ var (
 )
 
 func (c *Command) actionStatusWatch(ctx *cli.Context) (err error) {
+	profiling.Start()
+	defer profiling.Stop()
+
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
