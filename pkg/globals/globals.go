@@ -14,7 +14,11 @@
 
 package globals
 
-import "github.com/go-enjin/enjenv/pkg/basepath"
+import (
+	"os"
+
+	"github.com/go-enjin/enjenv/pkg/basepath"
+)
 
 var (
 	BuildVersion   = "v0.0.0"
@@ -22,6 +26,7 @@ var (
 	BuildBinPath   = ""
 	BuildBinHash   = ""
 	DisplayVersion = "v0.0.0 (development) [nil]"
+	OsHostname     = "?"
 )
 
 func init() {
@@ -30,4 +35,5 @@ func init() {
 		panic(err)
 	}
 	DisplayVersion = BuildVersion + " (" + BuildRelease + ") [" + BuildBinHash + "]"
+	OsHostname, _ = os.Hostname()
 }
