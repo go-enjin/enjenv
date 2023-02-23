@@ -3,3 +3,6 @@
 /enjenv.*.*
 .idea
 _dist
+/pprof.proxy
+/pprof.repos
+/pprof.watch
