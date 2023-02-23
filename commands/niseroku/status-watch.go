@@ -19,6 +19,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,12 +27,16 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/urfave/cli/v2"
+
 	"github.com/go-curses/cdk"
 	cenums "github.com/go-curses/cdk/lib/enums"
+	"github.com/go-curses/cdk/lib/math"
+	"github.com/go-curses/cdk/lib/paint"
 	cstrings "github.com/go-curses/cdk/lib/strings"
+
 	"github.com/go-curses/ctk"
 	"github.com/go-curses/ctk/lib/enums"
-	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/maps"
 	beStrings "github.com/go-enjin/be/pkg/strings"
@@ -48,14 +53,14 @@ var statusWatchAccelmap string
 // use `go build -v -ldflags="-X 'github.com/go-enjin/enjenv/commands/niseroku.IncludeLogFullPaths=false'"`
 var (
 	IncludeProfiling          = "false"
-	IncludeLogFile            = "true"
+	IncludeLogFile            = "false"
 	IncludeLogFormat          = "false"
 	IncludeLogFullPaths       = "false"
-	IncludeLogLevel           = "true"
+	IncludeLogLevel           = "false"
 	IncludeLogLevels          = "false"
 	IncludeLogTimestamps      = "false"
 	IncludeLogTimestampFormat = "false"
-	IncludeLogOutput          = "true"
+	IncludeLogOutput          = "false"
 )
 
 var (
@@ -87,17 +92,21 @@ type StatusWatch struct {
 	sysValueCPU ctk.Label
 	sysLabelMEM ctk.Label
 	sysValueMEM ctk.Label
-	sysLabelUT  ctk.Label
-	sysValueUT  ctk.Label
 
-	srvFrame ctk.Frame
-	srvLabel ctk.Label
+	srvFrame  ctk.Frame
+	srvHeader ctk.Label
+	srvScroll ctk.ScrolledViewport
+	srvLabel  ctk.Label
 
-	appFrame ctk.Frame
-	appLabel ctk.Label
+	appFrame  ctk.Frame
+	appHeader ctk.Label
+	appScroll ctk.ScrolledViewport
+	appLabel  ctk.Label
 
-	plFrame ctk.Frame
-	plLabel ctk.Label
+	plFrame  ctk.Frame
+	plHeader ctk.Label
+	plScroll ctk.ScrolledViewport
+	plLabel  ctk.Label
 
 	errLabel    ctk.Label
 	statusLabel ctk.Label
@@ -113,6 +122,7 @@ func NewStatusWatch(cmd *Command, freq time.Duration, ttyPath string) (sw *Statu
 	if ttyPath == "" {
 		ttyPath = DefaultStatusWatchTtyPath
 	}
+
 	app := ctk.NewApplication(
 		"niseroku-status-watch",
 		"Niseroku status watch",
@@ -203,15 +213,18 @@ func (sw *StatusWatch) showErrorWindow(text string) {
 	label.SetLineWrap(true)
 	label.Show()
 	vbox.PackStart(label, true, true, 1)
-	sw.errDialog.Show()
+	sw.errDialog.ShowAll()
 	sw.display.RequestDraw()
 	sw.display.RequestShow()
 }
 
 func (sw *StatusWatch) hideErrorWindow() {
+	sw.Lock()
+	defer sw.Unlock()
 	if sw.errDialog != nil {
 		sw.errDialog.Hide()
 		sw.errDialog.Destroy()
+		sw.errDialog = nil
 		sw.display.RequestDraw()
 		sw.display.RequestShow()
 	}
@@ -219,8 +232,7 @@ func (sw *StatusWatch) hideErrorWindow() {
 
 func (sw *StatusWatch) displayResizeHandler(data []interface{}, argv ...interface{}) cenums.EventFlag {
 	if s := sw.display.Screen(); s != nil {
-		w, h := s.Size()
-		if w < 80 || h < 24 {
+		if w, h := s.Size(); w < 80 || h < 24 {
 			text := "\n\nniseroku status watch requires at least an 80x24 sized terminal"
 			text += "\n\n"
 			text += fmt.Sprintf("this terminal is %dx%d", w, h)
@@ -234,20 +246,19 @@ func (sw *StatusWatch) displayResizeHandler(data []interface{}, argv ...interfac
 
 func (sw *StatusWatch) startup(data []interface{}, argv ...interface{}) cenums.EventFlag {
 	if app, d, _, _, _, ok := ctk.ArgvApplicationSignalStartup(argv...); ok {
+		d.CaptureCtrlC()
+		sw.display = d
+		sw.display.Connect(cdk.SignalEventResize, "display-resize-handler", sw.displayResizeHandler)
 
 		if err := sw.watching.Start(); err != nil {
 			sw.showError("error starting watching: %v", err)
 		}
 
-		d.CaptureCtrlC()
-		sw.display = d
-
-		sw.display.Connect(cdk.SignalEventResize, "display-resize-handler", sw.displayResizeHandler)
-
-		sw.window = ctk.NewWindowWithTitle( /*app.Title()*/ "")
+		sw.window = ctk.NewWindowWithTitle("")
 		sw.window.SetBorderWidth(0)
 		sw.window.SetDecorated(false)
 		sw.window.SetSensitive(true)
+		sw.window.SetTitle(app.Title())
 
 		accelMap := ctk.GetAccelMap()
 		accelMap.LoadFromString(statusWatchAccelmap)
@@ -274,9 +285,16 @@ func (sw *StatusWatch) startup(data []interface{}, argv ...interface{}) cenums.E
 
 		/* SYSTEM SECTION */
 
-		sw.sysFrame = ctk.NewFrame("")
+		sysFrameLabel := rigLabel("")
+		sflTheme := sysFrameLabel.GetTheme()
+		sflTheme.Content.FillRune = paint.DefaultNilRune
+		sysFrameLabel.SetTheme(sflTheme)
+		sysFrameLabel.SetUseMarkup(true)
+		_ = sysFrameLabel.SetMarkup(dim("Host Metrics"))
+		sysFrameLabel.Show()
+		sw.sysFrame = ctk.NewFrameWithWidget(sysFrameLabel)
 		sw.sysFrame.SetLabelAlign(0.0, 0.5)
-		sw.sysFrame.SetSizeRequest(-1, 5)
+		sw.sysFrame.SetSizeRequest(-1, 4)
 		sw.sysFrame.Show()
 		sysHBox := ctk.NewHBox(false, 1)
 		sysHBox.Show()
@@ -286,26 +304,17 @@ func (sw *StatusWatch) startup(data []interface{}, argv ...interface{}) cenums.E
 		sysVBoxValues := ctk.NewVBox(false, 0)
 		sysVBoxValues.Show()
 
-		sw.sysLabelUT = rigLabel("Uptime:")
-		sw.sysLabelUT.SetSizeRequest(20, 1)
-		sw.sysLabelUT.Show()
-		sysVBoxLabels.PackStart(sw.sysLabelUT, false, false, 0)
-		sw.sysValueUT = rigLabel("")
-		sw.sysValueUT.SetSizeRequest(-1, 1)
-		sw.sysValueUT.Show()
-		sysVBoxValues.PackEnd(sw.sysValueUT, false, false, 0)
-
-		sw.sysLabelCPU = rigLabel("CPU Usage:")
-		sw.sysLabelCPU.SetSizeRequest(20, 1)
+		sw.sysLabelCPU = rigLabel("CPU:")
+		sw.sysLabelCPU.SetSizeRequest(15, 1)
 		sw.sysLabelCPU.Show()
 		sysVBoxLabels.PackStart(sw.sysLabelCPU, false, false, 0)
 		sw.sysValueCPU = rigLabel("")
 		sw.sysValueCPU.SetSizeRequest(-1, 1)
 		sw.sysValueCPU.Show()
-		sysVBoxValues.PackEnd(sw.sysValueCPU, false, false, 0)
+		sysVBoxValues.PackEnd(sw.sysValueCPU, true, true, 0)
 
-		sw.sysLabelMEM = rigLabel("Memory:")
-		sw.sysLabelMEM.SetSizeRequest(20, 1)
+		sw.sysLabelMEM = rigLabel("MEM:")
+		sw.sysLabelMEM.SetSizeRequest(15, 1)
 		sw.sysLabelMEM.Show()
 		sysVBoxLabels.PackStart(sw.sysLabelMEM, false, false, 0)
 		sw.sysValueMEM = rigLabel("")
@@ -314,46 +323,73 @@ func (sw *StatusWatch) startup(data []interface{}, argv ...interface{}) cenums.E
 		sysVBoxValues.PackEnd(sw.sysValueMEM, false, false, 0)
 
 		sw.sysFrame.Add(sysHBox)
-		sysHBox.PackStart(sysVBoxLabels, true, true, 0)
+		sysHBox.PackStart(sysVBoxLabels, false, true, 0)
 		sysHBox.PackStart(sysVBoxValues, true, true, 0)
 		contentVBox.PackStart(sw.sysFrame, false, true, 0)
 
 		/* SERVICES SECTION */
 
-		sw.srvFrame = ctk.NewFrame("")
-		sw.srvFrame.SetLabelAlign(0.0, 0.5)
+		sw.srvHeader = rigLabel("")
+		sw.srvHeader.SetUseMarkup(true)
+		sw.srvHeader.SetSizeRequest(-1, 1)
+		sw.srvHeader.Show()
+		sw.srvFrame = ctk.NewFrameWithWidget(sw.srvHeader)
+		sw.srvFrame.SetLabelAlign(0.0, -1.0)
 		sw.srvFrame.SetSizeRequest(-1, 5)
 		sw.srvFrame.Show()
 		sw.srvLabel = rigLabel("")
 		sw.srvLabel.SetSizeRequest(-1, 3)
 		sw.srvLabel.SetUseMarkup(true)
 		sw.srvLabel.Show()
-		sw.srvFrame.Add(sw.srvLabel)
+		sw.srvScroll = ctk.NewScrolledViewport()
+		sw.srvScroll.SetPolicy(enums.PolicyAutomatic, enums.PolicyAutomatic)
+		sw.srvScroll.Show()
+		sw.srvScroll.Add(sw.srvLabel)
+		sw.srvFrame.Add(sw.srvScroll)
 		contentVBox.PackStart(sw.srvFrame, false, true, 0)
 
-		sw.appFrame = ctk.NewFrame("")
-		sw.appFrame.SetLabelAlign(0.0, 0.5)
+		sw.appHeader = rigLabel("")
+		sw.appHeader.SetUseMarkup(true)
+		sw.appHeader.SetSizeRequest(-1, 1)
+		sw.appHeader.Show()
+		sw.appFrame = ctk.NewFrameWithWidget(sw.appHeader)
+		sw.appFrame.SetLabelAlign(0.0, -1.0)
 		sw.appFrame.Show()
 		sw.appLabel = rigLabel("")
-		sw.appLabel.SetSizeRequest(-1, 3)
+		sw.appLabel.SetSizeRequest(-1, -1)
 		sw.appLabel.SetUseMarkup(true)
 		sw.appLabel.Show()
-		sw.appFrame.Add(sw.appLabel)
+		sw.appScroll = ctk.NewScrolledViewport()
+		sw.appScroll.SetPolicy(enums.PolicyAutomatic, enums.PolicyAutomatic)
+		// sw.appScroll.SetPolicy(enums.PolicyAlways, enums.PolicyAlways)
+		sw.appScroll.Show()
+		sw.appScroll.Add(sw.appLabel)
+		sw.appFrame.Add(sw.appScroll)
 		contentVBox.PackStart(sw.appFrame, true, true, 0)
 
-		sw.plFrame = ctk.NewFrame("Proxy Limits (Remote IP Addresses)")
-		sw.plFrame.SetLabelAlign(0.0, 0.5)
+		sw.plHeader = rigLabel("")
+		sw.plHeader.SetUseMarkup(true)
+		sw.plHeader.SetSizeRequest(-1, 1)
+		sw.plHeader.Show()
+		sw.plFrame = ctk.NewFrameWithWidget(sw.plHeader)
+		// sw.plFrame = ctk.NewFrame("Proxy Limits (Remote IP Addresses)")
+		sw.plFrame.SetLabelAlign(0.0, -1.0)
 		sw.plFrame.Hide()
 		sw.plLabel = rigLabel("")
 		sw.plFrame.Add(sw.plLabel)
-		sw.plLabel.Show()
+		sw.plScroll = ctk.NewScrolledViewport()
+		sw.plScroll.SetPolicy(enums.PolicyAutomatic, enums.PolicyAutomatic)
+		sw.plScroll.Show()
+		sw.plScroll.Add(sw.plLabel)
+		sw.plFrame.Add(sw.plScroll)
 		contentVBox.PackStart(sw.plFrame, false, true, 0)
 
 		sw.errLabel = rigLabel("")
 		sw.errLabel.Hide()
 		windowVBox.PackStart(sw.errLabel, false, false, 0)
 
-		sw.statusLabel = rigLabel("niseroku status watch - " + globals.DisplayVersion)
+		sw.statusLabel = rigLabel("")
+		sw.statusLabel.SetUseMarkup(true)
 		sw.statusLabel.SetLineWrap(true)
 		sw.statusLabel.SetLineWrapMode(cenums.WRAP_WORD)
 		sw.statusLabel.SetVisible(true)
@@ -455,13 +491,10 @@ func formatMemUsed(kbUsed uint64, max uint64) (text string) {
 	// percent := fmt.Sprintf("%05.1f", float64(kbUsed)/float64(max)*100.0)
 	switch {
 	case kbUsed >= max/2:
-		// text = fmt.Sprintf(`<span foreground="red">%s%% (%s)</span>`, percent, size)
-		text = fmt.Sprintf(`<span foreground="red">%s</span>`, size)
+		text = fmt.Sprintf(`<span foreground="white" background="red">%s</span>`, size)
 	case kbUsed > (1024 * 512):
-		// text = fmt.Sprintf(`<span foreground="yellow">%s%% (%s)</span>`, percent, size)
 		text = fmt.Sprintf(`<span foreground="yellow">%s</span>`, size)
 	default:
-		// text = fmt.Sprintf(`<span foreground="white">%s%% (%s)</span>`, percent, size)
 		text = fmt.Sprintf(`<span foreground="white">%s</span>`, size)
 	}
 	return
@@ -470,11 +503,26 @@ func formatMemUsed(kbUsed uint64, max uint64) (text string) {
 func formatPercNumber[T maps.Number](stat T, max float64) (text string) {
 	switch {
 	case float64(stat) >= max:
-		text = fmt.Sprintf(`<span foreground="red">%d</span>`, int64(stat))
+		text = fmt.Sprintf(`<span foreground="white" background="red">%d</span>`, int64(stat))
 	case float64(stat) > max/2:
 		text = fmt.Sprintf(`<span foreground="yellow">%d</span>`, int64(stat))
 	default:
 		text = fmt.Sprintf(`<span foreground="white">%d</span>`, int64(stat))
+	}
+	return
+}
+
+func dim(s string) string {
+	return `<span weight="dim">` + s + `</span>`
+}
+
+func tDim(s string, n int) (out string) {
+	tmpl := dim(s)
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			out += "\t"
+		}
+		out += tmpl
 	}
 	return
 }
@@ -491,37 +539,55 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		cpuUsage = cpuUsage / float32(len(stats.CpuUsage)) * 100.0
 	}
 
-	memUsed := humanize.Bytes(stats.MemUsed * 1024)
-	memTotal := humanize.Bytes(stats.MemTotal * 1024)
+	memUsed := strings.ReplaceAll(humanize.Bytes(stats.MemUsed*1024), " ", "")
+	memTotal := strings.ReplaceAll(humanize.Bytes(stats.MemTotal*1024), " ", "")
 	memPerc := float64(stats.MemUsed) / float64(stats.MemTotal) * 100.0
+	swpUsed := strings.ReplaceAll(humanize.Bytes(stats.SwapUsed*1024), " ", "")
+	swpTotal := strings.ReplaceAll(humanize.Bytes(stats.SwapTotal*1024), " ", "")
+	swpPerc := float64(stats.SwapUsed) / float64(stats.SwapTotal) * 100.0
+
+	/* STATUS ROW */
+	statusFields := []string{
+		globals.OsHostname,
+		"Uptime: " + stats.UptimeString(),
+		"Every: " + sw.freq.String(),
+		`[F10] to quit`,
+	}
+
+	_ = sw.statusLabel.SetMarkup(strings.Join(statusFields, " "+dim("~")+" "))
 
 	/* SYSTEM SECTION */
 
-	_ = sw.sysValueUT.SetMarkup(stats.UptimeString())
-
-	_ = sw.sysLabelCPU.SetMarkup(fmt.Sprintf("CPU Usage: %s%%", formatPercFloat(cpuUsage, "%.2f")))
+	_ = sw.sysLabelCPU.SetMarkup(fmt.Sprintf("CPU: %s%%", formatPercFloat(cpuUsage, "%.2f")))
 	buf := bytes.NewBuffer([]byte(""))
 	tw := tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte(fmt.Sprintf("[ ")))
+	_, _ = tw.Write([]byte(dim("Core: [") + "\t"))
 	for idx, usage := range stats.CpuUsage {
 		if idx > 0 {
 			_, _ = tw.Write([]byte("\t"))
 		}
 		if idx > 3 {
-			_, _ = tw.Write([]byte("..."))
+			_, _ = tw.Write([]byte(dim("...")))
 			break
 		} else {
-			_, _ = tw.Write([]byte(formatPercFloat(usage*100.0, "%6.2f")))
+			_, _ = tw.Write([]byte(formatPercFloat(usage*100.0, "%.2f") + "%"))
 		}
 	}
-	_, _ = tw.Write([]byte(fmt.Sprintf(" ]\n")))
+	_, _ = tw.Write([]byte(fmt.Sprintf("\t" + dim("]") + "\n")))
 	_ = tw.Flush()
 	_ = sw.sysValueCPU.SetMarkup(buf.String())
 
-	_ = sw.sysLabelMEM.SetMarkup(fmt.Sprintf("MEM Usage: %s%%", formatPercFloat(memPerc, "%.2f")))
+	_ = sw.sysLabelMEM.SetMarkup(fmt.Sprintf("MEM: %s%%", formatPercFloat(memPerc, "%.2f")))
+
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte(fmt.Sprintf("Used:\t%s,\tTotal:\t%s\n", memUsed, memTotal)))
+	// memInfo := fmt.Sprintf("Used:\t%s\tTotal:\t%s", memUsed, memTotal)
+	memInfo := dim("Real:") + " "
+	memInfo += memUsed + " / " + memTotal
+	memInfo += "\t" + dim("Swap:") + " "
+	memInfo += swpUsed + " / " + swpTotal
+	memInfo += " (" + formatPercFloat(swpPerc, "%.2f") + "%)"
+	_, _ = tw.Write([]byte(memInfo))
 	_ = tw.Flush()
 	_ = sw.sysValueMEM.SetMarkup(buf.String())
 
@@ -537,14 +603,15 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	}
 
 	writeEntry := func(tw *tabwriter.Writer, appName, commitId string, stat WatchProc, requests, delayed int64, includeHash bool) {
-		pid, ports, nice, cpu, mem, num, threads, reqDelay := "-", "-", "-", "-", "-", "-", "-", "-"
+		pid, ports, nice, cpu, mem, numThreads, reqDelay := dim("-"), dim("-"), dim("-"), dim("-"), dim("-"), dim("-/-"), dim("-")
 		if stat.Pid > 0 {
 			pid = strconv.Itoa(stat.Pid)
 			nice = fmt.Sprintf("%+2d", stat.Nice)
 			cpu = formatPercFloat(stat.Cpu, "%.2f")
 			mem = formatMemUsed(stat.Mem, stats.MemTotal)
-			num = fmt.Sprintf("%d", stat.Num)
-			threads = fmt.Sprintf("%d", stat.Threads)
+			num := fmt.Sprintf("%d", stat.Num)
+			threads := fmt.Sprintf("%d", stat.Threads)
+			numThreads = num + dim("/") + threads
 			reqDelay = formatReqDelay(requests, delayed)
 		}
 		if len(stat.Ports) > 0 {
@@ -559,7 +626,39 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		if beStrings.StringInStrings(stat.Name, "reverse-proxy", "git-repository") {
 			commitId = globals.BuildBinHash[:8]
 		}
-		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s/%s\t%s\n", stat.Name, commitId, pid, ports, cpu, nice, mem, num, threads, reqDelay)))
+		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", stat.Name, commitId, pid, ports, cpu, nice, mem, numThreads, reqDelay)))
+	}
+
+	applyHeaderContent := func(input string, top, tgt ctk.Label) {
+		lines := strings.Split(buf.String(), "\n")
+		numLines := len(lines)
+		longestLine := 0
+		if numLines > 2 {
+			// remove trailing empty line
+			if beStrings.Empty(lines[numLines-1]) {
+				lines = lines[:numLines-1]
+				numLines -= 1
+			}
+		}
+		for _, line := range lines {
+			clean := RxTangoTags.ReplaceAllString(line, "")
+			if lineLen := len(clean); lineLen > longestLine {
+				longestLine = lineLen
+			}
+		}
+		if numLines >= 2 {
+			_ = top.SetMarkup(dim(lines[0]))
+			tgt.SetSizeRequest(longestLine, numLines-1)
+			_ = tgt.SetMarkup(strings.Join(lines[1:], "\n"))
+			return
+		}
+		if numLines == 1 {
+			_ = top.SetMarkup(dim(lines[0]))
+		} else {
+			_ = top.SetMarkup("")
+		}
+		tgt.SetSizeRequest(-1, -1)
+		_ = tgt.SetMarkup("")
 	}
 
 	var biggest int
@@ -577,6 +676,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 6, 0, 2, ' ', tabwriter.FilterHTML)
 	_, _ = tw.Write([]byte("SERVICE" + pad + "\tVER\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
+
 	for _, stat := range snapshot.Services {
 		if stat.Name == "reverse-proxy" {
 			writeEntry(tw, stat.Name, "", stat, rTotal, dTotal, false)
@@ -585,7 +685,8 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		}
 	}
 	_ = tw.Flush()
-	_ = sw.srvLabel.SetMarkup(buf.String())
+
+	applyHeaderContent(buf.String(), sw.srvHeader, sw.srvLabel)
 
 	/* APPLICATIONS SECTION */
 
@@ -602,7 +703,40 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	// beIo.StdoutF("app stat: %+v\n", appSnaps)
 
-	for _, appName := range maps.SortedKeys(sw.cliCmd.config.Applications) {
+	appOrder := maps.SortedKeys(sw.cliCmd.config.Applications)
+	sort.Slice(appOrder, func(j, i int) (less bool) {
+		a, b := appOrder[i], appOrder[j]
+		aa, _ := sw.cliCmd.config.Applications[a]
+		ba, _ := sw.cliCmd.config.Applications[b]
+		switch {
+		case aa.ThisSlug == "" && ba.ThisSlug != "":
+			return true
+		case aa.ThisSlug != "" && ba.ThisSlug == "":
+			return false
+		case aa.Maintenance && !ba.Maintenance:
+			return true
+		}
+		aSlug := aa.GetThisSlug()
+		bSlug := ba.GetThisSlug()
+		switch {
+		case aSlug == nil && bSlug != nil:
+			return true
+		case aSlug != nil && bSlug == nil:
+			return false
+		}
+		aNumWorkers := aSlug.GetNumWorkers()
+		bNumWorkers := bSlug.GetNumWorkers()
+		switch {
+		case aNumWorkers == 0 && bNumWorkers >= 1:
+			return true
+		case aNumWorkers >= 1 && bNumWorkers == 0:
+			return false
+		}
+		less = false
+		return
+	})
+
+	for _, appName := range appOrder {
 		app, _ := sw.cliCmd.config.Applications[appName]
 
 		var appStats []WatchProc
@@ -611,7 +745,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		if v, ok := appSnaps[app.Name]; ok {
 			appStats = v
 		} else {
-			_, _ = tw.Write([]byte(app.Name + "\t-\t-\t-\t-\t-\t-\t-/-\t-\n"))
+			_, _ = tw.Write([]byte(app.Name + "\t" + tDim("-", 6) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
 			continue
 		}
 
@@ -641,17 +775,17 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 			if appThisSlug != nil && appNextSlug != nil {
 				thisCommit := trimCommit(appThisSlug.Commit)
 				nextCommit := trimCommit(appNextSlug.Commit)
-				_, _ = tw.Write([]byte(app.Name + "\t \t \t \t \t \t \t \t-\n"))
-				_, _ = tw.Write([]byte(" |- slug:-this-" + "\t" + thisCommit + "\t-\t-\t-\t-\t-\t-/-\t-\n"))
-				_, _ = tw.Write([]byte(" `- slug:-next-" + "\t" + nextCommit + "\t-\t-\t-\t-\t-\t-/-\t-\n"))
+				_, _ = tw.Write([]byte(app.Name + "\t \t \t \t \t \t \t \t" + dim("-") + "\n"))
+				_, _ = tw.Write([]byte(" " + dim("|-") + " web:" + "-this-" + "\t" + thisCommit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
+				_, _ = tw.Write([]byte(" " + dim("`-") + " web:" + "-next-" + "\t" + nextCommit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
 			} else if appThisSlug != nil {
 				commit := trimCommit(appThisSlug.Commit)
-				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t-\t-\t-\t-\t-\t-/-\t-\n"))
+				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
 			} else if appNextSlug != nil {
 				commit := trimCommit(appNextSlug.Commit)
-				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t-\t-\t-\t-\t-\t-/-\t-\n"))
+				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
 			} else {
-				_, _ = tw.Write([]byte(app.Name + "\t-\t-\t-\t-\t-\t-\t-/-\t-\n"))
+				_, _ = tw.Write([]byte(app.Name + "\t" + tDim("-", 6) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
 			}
 			continue
 		}
@@ -686,9 +820,9 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		for pid, si := range slugInstances {
 			var label string
 			if count != numInstances-1 {
-				label = " |- slug:" + si.Hash[:6]
+				label = " " + dim("|-") + " web:" + si.Hash[:6]
 			} else {
-				label = " `- slug:" + si.Hash[:6]
+				label = " " + dim("`-") + " web:" + si.Hash[:6]
 			}
 			st, _ := statInstances[pid]
 			st.Name = label
@@ -709,14 +843,14 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	}
 
 	_ = tw.Flush()
-	_ = sw.appLabel.SetMarkup(buf.String())
+	applyHeaderContent(buf.String(), sw.appHeader, sw.appLabel)
 
 	/* PROXY LIMITS SECTION */
 
-	if len(rAddrs) > 0 {
+	if numAddrs := len(rAddrs); numAddrs > 0 {
 		buf = bytes.NewBuffer([]byte(""))
 		tw = tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
-		_, _ = tw.Write([]byte("REMOTE IP ADDRESS\tREQUESTS\tDELAYED\n"))
+		_, _ = tw.Write([]byte("REMOTE\tREQUESTS\tDELAYED\n"))
 		max := sw.cliCmd.config.ProxyLimit.Max
 		for _, key := range maps.SortedKeys(rAddrs) {
 			requests := rAddrs[key]
@@ -732,8 +866,9 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 			_, _ = tw.Write([]byte(line))
 		}
 		_ = tw.Flush()
-		_ = sw.plLabel.SetMarkup(buf.String())
-		sw.plFrame.SetSizeRequest(-1, len(rAddrs)+3)
+		applyHeaderContent(buf.String(), sw.plHeader, sw.plLabel)
+		height := math.CeilI(numAddrs+3, 5)
+		sw.plFrame.SetSizeRequest(-1, height)
 		sw.plFrame.Show()
 	} else {
 		sw.plFrame.Hide()
