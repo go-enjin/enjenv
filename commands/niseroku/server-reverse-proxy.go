@@ -17,7 +17,6 @@ package niseroku
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -29,8 +28,6 @@ import (
 	"github.com/didip/tollbooth/v7/limiter"
 	"golang.org/x/crypto/acme/autocert"
 
-	beNet "github.com/go-enjin/be/pkg/net"
-	"github.com/go-enjin/be/pkg/net/serve"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/profiling"
@@ -260,7 +257,19 @@ func (rp *ReverseProxy) Reload() (err error) {
 	rp.LogInfoF("reverse-proxy reloading\n")
 	if err = rp.config.Reload(); err == nil {
 		rp.reloadRateLimiter()
-		beIo.LogFile = rp.config.LogFile
+		if beIo.LogFile != rp.config.LogFile {
+			beIo.LogFile = rp.config.LogFile
+		}
+		for _, app := range rp.config.Applications {
+			if thisSlug := app.GetThisSlug(); thisSlug != nil {
+				thisSlug.ReloadSlugInstances()
+			} else {
+				rp.LogInfoF("this slug not found: %v", app.Name)
+			}
+			if nextSlug := app.GetNextSlug(); nextSlug != nil {
+				nextSlug.ReloadSlugInstances()
+			}
+		}
 	}
 	return
 }
@@ -286,102 +295,22 @@ func (rp *ReverseProxy) GetAppDomain(r *http.Request) (domain string, app *Appli
 	return
 }
 
-func (rp *ReverseProxy) ServeProxyHTTP(w http.ResponseWriter, r *http.Request) {
-	_, origin, exists := rp.GetAppDomain(r)
-	if exists {
-		if err := rp.ServeOriginHTTP(origin, w, r); err != nil {
-			rp.LogErrorF("error handling origin request: %v\n", err)
-		}
-		return
-	}
-	remoteAddr, _ := beNet.GetIpFromRequest(r)
-	rp.LogErrorF("host not found: %v - %v (%v)\n", r.Host, r.URL.String(), remoteAddr)
-	serve.Serve404(w, r)
-	return
-}
-
-func (rp *ReverseProxy) ServeOriginHTTP(app *Application, w http.ResponseWriter, r *http.Request) (err error) {
-	var remoteAddr string
-	if remoteAddr, err = beNet.GetIpFromRequest(r); err != nil {
-		return
-	}
-
-	var status int
-	defer func() {
-		app.LogAccessF(status, remoteAddr, r)
-	}()
-
-	if app.Maintenance {
-		status = http.StatusServiceUnavailable
-		serve.Serve503(w, r)
-		return
-	}
-
-	req := r.Clone(r.Context())
-	req.Host = r.Host
-	req.URL.Host = r.Host
-	req.URL.Scheme = app.Origin.Scheme
-	req.RequestURI = ""
-	req.Header.Set("X-Proxy", "niseroku")
-	req.Header.Set("X-Forwarded-For", remoteAddr)
-
-	var slugPort int
-	var originRequestTimeout time.Duration
-	if slug := app.GetThisSlug(); slug == nil {
-		err = fmt.Errorf("origin missing this-slug: %v\n", app.Name)
-		return
-	} else {
-		originRequestTimeout = slug.GetOriginRequestTimeout()
-		running, ready := slug.IsRunningReady(0)
-		slugPort = slug.GetPort(0)
-		switch {
-		case running && !ready:
-			rp.LogInfoF("origin running and not ready: [503] %v\n", slug.Name)
-			status = http.StatusServiceUnavailable
-			serve.Serve503(w, r)
+func (rp *ReverseProxy) proxyClientRequest(req *http.Request, app *Application, slugPort int, timeout time.Duration) (response *http.Response, err error) {
+	transport := &http.Transport{
+		MaxConnsPerHost:       0,
+		IdleConnTimeout:       timeout,
+		ResponseHeaderTimeout: timeout,
+		ExpectContinueTimeout: timeout,
+		TLSHandshakeTimeout:   timeout,
+		DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
+			conn, err = app.Origin.Dial(slugPort)
 			return
-		case !running && !ready:
-			rp.LogInfoF("origin not running and not ready: [502] %v\n", slug.Name)
-			status = http.StatusBadGateway
-			serve.Serve502(w, r)
-			return
-		case !running && ready:
-			rp.LogErrorF("origin pidfile error, yet is ready: [port=%d] %v\n", slugPort, slug.Name)
-		case running && ready:
-		}
-	}
-
-	client := http.Client{
-		Transport: &http.Transport{
-			MaxConnsPerHost:       0,
-			IdleConnTimeout:       originRequestTimeout,
-			ResponseHeaderTimeout: originRequestTimeout,
-			ExpectContinueTimeout: originRequestTimeout,
-			TLSHandshakeTimeout:   originRequestTimeout,
-			DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
-				conn, err = app.Origin.Dial(slugPort)
-				return
-			},
 		},
 	}
-
-	var response *http.Response
-	if response, err = client.Do(req); err != nil {
-		rp.LogErrorF("origin request error: %v\n", err)
-		status = http.StatusServiceUnavailable
-		serve.Serve503(w, r)
-		return
+	client := http.Client{
+		Transport: transport,
 	}
-
-	for k, v := range response.Header {
-		for _, vv := range v {
-			w.Header().Add(k, vv)
-		}
-	}
-
-	status = response.StatusCode
-	w.WriteHeader(response.StatusCode)
-	_, err = io.Copy(w, response.Body)
+	response, err = client.Do(req)
 	return
 }
 

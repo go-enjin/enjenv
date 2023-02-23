@@ -15,16 +15,19 @@
 package niseroku
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/didip/tollbooth/v7"
 	"github.com/didip/tollbooth/v7/limiter"
 	"github.com/kataras/requestid"
 
-	"github.com/go-enjin/be/pkg/net"
+	beNet "github.com/go-enjin/be/pkg/net"
+	"github.com/go-enjin/be/pkg/net/serve"
 )
 
 var (
@@ -66,28 +69,68 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 	rp.initRateLimiter()
 	return requestid.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		var err error
+		var exists bool
+		var thisSlug *Slug
 		var portKey string
-		if _, app, exists := rp.GetAppDomain(r); exists {
-			if thisSlug := app.GetThisSlug(); thisSlug != nil {
-				if port := thisSlug.GetPort(0); port > 0 {
-					portKey = "port," + strconv.Itoa(port)
+		var app *Application
+
+		remoteAddr := "<nil>"
+		if addr, ee := beNet.GetIpFromRequest(r); ee == nil {
+			remoteAddr = addr
+		}
+
+		if _, app, exists = rp.GetAppDomain(r); exists {
+			if thisSlug = app.GetThisSlug(); thisSlug != nil {
+				_ = thisSlug.Settings.Reload()
+				running, ready := thisSlug.IsRunningReady()
+				if !running || !ready {
+					for i := 0; i < 20; i++ {
+						time.Sleep(500 * time.Millisecond)
+						_, app, _ = rp.GetAppDomain(r)
+						if thisSlug = app.GetThisSlug(); thisSlug != nil {
+							rp.LogInfoF("limiter polling [%d] slug running+ready: %v", i, thisSlug.Name)
+							if running, ready = thisSlug.IsRunningReady(); running && ready {
+								break
+							}
+						}
+					}
 				}
+				if !running || !ready {
+					err = fmt.Errorf("slug not running or not ready")
+				} else if port := thisSlug.GetLivePort(); port > 0 {
+					portKey = "port," + strconv.Itoa(port)
+					err = nil
+				} else {
+					err = fmt.Errorf("slug has no live ports")
+				}
+			} else {
+				err = fmt.Errorf("app slug not found")
 			}
+		} else {
+			err = fmt.Errorf("app domain not found")
+		}
+		if err != nil {
+			rp.LogErrorF("proxy error: %v %v (%v) - %v\n", r.Host, r.URL.String(), remoteAddr, err)
+			serve.Serve404(w, r)
+			return
+		}
+
+		var status int
+		if app != nil {
+			start := time.Now()
+			defer func() {
+				app.LogAccessF(status, remoteAddr, r, start)
+			}()
 		}
 
 		rateLimits := rp.config.ProxyLimit
-		remoteAddr := "err"
-		if addr, err := net.GetIpFromRequest(r); err == nil {
-			remoteAddr = addr
-		}
+
 		reqId := requestid.Get(r)
 		reqUrl, _, reqHost, _ := DecomposeUrl(r)
 
-		go rp.tracking.Increment("__total__")
-		defer func() {
-			time.Sleep(DefaultProxyLimitsStatLifetime)
-			rp.tracking.Decrement("__total__")
-		}()
+		rp.tracking.Increment("__total__")
+		defer rp.deferDecTracking("__total__")
 
 		if tbe := tollbooth.LimitByKeys(rp.limiter, []string{reqHost, remoteAddr}); tbe != nil {
 			var delayCount int
@@ -97,11 +140,8 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 			if portKey != "" {
 				delayTrackingKeys = append(delayTrackingKeys, "delay,"+portKey)
 			}
-			go rp.tracking.Increment(delayTrackingKeys...)
-			defer func() {
-				time.Sleep(DefaultProxyLimitsStatLifetime)
-				rp.tracking.Decrement(delayTrackingKeys...)
-			}()
+			rp.tracking.Increment(delayTrackingKeys...)
+			defer rp.deferDecTracking(delayTrackingKeys...)
 			for delayCount = 1; delayCount <= rateLimits.DelayScale; delayCount++ {
 				time.Sleep(itrDelay)
 				totalDelay = time.Duration(itrDelay.Nanoseconds() * int64(delayCount))
@@ -135,11 +175,30 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 		if portKey != "" {
 			trackingKeys = append(trackingKeys, portKey)
 		}
-		go rp.tracking.Increment(trackingKeys...)
-		defer func() {
-			time.Sleep(DefaultProxyLimitsStatLifetime)
-			rp.tracking.Decrement(trackingKeys...)
-		}()
-		rp.ServeProxyHTTP(w, r)
+		rp.tracking.Increment(trackingKeys...)
+		defer rp.deferDecTracking(trackingKeys...)
+
+		if status, err = rp.ServeOriginHTTP(app, remoteAddr, w, r); err != nil {
+			if strings.Contains(err.Error(), "context canceled") {
+				status = http.StatusTeapot
+				err = nil
+				return
+			}
+			if strings.Contains(err.Error(), "connection refused") {
+				status = http.StatusBadGateway
+				serve.Serve502(w, r)
+				return
+			}
+			rp.LogErrorF("origin request error: %v - %v\n", app.Name, err)
+			status = http.StatusInternalServerError
+			serve.Serve500(w, r)
+		}
 	}))
+}
+
+func (rp *ReverseProxy) deferDecTracking(keys ...string) {
+	go func() {
+		time.Sleep(DefaultProxyLimitsStatLifetime)
+		rp.tracking.Decrement(keys...)
+	}()
 }
