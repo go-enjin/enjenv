@@ -244,13 +244,13 @@ setting. Prints "OK" if no value parsing or config file saving errors occurred.
 
 						{
 							Name:   "git-pre-receive-hook",
-							Action: c.actionGitPreReceiveHook,
+							Action: c.actionAppGitPreReceiveHook,
 							Hidden: true,
 						},
 
 						{
 							Name:   "git-post-receive-hook",
-							Action: c.actionGitPostReceiveHook,
+							Action: c.actionAppGitPostReceiveHook,
 							Hidden: true,
 						},
 

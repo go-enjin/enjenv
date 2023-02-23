@@ -33,7 +33,7 @@ import (
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 )
 
-func (c *Command) actionGitPreReceiveHook(ctx *cli.Context) (err error) {
+func (c *Command) actionAppGitPreReceiveHook(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
@@ -61,7 +61,7 @@ func (c *Command) actionGitPreReceiveHook(ctx *cli.Context) (err error) {
 	return
 }
 
-func (c *Command) actionGitPostReceiveHook(ctx *cli.Context) (err error) {
+func (c *Command) actionAppGitPostReceiveHook(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
