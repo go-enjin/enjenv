@@ -18,8 +18,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-enjin/be/pkg/maps"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/be/pkg/maps"
 
 	"github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
@@ -39,12 +40,8 @@ func (c *Command) actionAppRestart(ctx *cli.Context) (err error) {
 	} else {
 		cli.ShowCommandHelpAndExit(ctx, "restart", 1)
 	}
-	forceOverride := ctx.Bool("force")
 
-	// if err = c.dropPrivileges(); err != nil {
-	// 	err = fmt.Errorf("error dropping root privileges: %v", err)
-	// 	return
-	// }
+	forceOverride := ctx.Bool("force")
 
 	restartApp := func(app *Application) (err error) {
 		app.NextSlug = app.ThisSlug

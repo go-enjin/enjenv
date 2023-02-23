@@ -17,8 +17,9 @@ package niseroku
 import (
 	"time"
 
-	"github.com/go-enjin/be/pkg/maps"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/be/pkg/maps"
 
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -37,12 +38,8 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 	} else {
 		cli.ShowCommandHelpAndExit(ctx, "start", 1)
 	}
-	forceOverride := ctx.Bool("force")
 
-	// if err = c.dropPrivileges(); err != nil {
-	// 	err = fmt.Errorf("error dropping root privileges: %v", err)
-	// 	return
-	// }
+	forceOverride := ctx.Bool("force")
 
 	for _, name := range appNames {
 		if app, ok := c.config.Applications[name]; !ok {
