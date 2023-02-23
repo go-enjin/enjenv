@@ -189,7 +189,7 @@ func (w *Watching) updateSnapshot() {
 func (w *Watching) updateSnapshotApplication(app *Application) (stats []WatchProc) {
 
 	updateSlug := func(slug *Slug, next string) {
-		if slug.NumInstances() == 0 {
+		if slug.GetNumWorkers() == 0 {
 			stat := WatchProc{
 				Name:    app.Name,
 				Hash:    next,
@@ -202,7 +202,7 @@ func (w *Watching) updateSnapshotApplication(app *Application) (stats []WatchPro
 			}
 			stats = append(stats, stat)
 		} else {
-			for _, si := range slug.Instances {
+			for _, si := range slug.Workers {
 				stat := WatchProc{
 					Name:    app.Name,
 					Hash:    si.Hash,

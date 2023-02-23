@@ -22,8 +22,10 @@ var (
 	RxSlugArchiveName = regexp.MustCompile(`(?:/|^)([^/]+?)--([a-f0-9]+)\.zip$`)
 	RxSlugRunningName = regexp.MustCompile(`(?:/|^)([^/]+?)--([a-f0-9]+).([a-f0-9]{10})(\.pid|\.port|)$`)
 
-	RxSlugProcfileWebEntry = regexp.MustCompile(`(?ms)^web:\s*(.+?)\s*$`)
+	RxSlugProcfileEntries = regexp.MustCompile(`(?ms)^([a-zA-Z0-9]+):\s*(.+?)\s*$`)
 
 	RxSockCommand         = regexp.MustCompile(`^\s*([a-z][-.a-z0-9]+?)\s*$`)
 	RxSockCommandWithArgs = regexp.MustCompile(`^\s*([a-z][-.a-z0-9]+?)\s+(.+?)\s*$`)
+
+	RxTangoTags = regexp.MustCompile(`<.+?>`)
 )

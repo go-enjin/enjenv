@@ -427,7 +427,7 @@ func loadUsersApps(config *Config) (err error) {
 	config.DomainLookup = make(map[string]*Application)
 	for _, app := range config.Applications {
 		for _, slug := range app.Slugs {
-			for _, si := range slug.Instances {
+			for _, si := range slug.Workers {
 				if si.Port > 0 {
 					if _, exists := config.PortLookup[si.Port]; exists {
 						err = fmt.Errorf("port %d duplicated by: %v", si.Port, app.Source)
