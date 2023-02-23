@@ -8,15 +8,16 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.0.2
 	github.com/go-curses/cdk v0.5.14
-	github.com/go-curses/ctk v0.5.5
-	github.com/go-enjin/be v0.0.0-20230219170423-de6dc931eade
-	github.com/go-enjin/golang-org-x-text v0.0.0-20221026190533-d0e9c4fd3b27
+	github.com/go-curses/ctk v0.5.6
+	github.com/go-enjin/be v0.0.0-20230223205518-c03fd8f8499c
+	github.com/go-enjin/golang-org-x-text v0.0.0-20230219204830-4f2b7b481f16
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/goccy/go-json v0.10.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
 	github.com/kataras/requestid v0.0.2
 	github.com/otiai10/copy v1.9.0
+	github.com/pkg/profile v1.6.0
 	github.com/prometheus/procfs v0.9.0
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v3 v3.23.1
@@ -77,6 +78,7 @@ require (
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/gomarkdown/markdown v0.0.0-20220905174103-7b278df48cfb // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
@@ -113,9 +115,9 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/nanmu42/gzip v1.2.0 // indirect
+	github.com/niklasfasching/go-org v1.6.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/pjbgf/sha1cd v0.2.3 // indirect
-	github.com/pkg/profile v1.6.0 // indirect
 	github.com/polds/logrus-papertrail-hook v0.0.0-20180214143432-bcfe7b72c1a4 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/rivo/uniseg v0.4.2 // indirect
