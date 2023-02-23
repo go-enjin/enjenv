@@ -27,13 +27,13 @@ import (
 	"time"
 
 	"github.com/didip/tollbooth/v7/limiter"
-	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/acme/autocert"
 
 	beNet "github.com/go-enjin/be/pkg/net"
 	"github.com/go-enjin/be/pkg/net/serve"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beIo "github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/profiling"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service"
 )
@@ -55,19 +55,6 @@ type ReverseProxy struct {
 	tracking *Tracking
 
 	control net.Listener
-}
-
-func (c *Command) actionReverseProxy(ctx *cli.Context) (err error) {
-	if err = c.Prepare(ctx); err != nil {
-		return
-	}
-	rp := NewReverseProxy(c.config)
-	if rp.IsRunning() {
-		err = fmt.Errorf("reverse-proxy already running")
-		return
-	}
-	err = rp.Start()
-	return
 }
 
 func NewReverseProxy(config *Config) (rp *ReverseProxy) {
@@ -263,6 +250,7 @@ func (rp *ReverseProxy) Stop() (err error) {
 			rp.LogErrorF("panic caught https: %v", ee)
 		}
 	}
+	profiling.Stop()
 	return
 }
 
