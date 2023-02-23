@@ -108,6 +108,7 @@ define _build_debug =
 		-gcflags="-trimpath='${TRIM_PATHS}'" \
 		-asmflags="-trimpath='${TRIM_PATHS}'" \
 		-trimpath \
+		-tags debug \
 		./cmd/enjenv
 endef
 
@@ -124,11 +125,36 @@ define _upx_build =
 	fi
 endef
 
+define _profile_run =
+	@if [ -f "${BIN_NAME}.linux.${BUILD_ARCH}" ]; then \
+		echo "# starting niseroku $(1)..."; \
+		if [ "$(1)" == "watch" ]; then \
+			./${BIN_NAME}.linux.${BUILD_ARCH} niseroku status watch; \
+		else \
+			./${BIN_NAME}.linux.${BUILD_ARCH} niseroku $(1); \
+		fi; \
+		if [ -f pprof.$(1)/$(2).pprof ]; then \
+			echo "# ./pprof.$(1)/$(2).pprof found; ready to run pprof"; \
+			echo "# press <ENTER> to continue, <CTRL+c> to stop"; \
+			read -N 1 -s -p "" JUNK; \
+			echo "# running: go tool pprof --http:12345 ..."; \
+			( go tool pprof --http=:12345 ./pprof.$(1)/$(2).pprof 2>/dev/null ); \
+		else \
+			echo "# ./pprof.$(1)/$(2).pprof not found"; \
+		fi; \
+	else \
+		echo "# ${BIN_NAME}.linux.${BUILD_ARCH} not found"; \
+	fi
+endef
+
 .PHONY: all help clean build install local unlocal tidy
 
 help:
 	@echo "usage: make <help|clean|local|unlocal|tidy>"
-	@echo "       make <build|build-all|build-amd64|build-arm64>"
+	@echo "       make <debug|build|build-all|build-amd64|build-arm64>"
+	@echo "       make <profile.proxy.cpu|profile.proxy.mem>"
+	@echo "       make <profile.repos.cpu|profile.repos.mem>"
+	@echo "       make <profile.watch.cpu|profile.watch.mem>"
 	@echo "       make <install>"
 	@echo "       make <install-autocomplete>"
 	@echo "       make <install-niseroku>"
@@ -139,6 +165,7 @@ help:
 clean:
 	@rm -fv "${BIN_NAME}"
 	@rm -fv ${BIN_NAME}.*.*
+	@rm -rfv pprof.{proxy,repos,watch}
 
 distclean: clean
 	@rm -rfv _dist
@@ -148,6 +175,42 @@ debug: BUILD_RELEASE=$(call _rel_ver)
 debug: TRIM_PATHS=$(call _trim_path)
 debug:
 	@$(call _build_debug,"${BIN_NAME}.linux.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
+
+profile.proxy.cpu: export ENJENV_ENABLE_PROFILING=true
+profile.proxy.cpu: export ENJENV_PROFILING_TYPE=cpu
+profile.proxy.cpu: export ENJENV_PROFILING_PATH=./pprof.proxy
+profile.proxy.cpu: debug
+	@$(call _profile_run,"reverse-proxy","cpu")
+
+profile.proxy.mem: export ENJENV_ENABLE_PROFILING=true
+profile.proxy.mem: export ENJENV_PROFILING_TYPE=mem
+profile.proxy.mem: export ENJENV_PROFILING_PATH=./pprof.proxy
+profile.proxy.mem: debug
+	@$(call _profile_run,"reverse-proxy","mem")
+
+profile.repos.cpu: export ENJENV_ENABLE_PROFILING=true
+profile.repos.cpu: export ENJENV_PROFILING_TYPE=cpu
+profile.repos.cpu: export ENJENV_PROFILING_PATH=./pprof.repos
+profile.repos.cpu: debug
+	@$(call _profile_run,"git-repository","cpu")
+
+profile.repos.mem: export ENJENV_ENABLE_PROFILING=true
+profile.repos.mem: export ENJENV_PROFILING_TYPE=mem
+profile.repos.mem: export ENJENV_PROFILING_PATH=./pprof.repos
+profile.repos.mem: debug
+	@$(call _profile_run,"git-repository","mem")
+
+profile.watch.cpu: export ENJENV_ENABLE_PROFILING=true
+profile.watch.cpu: export ENJENV_PROFILING_TYPE=cpu
+profile.watch.cpu: export ENJENV_PROFILING_PATH=./pprof.watch
+profile.watch.cpu: debug
+	@$(call _profile_run,"watch","cpu")
+
+profile.watch.mem: export ENJENV_ENABLE_PROFILING=true
+profile.watch.mem: export ENJENV_PROFILING_TYPE=mem
+profile.watch.mem: export ENJENV_PROFILING_PATH=./pprof.watch
+profile.watch.mem: debug
+	@$(call _profile_run,"watch","mem")
 
 build: BUILD_VERSION=$(call _tag_ver)
 build: BUILD_RELEASE=$(call _rel_ver)
