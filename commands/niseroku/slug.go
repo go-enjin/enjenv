@@ -105,7 +105,7 @@ func (s *Slug) RefreshWorkers() {
 	}
 
 	if s.Settings == nil {
-		s.Settings, _ = NewSlugSettings(s.SettingsFile)
+		s.Settings, _ = NewSlugSettings(s.SettingsFile, s.App.Config.RunAs)
 	} else {
 		_ = s.Settings.Reload()
 	}

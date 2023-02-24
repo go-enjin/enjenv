@@ -21,6 +21,8 @@ import (
 	"github.com/BurntSushi/toml"
 
 	bePath "github.com/go-enjin/be/pkg/path"
+
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 type SlugSettings struct {
@@ -29,11 +31,13 @@ type SlugSettings struct {
 
 	Path         string        `toml:"-"`
 	TomlMetaData toml.MetaData `toml:"-"`
+	RunAs        RunAsConfig   `toml:"-"`
 }
 
-func NewSlugSettings(path string) (sw *SlugSettings, err error) {
+func NewSlugSettings(path string, config RunAsConfig) (sw *SlugSettings, err error) {
 	sw = &SlugSettings{
-		Path: path,
+		Path:  path,
+		RunAs: config,
 	}
 	if bePath.IsFile(path) {
 		sw.TomlMetaData, err = toml.DecodeFile(path, sw)
@@ -47,6 +51,7 @@ func (s *SlugSettings) Save() (err error) {
 	if err = os.WriteFile(s.Path, buf.Bytes(), 0660); err != nil {
 		return
 	}
+	_ = common.RepairOwnership(s.Path, s.RunAs.User, s.RunAs.Group)
 	return
 }
 
