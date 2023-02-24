@@ -128,11 +128,14 @@ endef
 define _profile_run =
 	@if [ -f "${BIN_NAME}.linux.${BUILD_ARCH}" ]; then \
 		echo "# starting niseroku $(1)..."; \
-		if [ "$(1)" == "watch" ]; then \
-			./${BIN_NAME}.linux.${BUILD_ARCH} niseroku status watch; \
-		else \
-			./${BIN_NAME}.linux.${BUILD_ARCH} niseroku $(1); \
-		fi; \
+		case "$(1)" in \
+			"proxy") \
+				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku reverse-proxy;; \
+			"repos") \
+				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku git-repository;; \
+			"watch") \
+				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku status watch;; \
+		esac; \
 		if [ -f pprof.$(1)/$(2).pprof ]; then \
 			echo "# ./pprof.$(1)/$(2).pprof found; ready to run pprof"; \
 			echo "# press <ENTER> to continue, <CTRL+c> to stop"; \
@@ -180,25 +183,25 @@ profile.proxy.cpu: export ENJENV_ENABLE_PROFILING=true
 profile.proxy.cpu: export ENJENV_PROFILING_TYPE=cpu
 profile.proxy.cpu: export ENJENV_PROFILING_PATH=./pprof.proxy
 profile.proxy.cpu: debug
-	@$(call _profile_run,"reverse-proxy","cpu")
+	@$(call _profile_run,"proxy","cpu")
 
 profile.proxy.mem: export ENJENV_ENABLE_PROFILING=true
 profile.proxy.mem: export ENJENV_PROFILING_TYPE=mem
 profile.proxy.mem: export ENJENV_PROFILING_PATH=./pprof.proxy
 profile.proxy.mem: debug
-	@$(call _profile_run,"reverse-proxy","mem")
+	@$(call _profile_run,"proxy","mem")
 
 profile.repos.cpu: export ENJENV_ENABLE_PROFILING=true
 profile.repos.cpu: export ENJENV_PROFILING_TYPE=cpu
 profile.repos.cpu: export ENJENV_PROFILING_PATH=./pprof.repos
 profile.repos.cpu: debug
-	@$(call _profile_run,"git-repository","cpu")
+	@$(call _profile_run,"repos","cpu")
 
 profile.repos.mem: export ENJENV_ENABLE_PROFILING=true
 profile.repos.mem: export ENJENV_PROFILING_TYPE=mem
 profile.repos.mem: export ENJENV_PROFILING_PATH=./pprof.repos
 profile.repos.mem: debug
-	@$(call _profile_run,"git-repository","mem")
+	@$(call _profile_run,"repos","mem")
 
 profile.watch.cpu: export ENJENV_ENABLE_PROFILING=true
 profile.watch.cpu: export ENJENV_PROFILING_TYPE=cpu
