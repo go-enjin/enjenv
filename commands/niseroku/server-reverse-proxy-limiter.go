@@ -72,7 +72,7 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 		var err error
 		var exists bool
 		var thisSlug *Slug
-		var portKey string
+		var domain, portKey string
 		var app *Application
 
 		remoteAddr := "<nil>"
@@ -80,13 +80,13 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 			remoteAddr = addr
 		}
 
-		if _, app, exists = rp.GetAppDomain(r); exists {
+		if domain, app, exists = rp.GetAppDomain(r); exists {
 			if thisSlug = app.GetThisSlug(); thisSlug != nil {
 				_ = thisSlug.Settings.Reload()
 				running, ready := thisSlug.IsRunningReady()
 				if !running || !ready {
 					for i := 0; i < 20; i++ {
-						time.Sleep(500 * time.Millisecond)
+						time.Sleep(100 * time.Millisecond)
 						_, app, _ = rp.GetAppDomain(r)
 						if thisSlug = app.GetThisSlug(); thisSlug != nil {
 							rp.LogInfoF("limiter polling [%d] slug running+ready: %v", i, thisSlug.Name)
@@ -99,7 +99,7 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 				if !running || !ready {
 					err = fmt.Errorf("slug not running or not ready")
 				} else if port := thisSlug.GetLivePort(); port > 0 {
-					portKey = "port," + strconv.Itoa(port)
+					portKey = "port|" + strconv.Itoa(port)
 					err = nil
 				} else {
 					err = fmt.Errorf("slug has no live ports")
@@ -124,34 +124,37 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 			}()
 		}
 
-		rateLimits := rp.config.ProxyLimit
+		trackingKeys := []string{"__total__", "app|" + app.Name, "host|" + domain, "addr|" + remoteAddr}
+		if portKey != "" {
+			trackingKeys = append(trackingKeys, portKey)
+		}
+		go rp.tracking.Increment(trackingKeys...)
+		defer rp.deferDecTracking(trackingKeys...)
 
-		reqId := requestid.Get(r)
-		reqUrl, _, reqHost, _ := DecomposeUrl(r)
-
-		rp.tracking.Increment("__total__")
-		defer rp.deferDecTracking("__total__")
-
-		if tbe := tollbooth.LimitByKeys(rp.limiter, []string{reqHost, remoteAddr}); tbe != nil {
+		if tbe := tollbooth.LimitByKeys(rp.limiter, []string{domain, remoteAddr}); tbe != nil {
+			reqId := requestid.Get(r)
+			rateLimits := rp.config.ProxyLimit
 			var delayCount int
 			itrDelay := time.Duration(rateLimits.MaxDelay.Nanoseconds() / int64(rateLimits.DelayScale))
 			totalDelay := time.Duration(0)
-			delayTrackingKeys := []string{"__delay__", "delay,host," + reqHost, "delay,addr," + remoteAddr}
+			delayTrackingKeys := []string{"__delay__", "delay|app|" + app.Name, "delay|host|" + domain, "delay|addr|" + remoteAddr}
 			if portKey != "" {
-				delayTrackingKeys = append(delayTrackingKeys, "delay,"+portKey)
+				delayTrackingKeys = append(delayTrackingKeys, "delay|"+portKey)
 			}
-			rp.tracking.Increment(delayTrackingKeys...)
+			go rp.tracking.Increment(delayTrackingKeys...)
 			defer rp.deferDecTracking(delayTrackingKeys...)
 			for delayCount = 1; delayCount <= rateLimits.DelayScale; delayCount++ {
 				time.Sleep(itrDelay)
 				totalDelay = time.Duration(itrDelay.Nanoseconds() * int64(delayCount))
-				if !rp.limiter.LimitReached(reqHost) && !rp.limiter.LimitReached(remoteAddr) {
+				if !rp.limiter.LimitReached(domain) && !rp.limiter.LimitReached(remoteAddr) {
 					if delayCount > 1 && rateLimits.LogAllowed {
+						reqUrl, _, _, _ := DecomposeUrl(r)
 						rp.LogInfoF("[rate] allowed - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
 					}
 					break
 				}
 				if rateLimits.LogDelayed {
+					reqUrl, _, _, _ := DecomposeUrl(r)
 					rp.LogInfoF("[rate] delayed - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
 				}
 			}
@@ -164,6 +167,7 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 				w.WriteHeader(tbe.StatusCode)
 				_, _ = w.Write([]byte(tbe.Message))
 				if rateLimits.LogLimited {
+					reqUrl, _, _, _ := DecomposeUrl(r)
 					rp.LogInfoF("[rate] limited - %v - %v - %v - %v", reqId, remoteAddr, reqUrl, totalDelay)
 				}
 				return
@@ -171,13 +175,6 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 		}
 
 		// request is allowed
-		trackingKeys := []string{"host," + reqHost, "addr," + remoteAddr}
-		if portKey != "" {
-			trackingKeys = append(trackingKeys, portKey)
-		}
-		rp.tracking.Increment(trackingKeys...)
-		defer rp.deferDecTracking(trackingKeys...)
-
 		if status, err = rp.ServeOriginHTTP(app, remoteAddr, w, r); err != nil {
 			if strings.Contains(err.Error(), "context canceled") {
 				status = http.StatusTeapot
@@ -198,7 +195,7 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 
 func (rp *ReverseProxy) deferDecTracking(keys ...string) {
 	go func() {
-		time.Sleep(DefaultProxyLimitsStatLifetime)
+		// time.Sleep(DefaultProxyLimitsStatLifetime)
 		rp.tracking.Decrement(keys...)
 	}()
 }

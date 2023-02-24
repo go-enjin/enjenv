@@ -528,8 +528,8 @@ func tDim(s string, n int) (out string) {
 }
 
 func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits string) {
-	rTotal, dTotal, rHosts, rAddrs, rPorts, dHosts, dAddrs, dPorts := parseProxyLimits(proxyLimits)
 	stats := &snapshot.Stats
+	ppl := parseProxyLimits(proxyLimits)
 
 	var cpuUsage float32 = 0.0
 	if len(stats.CpuUsage) > 0 {
@@ -679,8 +679,8 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	for _, stat := range snapshot.Services {
 		if stat.Name == "reverse-proxy" {
-			writeEntry(tw, stat.Name, "", stat, rTotal, dTotal, false)
-		} else {
+			writeEntry(tw, stat.Name, "", stat, ppl.TotalRequest, ppl.TotalDelayed, false)
+		} else if stat.Name == "git-repository" {
 			writeEntry(tw, stat.Name, "", stat, 0, 0, false)
 		}
 	}
@@ -740,7 +740,6 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		app, _ := sw.cliCmd.config.Applications[appName]
 
 		var appStats []WatchProc
-		var current, delayed int64
 
 		if v, ok := appSnaps[app.Name]; ok {
 			appStats = v
@@ -790,20 +789,9 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 			continue
 		}
 
-		for _, domain := range app.Domains {
-			for limitDomain, count := range rHosts {
-				if domain == limitDomain {
-					current += count
-					break
-				}
-			}
-			for limitDomain, count := range dHosts {
-				if domain == limitDomain {
-					delayed += count
-					break
-				}
-			}
-		}
+		var current, delayed int64
+		current, _ = ppl.Request.Apps[app.Name]
+		delayed, _ = ppl.Delayed.Apps[app.Name]
 
 		if len(statInstances) == 1 {
 			for pid, st := range statInstances {
@@ -829,10 +817,10 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 			port := strconv.Itoa(si.Port)
 			var c, d int64
-			if v, ok := rPorts[port]; ok {
+			if v, ok := ppl.Request.Ports[port]; ok {
 				c = v
 			}
-			if v, ok := dPorts[port]; ok {
+			if v, ok := ppl.Delayed.Ports[port]; ok {
 				d = v
 			}
 
@@ -847,17 +835,17 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	/* PROXY LIMITS SECTION */
 
-	if numAddrs := len(rAddrs); numAddrs > 0 {
+	if numAddrs := len(ppl.Request.Addrs); numAddrs > 0 {
 		buf = bytes.NewBuffer([]byte(""))
 		tw = tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
 		_, _ = tw.Write([]byte("REMOTE\tREQUESTS\tDELAYED\n"))
 		max := sw.cliCmd.config.ProxyLimit.Max
-		for _, key := range maps.SortedKeys(rAddrs) {
-			requests := rAddrs[key]
+		for _, key := range maps.SortedKeys(ppl.Request.Addrs) {
+			requests := ppl.Request.Addrs[key]
 			line := key + "\t"
 			line += formatPercNumber(requests, max)
 			line += "\t"
-			if delayed, ok := dAddrs[key]; ok {
+			if delayed, ok := ppl.Delayed.Addrs[key]; ok {
 				line += formatPercNumber(delayed, max)
 			} else {
 				line += formatPercNumber(0, max)

@@ -149,42 +149,74 @@ func (c *Command) statusDisplayWatchingSnapshot(snapshot *WatchSnapshot) {
 	return
 }
 
-func parseProxyLimits(proxyLimits string) (rTotal, dTotal int64, rHosts, rAddrs, rPorts, dHosts, dAddrs, dPorts map[string]int64) {
-	rHosts = make(map[string]int64)
-	rAddrs = make(map[string]int64)
-	rPorts = make(map[string]int64)
-	dHosts = make(map[string]int64)
-	dAddrs = make(map[string]int64)
-	dPorts = make(map[string]int64)
+type ParsedProxyLimitsData struct {
+	Apps  map[string]int64
+	Addrs map[string]int64
+	Hosts map[string]int64
+	Ports map[string]int64
+}
+
+func NewProxyLimitsData() ParsedProxyLimitsData {
+	return ParsedProxyLimitsData{
+		Apps:  make(map[string]int64),
+		Addrs: make(map[string]int64),
+		Hosts: make(map[string]int64),
+		Ports: make(map[string]int64),
+	}
+}
+
+type ParsedProxyLimits struct {
+	TotalRequest int64
+	TotalDelayed int64
+
+	Delayed ParsedProxyLimitsData
+	Request ParsedProxyLimitsData
+}
+
+func parseProxyLimits(proxyLimits string) (ppl *ParsedProxyLimits) {
+	ppl = new(ParsedProxyLimits)
+	ppl.Request = NewProxyLimitsData()
+	ppl.Delayed = NewProxyLimitsData()
 
 	for _, line := range strings.Split(proxyLimits, "\n") {
 		line = strings.TrimSpace(line)
 		if parts := strings.Split(line, "="); len(parts) == 2 {
-			nameParts := strings.Split(parts[0], ",")
-			switch len(nameParts) {
+			value := strings.TrimSpace(parts[1])
+			names := strings.Split(parts[0], "|")
+			switch len(names) {
+
 			case 2:
-				if nameParts[0] == "host" {
-					rHosts[nameParts[1]], _ = strconv.ParseInt(parts[1], 10, 64)
-				} else if nameParts[0] == "addr" {
-					rAddrs[nameParts[1]], _ = strconv.ParseInt(parts[1], 10, 64)
-				} else if nameParts[0] == "port" {
-					rPorts[nameParts[1]], _ = strconv.ParseInt(parts[1], 10, 64)
+				switch names[0] {
+				case "app":
+					ppl.Request.Apps[names[1]], _ = strconv.ParseInt(value, 10, 64)
+				case "host":
+					ppl.Request.Hosts[names[1]], _ = strconv.ParseInt(value, 10, 64)
+				case "addr":
+					ppl.Request.Addrs[names[1]], _ = strconv.ParseInt(value, 10, 64)
+				case "port":
+					ppl.Request.Ports[names[1]], _ = strconv.ParseInt(value, 10, 64)
 				}
+
 			case 3:
-				if nameParts[0] == "delay" {
-					if nameParts[1] == "host" {
-						dHosts[nameParts[2]], _ = strconv.ParseInt(parts[1], 10, 64)
-					} else if nameParts[1] == "addr" {
-						dAddrs[nameParts[2]], _ = strconv.ParseInt(parts[1], 10, 64)
-					} else if nameParts[1] == "port" {
-						rPorts[nameParts[2]], _ = strconv.ParseInt(parts[1], 10, 64)
+				if names[0] == "delay" {
+					switch names[1] {
+					case "app":
+						ppl.Delayed.Apps[names[2]], _ = strconv.ParseInt(value, 10, 64)
+					case "host":
+						ppl.Delayed.Hosts[names[2]], _ = strconv.ParseInt(value, 10, 64)
+					case "addr":
+						ppl.Delayed.Addrs[names[2]], _ = strconv.ParseInt(value, 10, 64)
+					case "port":
+						ppl.Delayed.Ports[names[2]], _ = strconv.ParseInt(value, 10, 64)
 					}
 				}
+
 			default:
-				if parts[0] == "__total__" {
-					rTotal, _ = strconv.ParseInt(parts[1], 10, 64)
-				} else if parts[0] == "__delay__" {
-					dTotal, _ = strconv.ParseInt(parts[1], 10, 64)
+				switch names[0] {
+				case "__total__":
+					ppl.TotalRequest, _ = strconv.ParseInt(value, 10, 64)
+				case "__delay__":
+					ppl.TotalDelayed, _ = strconv.ParseInt(value, 10, 64)
 				}
 			}
 		}
@@ -197,24 +229,24 @@ func (c *Command) statusDisplayWatchingProxyLimits(proxyLimits string) {
 	buf := bytes.NewBuffer([]byte(""))
 	tw := tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
 
-	rTotal, dTotal, rHosts, rAddrs, _, dHosts, dAddrs, _ := parseProxyLimits(proxyLimits)
+	ppl := parseProxyLimits(proxyLimits)
 
 	_, _ = tw.Write([]byte("[ PROXY LIMITS ]\t[ CURRENT ]\t[ DELAYED ]\n"))
-	_, _ = tw.Write([]byte(fmt.Sprintf("(total)\t%d\t%d\n", rTotal, dTotal)))
-	if len(rHosts) > 0 {
+	_, _ = tw.Write([]byte(fmt.Sprintf("(total)\t%d\t%d\n", ppl.TotalRequest, ppl.TotalDelayed)))
+	if len(ppl.Request.Hosts) > 0 {
 		_, _ = tw.Write([]byte("\t\t\n"))
 		_, _ = tw.Write([]byte("[ HOST LIMITS ]\t[ CURRENT ]\t[ DELAYED ]\n"))
-		for _, key := range maps.SortedKeys(rHosts) {
-			dHostValue, _ := dHosts[key]
-			_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%d\t%d\n", key, rHosts[key], dHostValue)))
+		for _, key := range maps.SortedKeys(ppl.Request.Hosts) {
+			dHostValue, _ := ppl.Request.Hosts[key]
+			_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%d\t%d\n", key, ppl.Request.Hosts[key], dHostValue)))
 		}
 	}
-	if len(rAddrs) > 0 {
+	if len(ppl.Request.Addrs) > 0 {
 		_, _ = tw.Write([]byte("\t\t\n"))
 		_, _ = tw.Write([]byte("[ ADDR LIMITS ]\t[ CURRENT ]\t[ DELAYED ]\n"))
-		for _, key := range maps.SortedKeys(rAddrs) {
-			dAddrValue, _ := dAddrs[key]
-			_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%d\t%d\n", key, rAddrs[key], dAddrValue)))
+		for _, key := range maps.SortedKeys(ppl.Request.Addrs) {
+			dAddrValue, _ := ppl.Delayed.Addrs[key]
+			_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%d\t%d\n", key, ppl.Request.Addrs[key], dAddrValue)))
 		}
 	}
 
