@@ -50,20 +50,22 @@ func RepairOwnership(path, userName, groupName string) (err error) {
 	if uid, gid, err = GetUidGid(userName, groupName); err != nil {
 		return
 	}
-	var allDirs, allFiles []string
-	if allDirs, err = bePath.ListAllDirs(path); err != nil {
-		return
-	}
-	if allFiles, err = bePath.ListAllFiles(path); err != nil {
-		return
-	}
 	if err = os.Chown(path, uid, gid); err != nil {
 		err = fmt.Errorf("error chown: %v (%d:%d) - %v", path, uid, gid, err)
 		return
 	}
-	for _, tgt := range append(allDirs, allFiles...) {
-		if err = os.Chown(tgt, uid, gid); err != nil {
-			err = fmt.Errorf("error chown: %v (%d:%d) - %v", tgt, uid, gid, err)
+	if bePath.IsDir(path) {
+		var allDirs, allFiles []string
+		if allDirs, err = bePath.ListAllDirs(path); err != nil {
+			return
+		}
+		if allFiles, err = bePath.ListAllFiles(path); err != nil {
+			return
+		}
+		for _, tgt := range append(allDirs, allFiles...) {
+			if err = os.Chown(tgt, uid, gid); err != nil {
+				err = fmt.Errorf("error chown: %v (%d:%d) - %v", tgt, uid, gid, err)
+			}
 		}
 	}
 	return
