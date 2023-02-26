@@ -16,6 +16,7 @@ package heroku
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 
@@ -70,18 +71,13 @@ func (c *Command) makeFinalizeSlugCommand(appNamePrefix string) *cli.Command {
 				return
 			}
 
-			lr := len(removed)
-			if lr > 0 {
+			count := len(strings.Split(slugsums, "\n"))
+
+			if lr := len(removed); lr > 0 {
 				io.StdoutF("# removed %d extraneous paths\n", lr)
 			}
-			// if ctx.Bool("verbose") {
-			// 	io.StdoutF("# %d Slugsums:\n", len(strings.Split(slugsums, "\n")))
-			// 	io.StdoutF(slugsums)
-			// } else {
-			// 	io.StdoutF("# %d Slugsums\n", len(strings.Split(slugsums, "\n")))
-			// }
-			io.NotifyF("finalize-slug", "Wrote %d Slugsums:\n%v", len(slugsums), slugsums)
 
+			io.NotifyF("finalize-slug", "Wrote %d Slugsums:\n%v", count, slugsums)
 			io.NotifyF("finalize-slug", "slug environment finalized")
 			return
 		},
