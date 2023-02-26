@@ -99,13 +99,12 @@ define _build_debug =
 	@echo "# building $(2)-$(3) (debug): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"
 	@${CMD} GOOS="$(2)" GOARCH="$(3)" go build -v \
 		-o "$(1)" \
-		-gcflags="all=-N -l" \
 		-ldflags="\
 -buildid='' \
 -X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
 -X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}'\
 " \
-		-gcflags="-trimpath='${TRIM_PATHS}'" \
+		-gcflags="-N -l -trimpath='${TRIM_PATHS}'" \
 		-asmflags="-trimpath='${TRIM_PATHS}'" \
 		-trimpath \
 		-tags debug \
