@@ -38,7 +38,7 @@ func (c *Command) actionAppGitPreReceiveHook(ctx *cli.Context) (err error) {
 		return
 	}
 
-	pkgIo.STDOUT("# initializing slug building process\n")
+	pkgIo.STDOUT("# preparing slug building process\n")
 
 	receiver := gitkit.Receiver{
 		MasterOnly: false,              // if set to true, only pushes to master branch will be allowed
@@ -66,6 +66,8 @@ func (c *Command) actionAppGitPostReceiveHook(ctx *cli.Context) (err error) {
 		return
 	}
 
+	pkgIo.STDOUT("# running slug building process\n")
+
 	receiver := gitkit.Receiver{
 		MasterOnly: false,              // if set to true, only pushes to master branch will be allowed
 		TmpDir:     c.config.Paths.Tmp, // directory for temporary git checkouts
@@ -90,19 +92,21 @@ func (c *Command) actionAppGitPostReceiveHook(ctx *cli.Context) (err error) {
 func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo) (app *Application, err error) {
 	var envSshId string
 	if envSshId = env.Get("GITKIT_KEY", ""); envSshId == "" {
-		err = fmt.Errorf("missing git ssh-key")
+		err = fmt.Errorf("credentials not found")
 		return
 	}
 
 	if app != nil && info.RefName != "main" {
-		err = fmt.Errorf("invalid branch received")
+		err = fmt.Errorf("invalid branch name")
+		pkgIo.StderrF("invalid branch name: %v\n", info.RefName)
 		return
 	}
 
 	repoName := bePath.Base(info.RepoName)
 	var ok bool
 	if app, ok = c.config.Applications[repoName]; !ok {
-		err = fmt.Errorf("repository not found: %v", repoName)
+		err = fmt.Errorf("repository not found")
+		pkgIo.StderrF("repository not found: %v\n", repoName)
 		return
 	}
 
@@ -113,13 +117,14 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 				return
 			}
 			app = nil
-			err = fmt.Errorf("user")
+			err = fmt.Errorf("permission denied")
+			pkgIo.StdoutF("permission denied: %v - %v\n", u.Name, repoName)
 			return
 		}
 	}
 
 	app = nil
-	err = fmt.Errorf("error finding user by ssh-key")
+	err = fmt.Errorf("user not found")
 	return
 }
 
