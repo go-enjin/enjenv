@@ -1,8 +1,10 @@
+/.env
 /.enjenv
 /enjenv
 /enjenv.*.*
-.idea
-_dist
+/.idea
+/.gpg
+/apt-*
 /pprof.proxy
 /pprof.repos
 /pprof.watch
