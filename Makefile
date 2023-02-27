@@ -1,6 +1,6 @@
-#!/usr/bin/make -f
+#!/usr/bin/make --no-print-directory --jobs=1 --environment-overrides -f
 
-# Copyright (c) 2022  The Go-Enjin Authors
+# Copyright (c) 2023  The Go-Enjin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,12 +17,15 @@
 #: uncomment to echo instead of execute
 #CMD=echo
 
+-include .env
+export
+
 BE_PATH ?= ../be
 CDK_PATH ?= ../../go-curses/cdk
 CTK_PATH ?= ../../go-curses/ctk
 
 BIN_NAME ?= enjenv
-
+UNTAGGED_VERSION ?= v0.1.0
 
 PWD = $(shell pwd)
 SHELL = /bin/bash
@@ -31,25 +34,12 @@ BUILD_OS ?= linux
 BUILD_ARCH ?= `uname -m | perl -pe 's!aarch64!arm64!;s!x86_64!amd64!;'`
 
 prefix ?= /usr
-BIN_PATH ?= ${DESTDIR}${prefix}/bin
-ETC_PATH ?= ${DESTDIR}/etc
 
-SYSTEMD_PATH ?= ${ETC_PATH}/systemd/system
-NISEROKU_PATH ?= ${ETC_PATH}/niseroku
-LOGROTATE_PATH ?= ${ETC_PATH}/logrotate.d
-SYSV_INIT_PATH ?= ${ETC_PATH}/init.d
-AUTOCOMPLETE_PATH ?= ${ETC_PATH}/bash_completion.d
+GIT_STATUS := $(git status 2> /dev/null)
 
-ENJENV_AUTOCOMPLETE_FILE ?= ${AUTOCOMPLETE_PATH}/enjenv
-NISEROKU_AUTOCOMPLETE_FILE ?= ${AUTOCOMPLETE_PATH}/niseroku
-NISEROKU_TOML_FILE ?= ${NISEROKU_PATH}/niseroku.toml
-NISEROKU_LOGROTATE_FILE ?= ${LOGROTATE_PATH}/niseroku
-
-NISEROKU_PROXY_SERVICE_FILE ?= ${SYSTEMD_PATH}/niseroku-proxy.service
-NISEROKU_PROXY_SYSV_INIT_FILE ?= ${SYSV_INIT_PATH}/niseroku-proxy
-
-NISEROKU_REPOS_SERVICE_FILE ?= ${SYSTEMD_PATH}/niseroku-repos.service
-NISEROKU_REPOS_SYSV_INIT_FILE ?= ${SYSV_INIT_PATH}/niseroku-repos
+CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
+DISTCLEAN_FILES ?=
+REALCLEAN_FILES ?=
 
 define _trim_path =
 $(shell \
@@ -61,10 +51,8 @@ fi)
 endef
 
 define _tag_ver =
-$(shell (git describe 2> /dev/null) || echo "untagged")
+$(shell (git describe 2> /dev/null) || echo "${UNTAGGED_VERSION}")
 endef
-
-GIT_STATUS := $(git status 2> /dev/null)
 
 define _rel_ver =
 $(shell \
@@ -164,13 +152,23 @@ help:
 	@echo "       make <install-niseroku-logrotate>"
 	@echo "       make <install-niseroku-sysv-init>"
 
+define _clean =
+	FOUND=`ls $(1) 2>/dev/null`; \
+	if [ -n "$${FOUND}" ]; then \
+		rm -rfv $${FOUND}; \
+	else \
+		echo "nothing found to clean"; \
+	fi
+endef
+
 clean:
-	@rm -fv "${BIN_NAME}"
-	@rm -fv ${BIN_NAME}.*.*
-	@rm -rfv pprof.{proxy,repos,watch}
+	@$(call _clean,${CLEAN_FILES})
 
 distclean: clean
-	@rm -rfv _dist
+	@$(call _clean,${DISTCLEAN_FILES})
+
+realclean: distclean
+	@$(call _clean,${REALCLEAN_FILES})
 
 debug: BUILD_VERSION=$(call _tag_ver)
 debug: BUILD_RELEASE=$(call _rel_ver)
@@ -252,10 +250,11 @@ release-amd64: build-amd64
 release-all: release-amd64 release-arm64
 
 define _install_build =
-	echo "# installing $(1) to: $(2)"; \
-	[ -d "${BIN_PATH}" ] || mkdir -vp "${BIN_PATH}"; \
-	${CMD} /usr/bin/install -v -m 0775 -T "$(1)" "${BIN_PATH}/$(2)"; \
-	${CMD} sha256sum "${BIN_PATH}/$(2)"
+	BIN_PATH="${DESTDIR}${prefix}/bin"; \
+	echo "# installing $(1) to: $${BIN_PATH}/$(2)"; \
+	[ -d "$${BIN_PATH}" ] || mkdir -vp "$${BIN_PATH}"; \
+	${CMD} /usr/bin/install -v -m 0775 -T "$(1)" "$${BIN_PATH}/$(2)"; \
+	${CMD} sha256sum "$${BIN_PATH}/$(2)"
 endef
 
 install:
@@ -265,38 +264,59 @@ install:
 		echo "error: missing enjenv.linux.${BUILD_ARCH} binary" 1>&2; \
 	fi
 
+install-autocomplete: ETC_PATH=${DESTDIR}/etc
+install-autocomplete: AUTOCOMPLETE_PATH=${ETC_PATH}/bash_completion.d
+install-autocomplete: ENJENV_AUTOCOMPLETE_FILE=${AUTOCOMPLETE_PATH}/enjenv
+install-autocomplete: NISEROKU_AUTOCOMPLETE_FILE=${AUTOCOMPLETE_PATH}/niseroku
 install-autocomplete:
 	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
 	@echo "# installing enjenv bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
 	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
 	@${CMD} sha256sum "${ENJENV_AUTOCOMPLETE_FILE}"
+	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
+	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${NISEROKU_AUTOCOMPLETE_FILE}"
+	@${CMD} sha256sum "${NISEROKU_AUTOCOMPLETE_FILE}"
 
+install-niseroku: ETC_PATH=${DESTDIR}/etc
+install-niseroku: NISEROKU_PATH=${ETC_PATH}/niseroku
+install-niseroku: NISEROKU_TOML_FILE=${NISEROKU_PATH}/niseroku.toml
 install-niseroku:
-	@[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"
 	@if [ -f "${NISEROKU_TOML_FILE}" ]; then \
 		echo "# skipping ${NISEROKU_TOML_FILE} (exists already)"; \
 	else \
 		echo "# installing ${NISEROKU_TOML_FILE}"; \
+		[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"; \
 		if [ ! -d "${NISEROKU_PATH}" ]; then mkdir -p "${NISEROKU_PATH}"; fi; \
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
 		${CMD} sha256sum "${NISEROKU_TOML_FILE}"; \
 	fi
 
+install-niseroku-logrotate: ETC_PATH=${DESTDIR}/etc
+install-niseroku-logrotate: LOGROTATE_PATH=${ETC_PATH}/logrotate.d
+install-niseroku-logrotate: NISEROKU_LOGROTATE_FILE=${LOGROTATE_PATH}/niseroku
 install-niseroku-logrotate:
-	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
 	@echo "# installing ${NISEROKU_LOGROTATE_FILE}"
+	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
 	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"
 	@${CMD} sha256sum "${NISEROKU_LOGROTATE_FILE}"
 
+install-niseroku-sysv-init: ETC_PATH=${DESTDIR}/etc
+install-niseroku-sysv-init: SYSV_INIT_PATH=${ETC_PATH}/init.d
+install-niseroku-sysv-init: NISEROKU_PROXY_SYSV_INIT_FILE=${SYSV_INIT_PATH}/niseroku-proxy
+install-niseroku-sysv-init: NISEROKU_REPOS_SYSV_INIT_FILE=${SYSV_INIT_PATH}/niseroku-repos
 install-niseroku-sysv-init:
-	@[ -d "${SYSV_INIT_PATH}" ] || mkdir -vp "${SYSV_INIT_PATH}"
 	@echo "# installing ${NISEROKU_PROXY_SYSV_INIT_FILE}"
+	@[ -d "${SYSV_INIT_PATH}" ] || mkdir -vp "${SYSV_INIT_PATH}"
 	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-proxy.init" "${NISEROKU_PROXY_SYSV_INIT_FILE}"
 	@${CMD} sha256sum "${NISEROKU_PROXY_SYSV_INIT_FILE}"
 	@echo "# installing ${NISEROKU_REPOS_SYSV_INIT_FILE}"
 	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-repos.init" "${NISEROKU_REPOS_SYSV_INIT_FILE}"
 	@${CMD} sha256sum "${NISEROKU_REPOS_SYSV_INIT_FILE}"
 
+install-niseroku-systemd: ETC_PATH=${DESTDIR}/etc
+install-niseroku-systemd: SYSTEMD_PATH=${ETC_PATH}/systemd/system
+install-niseroku-systemd: NISEROKU_PROXY_SERVICE_FILE=${SYSTEMD_PATH}/niseroku-proxy.service
+install-niseroku-systemd: NISEROKU_REPOS_SERVICE_FILE=${SYSTEMD_PATH}/niseroku-repos.service
 install-niseroku-systemd:
 	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
 	@echo "# installing ${NISEROKU_PROXY_SERVICE_FILE}"
@@ -306,6 +326,7 @@ install-niseroku-systemd:
 	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-repos.service" "${NISEROKU_REPOS_SERVICE_FILE}"
 	@${CMD} sha256sum "${NISEROKU_REPOS_SERVICE_FILE}"
 
+install-niseroku-utils: ETC_PATH=${DESTDIR}/etc
 install-niseroku-utils:
 	@if [ -f "_templates/niseroku.sh" ]; then \
 		echo "# installing niseroku wrapper script"; \
@@ -319,10 +340,6 @@ install-niseroku-utils:
 	else \
 		echo "error: missing niseroku-tail wrapper script" 1>&2; \
 	fi
-	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
-	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
-	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${NISEROKU_AUTOCOMPLETE_FILE}"
-	@${CMD} sha256sum "${NISEROKU_AUTOCOMPLETE_FILE}"
 
 local:
 	@if [ -d "${BE_PATH}" ]; then \
