@@ -9,7 +9,7 @@ require (
 	github.com/fvbommel/sortorder v1.0.2
 	github.com/go-curses/cdk v0.5.14
 	github.com/go-curses/ctk v0.5.6
-	github.com/go-enjin/be v0.0.0-20230223205518-c03fd8f8499c
+	github.com/go-enjin/be v0.0.0-20230226210702-39311a1843d4
 	github.com/go-enjin/golang-org-x-text v0.0.0-20230219204830-4f2b7b481f16
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/goccy/go-json v0.10.0
