@@ -723,6 +723,8 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 			return true
 		case aSlug != nil && bSlug == nil:
 			return false
+		case aSlug == nil && bSlug == nil:
+			return false
 		}
 		aNumWorkers := aSlug.GetNumWorkers()
 		bNumWorkers := bSlug.GetNumWorkers()
