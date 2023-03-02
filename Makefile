@@ -153,12 +153,11 @@ help:
 	@echo "       make <install-niseroku-sysv-init>"
 
 define _clean =
-	FOUND=`ls $(1) 2>/dev/null`; \
-	if [ -n "$${FOUND}" ]; then \
-		rm -rfv $${FOUND}; \
-	else \
-		echo "nothing found to clean"; \
-	fi
+	for FOUND in $(1); do \
+		if [ -n "$${FOUND}" ]; then \
+			rm -rfv $${FOUND}; \
+		fi; \
+	done
 endef
 
 clean:
