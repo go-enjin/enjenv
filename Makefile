@@ -26,6 +26,7 @@ CTK_PATH ?= ../../go-curses/ctk
 
 BIN_NAME ?= enjenv
 UNTAGGED_VERSION ?= v0.1.0
+UNTAGGED_COMMIT ?= 0000000000
 
 PWD = $(shell pwd)
 SHELL = /bin/bash
@@ -35,7 +36,7 @@ BUILD_ARCH ?= `uname -m | perl -pe 's!aarch64!arm64!;s!x86_64!amd64!;'`
 
 prefix ?= /usr
 
-GIT_STATUS := $(git status 2> /dev/null)
+GIT_STATUS := $([ -d .git ] && git status 2> /dev/null)
 
 CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
 DISTCLEAN_FILES ?=
@@ -51,17 +52,21 @@ fi)
 endef
 
 define _tag_ver =
-$(shell (git describe 2> /dev/null) || echo "${UNTAGGED_VERSION}")
+$(shell ([ -d .git ] && git describe 2> /dev/null) || echo "${UNTAGGED_VERSION}")
 endef
 
 define _rel_ver =
 $(shell \
-	if [ "$(GIT_STATUS)" = "" ]; then \
-		git rev-parse --short=10 HEAD; \
+	if [ -d .git ]; then \
+		if [ -z "${GIT_STATUS}" ]; then \
+			git rev-parse --short=10 HEAD; \
+		else \
+			[ -d .git ] && git diff 2> /dev/null \
+				| sha256sum - 2> /dev/null \
+				| perl -pe 's!^\s*([a-f0-9]{10}).*!\1!'; \
+		fi; \
 	else \
-		git diff 2> /dev/null \
-			| sha256sum - 2> /dev/null \
-			| perl -pe 's!^\s*([a-f0-9]{10}).*!\1!'; \
+		echo "${UNTAGGED_COMMIT}"; \
 	fi \
 )
 endef
