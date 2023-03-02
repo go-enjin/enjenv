@@ -29,6 +29,16 @@ import (
 )
 
 func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
+	defer func() {
+		if err != nil {
+			if beIo.LogFile != "" {
+				beIo.STDERR("error: %v\n", err)
+			} else {
+				beIo.StderrF("error: %v\n", err)
+			}
+		}
+	}()
+
 	if err = c.Prepare(ctx); err != nil {
 		return
 	}
@@ -43,26 +53,12 @@ func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 		return
 	}
 
-	for _, p := range []string{c.config.Paths.Etc, c.config.Paths.Tmp, c.config.Paths.Var} {
-		if err = os.Chown(p, uid, gid); err != nil {
-			beIo.StderrF("error changing ownership of: %v - %v\n", p, err)
-			continue
-		}
-		var allDirs []string
-		if allDirs, err = bePath.ListAllDirs(p); err != nil {
-			beIo.StderrF("error listing all dirs: %v - %v\n", p, err)
-			continue
-		}
-		var allFiles []string
-		if allFiles, err = bePath.ListAllFiles(p); err != nil {
-			beIo.StderrF("error listing all files: %v - %v\n", p, err)
-			continue
-		}
-		for _, dir := range append(allDirs, allFiles...) {
-			if err = os.Chown(dir, uid, gid); err != nil {
-				beIo.StderrF("error changing ownership of: %v - %v\n", dir, err)
-			}
-		}
+	if err = common.PerformMkdirChownChmod(uid, gid, 0660, 0770, c.config.Paths.Etc, c.config.Paths.Tmp, c.config.Paths.Var); err != nil {
+		return
+	}
+
+	if err = common.PerformMkdirChownChmod(uid, gid, 0660, 0770, c.config.Paths.AptSecrets, c.config.Paths.ProxySecrets, c.config.Paths.RepoSecrets); err != nil {
+		return
 	}
 
 	if c.config.LogFile != "" {
