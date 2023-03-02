@@ -135,26 +135,8 @@ func (s *SlugWorker) Unpack() (err error) {
 }
 
 func (s *SlugWorker) ReadProcfile() (procTypes map[string]string, err error) {
-	procTypes = make(map[string]string)
 	if bePath.IsDir(s.RunPath) {
-		procfile := s.RunPath + "/Procfile"
-		if bePath.IsFile(procfile) {
-			var data []byte
-			if data, err = os.ReadFile(procfile); err != nil {
-				return
-			}
-			contents := string(data)
-			if RxSlugProcfileEntries.MatchString(contents) {
-				m := RxSlugProcfileEntries.FindAllStringSubmatch(contents, 1)
-				for _, mm := range m {
-					procTypes[mm[1]] = mm[2]
-				}
-			} else {
-				err = fmt.Errorf("slug procfile missing web entry:\n%v", contents)
-			}
-		} else {
-			err = fmt.Errorf("slug missing Procfile: %v", s.Slug.Name)
-		}
+		procTypes, err = common.ReadProcfile(filepath.Join(s.RunPath, "Procfile"))
 	} else {
 		err = fmt.Errorf("slug is not unpacked yet")
 	}
