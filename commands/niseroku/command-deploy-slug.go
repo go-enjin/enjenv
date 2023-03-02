@@ -22,7 +22,6 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
@@ -42,6 +41,8 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 		cli.ShowCommandHelpAndExit(ctx, "deploy-slug", 1)
 	}
 
+	var needsRestart []string
+
 	hasErr := false
 	argv := ctx.Args().Slice()
 	for _, arg := range argv {
@@ -58,22 +59,24 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 		m := RxSlugArchiveName.FindAllStringSubmatch(slugPath, 1)
 		slugAppName := m[0][1]
 		if app, ok := c.config.Applications[slugAppName]; ok {
+			needsRestart = append(needsRestart, app.Name)
 			slugDestPath := c.config.Paths.VarSlugs + "/" + slugName
-			if app.ThisSlug != slugDestPath {
-				if ee := os.Rename(slugPath, slugDestPath); ee != nil {
-					beIo.StderrF("error moving slug: %v\n", ee)
-					hasErr = true
-					continue
-				}
-				_ = c.config.RunAsChown(slugDestPath)
-				app.NextSlug = slugDestPath
-				beIo.StdoutF("# updating %v next slug: %v\n", app.Name, slugName)
-				if err = app.Save(true); err != nil {
-					_ = c.config.RunAsChown(app.Source)
-					beIo.StderrF("error saving %v config: %v\n", app.Name, err)
-					hasErr = true
-					continue
-				}
+			if ee := os.Rename(slugPath, slugDestPath); ee != nil {
+				beIo.StderrF("error moving slug: %v\n", ee)
+				hasErr = true
+				continue
+			}
+			_ = c.config.RunAsChown(slugDestPath)
+			if app.ThisSlug == "" {
+				app.ThisSlug = slugDestPath
+			}
+			app.NextSlug = slugDestPath
+			beIo.StdoutF("# updating %v next slug: %v\n", app.Name, slugName)
+			if err = app.Save(true); err != nil {
+				_ = c.config.RunAsChown(app.Source)
+				beIo.StderrF("error saving %v config: %v\n", app.Name, err)
+				hasErr = true
+				continue
 			}
 		} else {
 			hasErr = true
@@ -97,9 +100,12 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 		return
 	}
 
-	for _, app := range maps.ValuesSortedByKeys(c.config.Applications) {
+	for _, appName := range needsRestart {
+		app, _ := c.config.Applications[appName]
 		if _, _, ee := pkgRun.EnjenvCmd("niseroku", "--config", c.config.Source, "app", "start", app.Name); ee != nil {
-			beIo.StderrF("error running application: %v\n", app.Name)
+			beIo.StderrF("error restarting application: %v\n", app.Name)
+		} else {
+			beIo.StdoutF("# restarting application: %v\n", app.Name)
 		}
 	}
 
