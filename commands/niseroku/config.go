@@ -135,7 +135,10 @@ type PathsConfig struct {
 	VarRepos    string `toml:"-"` // VarRepos is where git repos are stored
 	VarCache    string `toml:"-"` // VarCache is where build cache directories as stored
 	VarSlugs    string `toml:"-"` // VarSlugs is where slug archives are stored
+	VarAptRoot  string `toml:"-"` // VarAptRoot is the path to the apt-repository and apt-archives shared directories
 	VarSettings string `toml:"-"` // VarSettings is where slug env directories are stored
+
+	AptSecrets string `toml:"-"` // AptSecrets is where gpg signing keys are stored
 
 	RepoSecrets string `toml:"-"` // RepoSecrets is where ssh-keys are stored
 	RepoPidFile string `toml:"-"` // RepoPidFile is the path for the git-repository service process ID file
@@ -236,10 +239,12 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 
 	appsPath := cfg.Paths.Etc + "/apps.d"
 	usersPath := cfg.Paths.Etc + "/users.d"
+	aptSecrets := cfg.Paths.Etc + "/secrets.apt.d"
 	proxySecrets := cfg.Paths.Etc + "/secrets.proxy.d"
 	// etcRepoPath := cfg.Paths.Etc + "/repos.d"
 	varReposPath := cfg.Paths.Var + "/repos.d"
 	repoSecrets := cfg.Paths.Etc + "/secrets.repos.d"
+	repoAptPath := cfg.Paths.Var + "/apt-enjin.d"
 	tmpRun := cfg.Paths.Tmp + "/runner.d"
 	tmpClone := cfg.Paths.Tmp + "/clones.d"
 	tmpBuild := cfg.Paths.Tmp + "/builds.d"
@@ -400,7 +405,9 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 			VarCache:     varCache,
 			VarSlugs:     varSlugs,
 			VarSettings:  varSettings,
+			AptSecrets:   aptSecrets,
 			RepoSecrets:  repoSecrets,
+			VarAptRoot:   repoAptPath,
 			ProxySecrets: proxySecrets,
 			ProxyRpcSock: proxyRpcSock,
 			RepoPidFile:  repoPidFile,
@@ -443,6 +450,14 @@ func loadUsersApps(config *Config) (err error) {
 				return
 			}
 			config.DomainLookup[domain] = app
+		}
+		if app.AptPackage != nil {
+			if app.AptPackage.AptEnjin != "" {
+				if _, exists := config.Applications[app.AptPackage.AptEnjin]; !exists {
+					err = fmt.Errorf("apt-enjin not found: %v - %v", app.Source, app.AptPackage.AptEnjin)
+					return
+				}
+			}
 		}
 	}
 

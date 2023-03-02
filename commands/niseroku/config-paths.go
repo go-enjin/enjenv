@@ -15,8 +15,7 @@
 package niseroku
 
 import (
-	"fmt"
-	"os"
+	"path/filepath"
 	"syscall"
 
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -29,14 +28,15 @@ func (c *Config) PrepareDirectories() (err error) {
 	defer c.Unlock()
 
 	var uid, gid int
-	var chown bool
 	if syscall.Geteuid() == 0 {
 		if uid, gid, err = common.GetUidGid(c.RunAs.User, c.RunAs.Group); err != nil {
 			return
 		}
-		chown = uid > 0 && gid > 0
 	}
-	for _, p := range []string{
+
+	if err = common.PerformMkdirChownChmod(
+		uid, gid,
+		0660, 0770,
 		c.Paths.Etc,
 		c.Paths.EtcApps,
 		c.Paths.EtcUsers,
@@ -50,21 +50,42 @@ func (c *Config) PrepareDirectories() (err error) {
 		c.Paths.VarSettings,
 		c.Paths.VarCache,
 		c.Paths.VarRepos,
-		c.Paths.RepoSecrets,
-		c.Paths.ProxySecrets,
-	} {
-		if err = bePath.Mkdir(p); err != nil {
-			err = fmt.Errorf("error preparing directory: %v - %v", p, err)
+		c.Paths.VarAptRoot,
+	); err != nil {
+		return
+	}
+
+	if bePath.IsFile(c.LogFile) {
+		if err = common.PerformChownChmod(uid, gid, 0660, 0770, c.LogFile); err != nil {
 			return
 		}
-		if chown {
-			if err = os.Chown(p, uid, gid); err != nil {
+	}
+
+	if err = common.PerformMkdirChownChmod(
+		uid, gid,
+		0600, 0700,
+		c.Paths.AptSecrets,
+		c.Paths.RepoSecrets,
+		c.Paths.ProxySecrets,
+	); err != nil {
+		return
+	}
+
+	for _, app := range c.Applications {
+		if app.AptEnjin != nil && app.AptEnjin.Enable {
+			for _, section := range []string{"apt-archives", "apt-repository"} {
+				for flavour, _ := range app.AptEnjin.Flavours {
+					target := filepath.Join(c.Paths.VarAptRoot, app.Name, section, flavour)
+					if err = common.PerformMkdirChownChmod(uid, gid, 0660, 0770, target); err != nil {
+						return
+					}
+				}
+			}
+			target := filepath.Join(c.Paths.AptSecrets, app.Name)
+			if err = common.PerformMkdirChownChmod(uid, gid, 0600, 0700, target); err != nil {
 				return
 			}
 		}
-	}
-	if chown && bePath.IsFile(c.LogFile) {
-		err = os.Chown(c.LogFile, uid, gid)
 	}
 	return
 }
