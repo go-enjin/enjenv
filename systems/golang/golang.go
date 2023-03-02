@@ -50,7 +50,7 @@ var (
 )
 
 var (
-	DefaultVersion = "1.19.1"
+	DefaultVersion = "1.20.1"
 )
 
 var (
