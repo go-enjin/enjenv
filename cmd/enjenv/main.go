@@ -79,7 +79,7 @@ func main() {
 		system.Manager().Shutdown()
 	}
 	if err != nil {
-		io.StderrF("error: %v\n", err)
+		io.StderrF("error: %v - %v\n", os.Args, err)
 		os.Exit(1)
 	}
 }
