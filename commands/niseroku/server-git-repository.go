@@ -17,11 +17,13 @@ package niseroku
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/sosedoff/gitkit"
 
+	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
 	"github.com/go-enjin/enjenv/pkg/basepath"
@@ -56,19 +58,8 @@ func NewGitRepository(config *Config) (gr *GitRepository) {
 
 func (gr *GitRepository) Bind() (err error) {
 
-	if err = gr.config.PrepareDirectories(); err != nil {
-		err = fmt.Errorf("error preparing directories: %v", err)
-		return
-	}
-
-	for _, app := range maps.ValuesSortedByKeys(gr.config.Applications) {
-		if ee := app.SetupRepo(); ee != nil {
-			gr.LogErrorF("error setting up git repo: %v - %v", app.Name, ee)
-		}
-	}
-
-	if err = gr.updateGitHookScripts(); err != nil {
-		err = fmt.Errorf("error updating git-hook scripts: %v", err)
+	if err = gr.performReload(); err != nil {
+		err = fmt.Errorf("error performing reload on startup: %v", err)
 		return
 	}
 
@@ -149,38 +140,67 @@ func (gr *GitRepository) Stop() (err error) {
 }
 
 func (gr *GitRepository) Reload() (err error) {
+	gr.LogInfoF("git-repository reloading config")
+	if err = gr.config.Reload(); err != nil {
+		gr.LogErrorF("error reloading config: %v", err)
+		return
+	}
+	err = gr.performReload()
+	return
+}
+
+func (gr *GitRepository) performReload() (err error) {
 	gr.Lock()
 	defer gr.Unlock()
-	gr.LogInfoF("git-repository reloading\n")
-	err = gr.config.Reload()
+
+	if err = gr.config.PrepareDirectories(); err != nil {
+		err = fmt.Errorf("error preparing directories: %v", err)
+		return
+	}
+
+	gr.LogInfoF("git-repository config reloaded")
 	for _, app := range maps.ValuesSortedByKeys(gr.config.Applications) {
 		if ee := app.SetupRepo(); ee != nil {
 			gr.LogErrorF("error updating git repo setup: %v - %v", app.Name, ee)
+		} else {
+			gr.LogInfoF("app repo updated: %v", app.Name)
 		}
+	}
+	if ee := gr.updateGitHookScripts(); ee != nil {
+		gr.LogErrorF("error updating git hook scripts: %v", ee)
+	} else {
+		gr.LogInfoF("git hook scripts updated")
+	}
+	if ee := gr.updateAptEnjins(); ee != nil {
+		gr.LogErrorF("error updating apt-enjins: %v", ee)
+	} else {
+		gr.LogInfoF("all apt-enjins updated")
 	}
 	return
 }
 
 func (gr *GitRepository) publicKeyLookupFunc(inputPubKey string) (pubkey *gitkit.PublicKey, err error) {
 	var ok bool
-	var inputKeyId string
-	if _, _, _, inputKeyId, ok = common.ParseSshKey(inputPubKey); !ok {
+	var comment, inputKeyId string
+	if _, _, comment, inputKeyId, ok = common.ParseSshKey(inputPubKey); !ok {
 		err = fmt.Errorf("unable to parse SSH key: %v", inputPubKey)
 		return
+	} else if comment == "" {
+		comment = "nil"
 	}
 	gr.RLock()
 	defer gr.RUnlock()
 	for _, u := range gr.config.Users {
 		if u.HasKey(inputKeyId) {
-			gr.LogInfoF("validated user by ssh-key: %v\n", u.Name)
+			gr.LogInfoF("validated user with ssh-key: %v (%v)\n", u.Name, comment)
 			pubkey = &gitkit.PublicKey{
 				Id: inputKeyId,
 			}
 			return
 		}
 	}
-	err = fmt.Errorf("ssh-key not found")
-	gr.LogErrorF("user not found by ssh-key: %v\n", inputPubKey)
+	err = fmt.Errorf("user not found")
+	gr.LogErrorF("user not found with ssh-key: %v\n", inputPubKey)
 	return
 }
 
@@ -225,4 +245,83 @@ func (gr *GitRepository) updateGitHookScripts() (err error) {
 	}
 
 	return
+}
+
+func (gr *GitRepository) updateAptEnjins() (err error) {
+
+	for _, app := range gr.config.Applications {
+		var ae *AptEnjinConfig
+		if ae = app.AptEnjin; ae == nil {
+			continue
+		}
+		if ae.Enable {
+			for flavour, dists := range ae.Flavours {
+				flavourPath := filepath.Join(app.AptRepositoryPath, flavour)
+				confDir := filepath.Join(flavourPath, "conf")
+				if err = bePath.Mkdir(confDir); err != nil {
+					return
+				}
+
+				distsFile := filepath.Join(confDir, "distributions")
+				distsContent := Distributions(dists).String()
+				if err = os.WriteFile(distsFile, []byte(distsContent), 0660); err != nil {
+					return
+				}
+
+				for _, dist := range dists {
+					archivesPath := filepath.Join(app.AptArchivesPath, flavour)
+					if err = bePath.Mkdir(archivesPath); err != nil {
+						return
+					}
+
+					if err = gr.processAptRepository(app, ae, dist.Codename, flavourPath, archivesPath); err != nil {
+						return
+					}
+				}
+			}
+		}
+	}
+
+	return
+}
+
+func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConfig, codename, flavourPath, archivesPath string) (err error) {
+	var found []string
+	if found, err = bePath.ListFiles(archivesPath); err != nil {
+		return
+	}
+
+	if err = app.PrepareGpgSecrets(); err != nil {
+		return
+	}
+
+	appOsEnviron := app.OsEnviron()
+	for _, file := range found {
+		if strings.HasSuffix(file, ".dsc") {
+			// gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v\nenviron=%v", flavourPath, file, appOsEnviron)
+			gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, file)
+			gr.reprepro("includedsc", flavourPath, codename, file, gr.LogFile, appOsEnviron)
+		} else if strings.HasSuffix(file, ".deb") {
+			// gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v\nenviron=%v", flavourPath, file, appOsEnviron)
+			gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, file)
+			gr.reprepro("includedeb", flavourPath, codename, file, gr.LogFile, appOsEnviron)
+		}
+	}
+	return
+}
+
+func (gr *GitRepository) reprepro(operation string, flavourPath, codename, archive, logFile string, appOsEnviron []string) {
+	argv := []string{"-s", "-s", "-b", flavourPath, operation, codename, archive}
+	if err := run.ExeWith(&run.Options{
+		Path:    flavourPath,
+		Name:    "reprepro",
+		Stdout:  logFile,
+		Stderr:  logFile,
+		Argv:    argv,
+		Environ: appOsEnviron,
+	}); err != nil {
+		gr.LogErrorF("reprepro ExeWith error: %v - %v", argv, err)
+	} else {
+		gr.LogInfoF("reprepro ExeWith success: %v", argv)
+	}
 }
