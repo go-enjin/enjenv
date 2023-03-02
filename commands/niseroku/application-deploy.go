@@ -20,6 +20,9 @@ import (
 )
 
 func (a *Application) Deploy() (err error) {
+	if err = a.PrepareGpgSecrets(); err != nil {
+		return
+	}
 
 	thisSlug := a.GetThisSlug()
 	nextSlug := a.GetNextSlug()
@@ -37,12 +40,11 @@ func (a *Application) Deploy() (err error) {
 
 	var tgtSlug *Slug
 
-	switch {
-	case nextSlug != nil:
+	if nextSlug != nil {
 		tgtSlug = nextSlug
-	case thisSlug != nil:
+	} else if thisSlug != nil {
 		tgtSlug = thisSlug
-	default:
+	} else {
 		err = fmt.Errorf("slug not found")
 		return
 	}
@@ -54,7 +56,6 @@ func (a *Application) Deploy() (err error) {
 	tgtSlug.RefreshWorkers()
 	a.LogInfoF("migrated to slug: %v\n", tgtSlug)
 	<-a.awaitWorkersDone
-
 	return
 }
 

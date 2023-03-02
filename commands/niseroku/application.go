@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -35,8 +36,8 @@ type Application struct {
 	Maintenance bool     `toml:"maintenance,omitempty"`
 	Domains     []string `toml:"domains,omitempty"`
 
-	ThisSlug string `toml:"this-slug,omitempty"`
-	NextSlug string `toml:"next-slug,omitempty"`
+	AptPackage *AptPackageConfig `toml:"apt-package,omitempty"`
+	AptEnjin   *AptEnjinConfig   `toml:"apt-enjin,omitempty"`
 
 	Workers map[string]int `toml:"workers,omitempty"`
 
@@ -45,6 +46,9 @@ type Application struct {
 	Settings map[string]interface{} `toml:"settings,omitempty"`
 
 	Origin AppOrigin `toml:"origin"`
+
+	ThisSlug string `toml:"this-slug,omitempty"`
+	NextSlug string `toml:"next-slug,omitempty"`
 
 	Name      string           `toml:"-"`
 	Slugs     map[string]*Slug `toml:"-"`
@@ -56,6 +60,10 @@ type Application struct {
 	ErrorLog  string           `toml:"-"`
 	AccessLog string           `toml:"-"`
 	NoticeLog string           `toml:"-"`
+
+	AptBasePath       string `toml:"-"`
+	AptArchivesPath   string `toml:"-"`
+	AptRepositoryPath string `toml:"-"`
 
 	awaitWorkersDone chan bool
 
@@ -142,13 +150,31 @@ func (a *Application) Load() (err error) {
 	a.AccessLog = fmt.Sprintf("%s/%v.access.log", a.Config.Paths.VarLogs, a.Name)
 	a.NoticeLog = fmt.Sprintf("%s/%v.info.log", a.Config.Paths.VarLogs, a.Name)
 
-	switch {
-	case a.Origin.Scheme == "":
-		err = fmt.Errorf("scheme setting not found")
-	case a.Origin.Host == "":
-		err = fmt.Errorf("host setting not found")
-	case len(a.Domains) == 0:
-		err = fmt.Errorf("domains setting not found")
+	if a.AptPackage != nil {
+		// apt-packages do not require a valid origin or having any domains
+		if a.AptPackage.AptEnjin == "" {
+			a.AptPackage = nil
+		} else {
+			a.AptBasePath = filepath.Join(a.Config.Paths.VarAptRoot, a.AptPackage.AptEnjin)
+			a.AptArchivesPath = filepath.Join(a.AptBasePath, "apt-archives")
+			a.AptRepositoryPath = filepath.Join(a.AptBasePath, "apt-repository")
+		}
+	} else {
+		// standard enjins and apt-enjins require origin and at least one domain
+		switch {
+		case a.Origin.Scheme == "":
+			err = fmt.Errorf("scheme setting not found")
+		case a.Origin.Host == "":
+			err = fmt.Errorf("host setting not found")
+		case len(a.Domains) == 0:
+			err = fmt.Errorf("domains setting not found")
+		}
+	}
+
+	if a.AptEnjin != nil {
+		a.AptBasePath = fmt.Sprintf("%v/%v", a.Config.Paths.VarAptRoot, a.Name)
+		a.AptArchivesPath = filepath.Join(a.AptBasePath, "apt-archives")
+		a.AptRepositoryPath = filepath.Join(a.AptBasePath, "apt-repository")
 	}
 
 	if a.ThisSlug != "" && !bePath.IsFile(a.ThisSlug) {
@@ -157,6 +183,7 @@ func (a *Application) Load() (err error) {
 	if a.NextSlug != "" && !bePath.IsFile(a.NextSlug) {
 		a.NextSlug = ""
 	}
+
 	return
 }
 

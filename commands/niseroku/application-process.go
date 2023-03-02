@@ -17,11 +17,15 @@ package niseroku
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/iancoleman/strcase"
 
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
+
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (a *Application) GetThisSlug() (slug *Slug) {
@@ -52,6 +56,7 @@ func (a *Application) ApplySettings(envDir string) (err error) {
 	// a.LogInfoF("applying settings to: %v\n", envDir)
 	a.RLock()
 	defer a.RUnlock()
+
 	for _, k := range maps.SortedKeys(a.Settings) {
 		key := strcase.ToScreamingSnake(k)
 		value := fmt.Sprintf("%v", a.Settings[k])
@@ -59,6 +64,16 @@ func (a *Application) ApplySettings(envDir string) (err error) {
 			return
 		}
 	}
+
+	if aptEnv := a.OsEnvironAptEnjinOnly(); len(aptEnv) > 0 {
+		for k, value := range aptEnv {
+			key := strcase.ToScreamingSnake(k)
+			if err = os.WriteFile(envDir+"/"+key, []byte(value), 0660); err != nil {
+				return
+			}
+		}
+	}
+
 	return
 }
 
@@ -70,6 +85,154 @@ func (a *Application) OsEnviron() (environment []string) {
 		key := strcase.ToScreamingSnake(k)
 		environment = append(environment, fmt.Sprintf("%v=%v", key, a.Settings[k]))
 	}
+	if ae := a.AptEnjin; ae != nil {
+		aptEnv := a.OsEnvironAptEnjinOnly()
+		for _, key := range maps.SortedKeys(aptEnv) {
+			environment = append(environment, fmt.Sprintf("%v=%v", key, aptEnv[key]))
+		}
+	}
+	return
+}
+
+func (a *Application) OsEnvironAptEnjinOnly() (aptEnv map[string]string) {
+	aptEnv = make(map[string]string)
+	var ae *AptEnjinConfig
+	if ae = a.AptEnjin; ae == nil {
+		return
+	}
+	aptEnv["GNUPGHOME"] = filepath.Join(a.Config.Paths.AptSecrets, a.Name, ".gpg")
+	aptEnv["SITEKEY"] = ae.SiteKey
+	aptEnv["SITEURL"] = ae.SiteUrl
+	aptEnv["SITENAME"] = ae.SiteName
+	aptEnv["SITEMAIL"] = ae.SiteMail
+	aptEnv["AE_ARCHIVES"] = a.AptArchivesPath
+	aptEnv["AE_BASEPATH"] = filepath.Join(a.AptBasePath, "apt-repository")
+
+	if len(ae.GpgKeys) > 0 {
+		// TODO: better signing key handling
+		var gpgFile string
+		var gpgKeys []string
+		for _, name := range maps.SortedKeys(ae.GpgKeys) {
+			gpgFile = filepath.Join(a.Config.Paths.AptSecrets, a.Name, name)
+			gpgKeys = ae.GpgKeys[gpgFile]
+			break
+		}
+		if gpgFile != "" && bePath.IsFile(gpgFile) {
+			aptEnv["AE_GPG_FILE"] = gpgFile
+			if len(gpgKeys) > 0 {
+				aptEnv["AE_SIGN_KEY"] = gpgKeys[0]
+			}
+		}
+	}
+
+	return
+}
+
+func (a *Application) PurgeGpgSecrets() (err error) {
+	home := filepath.Join(a.Config.Paths.AptSecrets, a.Name, ".gpg")
+	if bePath.IsDir(home) {
+		if err = os.RemoveAll(home); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (a *Application) GetGpgHome() (home string) {
+	home = filepath.Join(a.Config.Paths.AptSecrets, a.Name, ".gpg")
+	return
+}
+
+func (a *Application) ImportGpgSecrets(other *Application) (info map[string][]string, err error) {
+	if err = a.PurgeGpgSecrets(); err != nil {
+		return
+	}
+
+	info = make(map[string][]string)
+	home := a.GetGpgHome()
+
+	if err = os.MkdirAll(home, 0700); err != nil {
+		return
+	}
+
+	otherAptSecrets := filepath.Join(a.Config.Paths.AptSecrets, other.Name)
+
+	found, _ := bePath.ListFiles(otherAptSecrets)
+	for _, file := range found {
+		if bePath.IsFile(file) && strings.HasSuffix(file, ".gpg") {
+			a.LogInfoF("# importing from other gpg key: %v - %v", other.Name, file)
+			if o, e, _, ee := common.Gpg(home, "--import", file); ee != nil {
+				a.LogErrorF("error importing %v gpg key: %v - %v", a.Name, ee)
+				if o != "" {
+					a.LogInfoF("gpg import stdout: %v", o)
+				}
+				if e != "" {
+					a.LogErrorF("gpg import stderr: %v", e)
+				}
+				continue
+			}
+
+			if fingerprints, ee := common.GpgShowOnly(home, file); ee != nil {
+				a.LogErrorF("%v", ee)
+			} else {
+				keyFileName := filepath.Base(file)
+				info[keyFileName] = fingerprints
+			}
+		}
+	}
+
+	return
+}
+
+func (a *Application) PrepareGpgSecrets() (err error) {
+
+	var ae *AptEnjinConfig
+	if ae = a.AptEnjin; ae == nil {
+		return
+	}
+
+	if err = a.PurgeGpgSecrets(); err != nil {
+		return
+	}
+
+	aptSecrets := filepath.Join(a.Config.Paths.AptSecrets, a.Name)
+	home := a.GetGpgHome()
+
+	if err = os.MkdirAll(home, 0700); err != nil {
+		return
+	}
+
+	ae.GpgKeys = make(map[string][]string)
+
+	found, _ := bePath.ListFiles(aptSecrets)
+	for _, file := range found {
+		if strings.HasSuffix(file, ".gpg") {
+			a.LogInfoF("# importing gpg key: %v", file)
+
+			var ee error
+			var o, e string
+			if o, e, _, ee = common.Gpg(home, "--import", file); ee != nil {
+				a.LogErrorF("error importing %v gpg key: %v - %v", a.Name, ee)
+				if o != "" {
+					a.LogInfoF("gpg import stdout: %v", o)
+				}
+				if e != "" {
+					a.LogErrorF("gpg import stderr: %v", e)
+				}
+				continue
+			}
+
+			if fingerprints, ee := common.GpgShowOnly(home, file); ee != nil {
+				a.LogErrorF("%v", ee)
+			} else {
+				keyFileName := filepath.Base(file)
+				ae.GpgKeys[keyFileName] = fingerprints
+			}
+		}
+	}
+
+	a.LogInfoF("loaded apt-enjin gpg keys: %v - %+v", a.Name, ae.GpgKeys)
+
 	return
 }
 
