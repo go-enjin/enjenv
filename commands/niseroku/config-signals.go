@@ -19,26 +19,15 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 
-	bePath "github.com/go-enjin/be/pkg/path"
-	beIo "github.com/go-enjin/enjenv/pkg/io"
-
+	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (c *Config) SignalReverseProxy(sig process.Signal) (sent bool) {
-	// c.RLock()
-	// defer c.RUnlock()
-	if bePath.IsFile(c.Paths.ProxyPidFile) {
-		if proc, err := common.GetProcessFromPidFile(c.Paths.ProxyPidFile); err == nil {
-			if running, ee := proc.IsRunning(); ee == nil && running {
-				beIo.StdoutF("signal reverse proxy: %v\n", c.Paths.ProxyPidFile)
-				_ = proc.SendSignal(sig)
-				sent = true
-				return
-			}
-		}
+	err := common.SendSignalToPidFromFile(c.Paths.ProxyPidFile, sig)
+	if sent = err == nil; sent {
+		pkgIo.StdoutF("# signal (%v) sent to reverse-proxy\n", sig)
 	}
-	beIo.StderrF("error signaling reverse proxy: %v\n", c.Paths.ProxyPidFile)
 	return
 }
 
@@ -53,15 +42,9 @@ func (c *Config) SignalStopReverseProxy() (sent bool) {
 }
 
 func (c *Config) SignalGitRepository(sig process.Signal) (sent bool) {
-	c.RLock()
-	defer c.RUnlock()
-	if bePath.IsFile(c.Paths.RepoPidFile) {
-		if proc, err := common.GetProcessFromPidFile(c.Paths.RepoPidFile); err == nil {
-			if running, err := proc.IsRunning(); err == nil && running {
-				_ = proc.SendSignal(sig)
-				sent = true
-			}
-		}
+	err := common.SendSignalToPidFromFile(c.Paths.RepoPidFile, sig)
+	if sent = err == nil; sent {
+		pkgIo.StdoutF("# signal (%v) sent to git-repository\n", sig)
 	}
 	return
 }
