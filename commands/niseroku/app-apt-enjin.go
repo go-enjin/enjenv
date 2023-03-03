@@ -20,13 +20,14 @@ import (
 )
 
 type AptEnjinConfig struct {
-	Enable   bool                      `toml:"enable,omitempty"`
-	SiteKey  string                    `toml:"site-key,omitempty"`
-	SiteName string                    `toml:"site-name,omitempty"`
-	SiteMail string                    `toml:"site-mail,omitempty"`
-	SiteUrl  string                    `toml:"site-url,omitempty"`
-	GpgKeys  map[string][]string       `toml:"gpg-keys,omitempty"`
-	Flavours map[string][]Distribution `toml:"flavours,omitempty"`
+	Enable    bool                      `toml:"enable,omitempty"`
+	SiteKey   string                    `toml:"site-key,omitempty"`
+	SiteName  string                    `toml:"site-name,omitempty"`
+	SiteMail  string                    `toml:"site-mail,omitempty"`
+	SiteMaint string                    `toml:"site-maint,omitempty"`
+	SiteUrl   string                    `toml:"site-url,omitempty"`
+	GpgKeys   map[string][]string       `toml:"gpg-keys,omitempty"`
+	Flavours  map[string][]Distribution `toml:"flavours,omitempty"`
 }
 
 type Distribution struct {

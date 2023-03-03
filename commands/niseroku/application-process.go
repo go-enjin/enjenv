@@ -105,8 +105,10 @@ func (a *Application) OsEnvironAptEnjinOnly() (aptEnv map[string]string) {
 	aptEnv["SITEURL"] = ae.SiteUrl
 	aptEnv["SITENAME"] = ae.SiteName
 	aptEnv["SITEMAIL"] = ae.SiteMail
+	aptEnv["SITEMAINT"] = ae.SiteMaint
 	aptEnv["AE_ARCHIVES"] = a.AptArchivesPath
 	aptEnv["AE_BASEPATH"] = filepath.Join(a.AptBasePath, "apt-repository")
+	aptEnv["APT_GPG_HOME"] = aptEnv["GNUPGHOME"]
 
 	if len(ae.GpgKeys) > 0 {
 		// TODO: better signing key handling
