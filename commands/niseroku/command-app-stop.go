@@ -45,27 +45,29 @@ func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
 		return
 	}
 
+	var ok bool
 	for _, name := range appNames {
-		if app, ok := c.config.Applications[name]; !ok {
-			io.STDERR("%v application not found\n", name)
+		var app *Application
+		if app, ok = c.config.Applications[name]; !ok {
+			io.STDERR("application not found: %v\n", name)
+			continue
+		}
+
+		if app.ThisSlug == "" && app.NextSlug == "" {
+			io.STDOUT("application slugs not found: %v\n", name)
+			continue
+		}
+
+		stopped := 0
+		for _, slug := range []*Slug{app.GetThisSlug(), app.GetNextSlug()} {
+			if slug != nil {
+				stopped += slug.StopAll()
+			}
+		}
+		if stopped > 0 {
+			io.STDOUT("application stopped: %v (workers stopped: %d)\n", app.Name, stopped)
 		} else {
-			found := false
-			stopped := 0
-			if slug := app.GetThisSlug(); slug != nil {
-				found = true
-				stopped += slug.StopAll()
-			}
-			if slug := app.GetNextSlug(); slug != nil {
-				found = true
-				stopped += slug.StopAll()
-			}
-			if !found {
-				io.STDERR("%v this slug not found\n", name)
-			} else if stopped > 0 {
-				io.STDOUT("%v stopped %d instances\n", app.Name, stopped)
-			} else {
-				io.STDOUT("%v not running\n", app.Name)
-			}
+			io.STDOUT("application not running: %v\n", app.Name)
 		}
 	}
 
