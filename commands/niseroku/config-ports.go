@@ -20,6 +20,8 @@ import (
 	"time"
 )
 
+// TODO: figure out a better way to get unused ports
+
 func (c *Config) GetUnusedPort() (port int) {
 	c.RLock()
 	defer c.RUnlock()
