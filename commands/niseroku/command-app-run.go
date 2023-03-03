@@ -88,7 +88,7 @@ func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
 	}
 
 	if err = app.Deploy(); err != nil {
-		app.LogErrorF("error deploying application: %v\n", err)
+		app.LogErrorF("error deploying application: %v - %v\n", app.Name, err)
 		return
 	}
 

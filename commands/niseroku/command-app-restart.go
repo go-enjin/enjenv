@@ -55,13 +55,15 @@ func (c *Command) actionAppRestart(ctx *cli.Context) (err error) {
 
 	for _, name := range appNames {
 		if app, ok := c.config.Applications[name]; !ok {
-			io.STDERR("%v application not found\n", name)
+			io.STDERR("application not found: %v\n", name)
 		} else if app.Maintenance && !forceOverride {
-			io.STDOUT("%v application in maintenance mode (use --force to override)\n", name)
+			io.STDOUT("application in maintenance mode: %v (use --force to override)\n", name)
+		} else if app.ThisSlug == "" && app.NextSlug == "" {
+			io.STDERR("application slugs not found: %v\n", name)
 		} else if ee := restartApp(app); ee != nil {
-			io.STDERR("%v application restart error: %v\n", name, ee)
+			io.STDERR("application restart error: %v - %v\n", name, ee)
 		} else {
-			io.STDOUT("%v application restarting\n", name)
+			io.STDOUT("application restarting: %v\n", name)
 		}
 		time.Sleep(100 * time.Millisecond) // slight delay before next app is restarted
 	}
