@@ -207,7 +207,7 @@ func (a *Application) PrepareGpgSecrets() (err error) {
 	found, _ := bePath.ListFiles(aptSecrets)
 	for _, file := range found {
 		if strings.HasSuffix(file, ".gpg") {
-			a.LogInfoF("# importing gpg key: %v", file)
+			// a.LogInfoF("# importing gpg key: %v", file)
 
 			var ee error
 			var o, e string
@@ -231,7 +231,7 @@ func (a *Application) PrepareGpgSecrets() (err error) {
 		}
 	}
 
-	a.LogInfoF("loaded apt-enjin gpg keys: %v - %+v", a.Name, ae.GpgKeys)
+	// a.LogInfoF("# loaded apt-enjin gpg keys: %v - %+v", a.Name, ae.GpgKeys)
 
 	return
 }
