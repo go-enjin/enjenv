@@ -67,11 +67,12 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 				continue
 			}
 			_ = c.config.RunAsChown(slugDestPath)
-			if app.ThisSlug == "" {
-				app.ThisSlug = slugDestPath
-			}
 			app.NextSlug = slugDestPath
-			beIo.StdoutF("# updating %v next slug: %v\n", app.Name, slugName)
+			if app.ThisSlug == "" {
+				beIo.StdoutF("# creating %v next slug: %v\n", app.Name, slugName)
+			} else {
+				beIo.StdoutF("# updating %v next slug: %v\n", app.Name, slugName)
+			}
 			if err = app.Save(true); err != nil {
 				_ = c.config.RunAsChown(app.Source)
 				beIo.StderrF("error saving %v config: %v\n", app.Name, err)
