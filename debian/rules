@@ -1,0 +1,40 @@
+#!/usr/bin/make -f
+
+SHELL=/bin/bash
+export DH_VERBOSE=1
+
+override_dh_auto_build:
+	@if [ "${DEB_HOST_ARCH}" == "amd64" ]; then \
+		echo "# making release-amd64"; \
+		$(MAKE) release-amd64; \
+	elif [ "${DEB_HOST_ARCH}" == "arm64" ]; then \
+		echo "# making release-arm64"; \
+		$(MAKE) release-arm64; \
+	else \
+		echo "error: unsupported --host-arch=${DEB_HOST_ARCH}"; \
+		false; \
+	fi
+
+override_dh_auto_install: export BUILD_ARCH=${DEB_HOST_ARCH}
+override_dh_auto_install: export DESTDIR=${CURDIR}/debian/tmp
+override_dh_auto_install:
+# enjenv targets
+	$(MAKE) install
+	$(MAKE) install-autocomplete
+# niseroku targets
+	$(MAKE) install-niseroku
+	$(MAKE) install-niseroku-systemd
+	$(MAKE) install-niseroku-logrotate
+	$(MAKE) install-niseroku-sysv-init
+	$(MAKE) install-niseroku-utils
+
+override_dh_installsystemd:
+	dh_installsystemd --name=niseroku-proxy
+	dh_installsystemd --name=niseroku-repos
+
+override_dh_shlibdeps:
+
+override_dh_strip:
+
+%:
+	dh $@ --with-systemd --with-debconf

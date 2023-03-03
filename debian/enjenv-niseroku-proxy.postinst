@@ -1,0 +1,91 @@
+#!/bin/bash
+
+set -e
+
+case "$1" in
+    "configure") ;;
+    "abort-upgrade"|"abort-remove"|"abort-deconfigure") exit 0;;
+    *)
+        fatal_error "postinst called with unknown argument \"$1\""
+        ;;
+esac
+
+NISEROKU_TOML=/etc/niseroku/niseroku.toml
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+check_error () {
+    varname="${1}"
+    shift
+    if [ -n "${1}" ]
+    then
+        db_fset "${varname}" seen false
+        fatal_error "${1}"
+    fi
+}
+
+error () {
+    while [ $# -gt 0 ]
+    do
+        echo "error: ${1}" 1>&2
+        shift
+    done
+}
+
+fatal_error () {
+    error "${1}"
+    exit 1
+}
+
+check_port () {
+    if [ "${1}" -ne "${1}" ]
+    then
+        echo "port given is not a number"
+    elif [ "${1}" -lt 1 -o "${1}" -gt 65534 ]
+    then
+        echo "port given is not within range: 1-65534"
+    fi
+}
+
+db_get enjenv-niseroku-proxy/ports_http
+ports_http="${RET}"
+err=$(check_port "${ports_http}")
+check_error "enjenv-niseroku-proxy/ports_http" "${err}"
+
+enable_ssl=0
+account_email=
+
+db_get enjenv-niseroku-proxy/enable_ssl
+case "${RET}" in
+    "true")
+        enable_ssl=1
+        db_get enjenv-niseroku-proxy/account_email
+        account_email=${RET}
+    ;;
+esac
+
+echo "# performing ${NISEROKU_TOML} updates..." 1>&2
+
+echo "#  enjenv niseroku config ports.http ${ports_http}" 1>&2
+/usr/bin/enjenv niseroku config ports.http ${ports_http} || true
+
+if [ $enable_ssl -ne 0 ]
+then
+    echo "#  enjenv niseroku config enable-ssl true" 1>&2
+    /usr/bin/enjenv niseroku config enable-ssl true || true
+fi
+
+if [ -n "${account_email}" ]
+then
+    echo "#  enjenv niseroku config account-email \"${account_email}\"" 1>&2
+    /usr/bin/enjenv niseroku config account-email "${account_email}" || true
+fi
+
+db_stop
+
+echo "# restarting niseroku-proxy service"
+systemctl daemon-reload
+service niseroku-proxy restart
+
+exit 0

@@ -1,0 +1,15 @@
+Template: enjenv-niseroku-proxy/ports_http
+Type: string
+Description: HTTP Port:
+ Enter the port to listen on for HTTP requests
+
+Template: enjenv-niseroku-proxy/enable_ssl
+Type: boolean
+Description: Enable SSL
+ Enable Let's Encrypt SSL listener on HTTPS port?
+
+Template: enjenv-niseroku-proxy/account_email
+Type: string
+Description: Account Email
+ Enter the email address to use for the Let's Encrypt account and for accepting
+ the Let's Encrypt terms of service

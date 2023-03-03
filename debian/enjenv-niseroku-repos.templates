@@ -1,0 +1,4 @@
+Template: enjenv-niseroku-repos/ports_git
+Type: string
+Description: GIT (SSH) Port:
+ Enter the port to listen on for GIT (SSH) connections

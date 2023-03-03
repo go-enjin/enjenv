@@ -1,0 +1,2 @@
+etc/logrotate.d/niseroku /etc/logrotate.d
+etc/niseroku/niseroku.toml /etc/niseroku

@@ -1,0 +1,3 @@
+etc/bash_completion.d/niseroku /etc/bash_completion.d
+usr/bin/niseroku /usr/bin
+usr/bin/niseroku-tail /usr/bin

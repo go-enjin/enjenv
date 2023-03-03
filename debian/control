@@ -1,0 +1,66 @@
+Source: enjenv
+Section: go-enjin
+Priority: optional
+Maintainer: The Go-Enjin Team <go.enjin.org@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.5.1
+Homepage: https://go-enjin.org
+Vcs-Browser: https://github.com/go-enjin/enjenv
+Vcs-Git: https://github.com/go-enjin/enjenv.git
+Rules-Requires-Root: no
+
+Package: enjenv
+Architecture: any
+Description: Go-Enjin environment management utility
+ The ENJin ENVironment management utility, enjenv, is
+ a command line utility for managing local system
+ environments.
+
+Package: enjenv-niseroku-common
+Architecture: any
+Depends: enjenv, coreutils, build-essential, upx-ucl, git, zip, unzip
+Description: Go-Enjin local deployment system (common files)
+ niseroku is a local deployment system for the Go-Enjin project
+ and is really just a sub-command of the enjenv program.
+ .
+ This package contains the default logrotate and basic niseroku
+ configuration files.
+
+Package: enjenv-niseroku-utils
+Architecture: any
+Depends: enjenv-niseroku-common, multitail
+Description: Go-Enjin local deployment system (utilities)
+ niseroku is a local deployment system for the Go-Enjin project
+ and is really just a sub-command of the enjenv program.
+ .
+ This package contains useful things for admin users. This package
+ is not required for niseroku to function.
+
+Package: enjenv-niseroku-proxy
+Architecture: any
+Depends: enjenv-niseroku-common
+Description: Go-Enjin local deployment system (reverse-proxy service)
+ niseroku is a local deployment system for the Go-Enjin project
+ and is really just a sub-command of the enjenv program.
+ .
+ This package provides the reverse-proxy service files.
+
+Package: enjenv-niseroku-repos
+Architecture: any
+Depends: enjenv-niseroku-common
+Description: Go-Enjin local deployment system (git-repository service)
+ niseroku is a local deployment system for the Go-Enjin project
+ and is really just a sub-command of the enjenv program.
+ .
+ This package provides the git-repository service files.
+
+Package: enjenv-niseroku-apt-enjin
+Architecture: any
+Depends: enjenv-niseroku-common, gpg, reprepro, dh-make, devscripts, crossbuild-essential-arm64, crossbuild-essential-amd64, libc6-dev-amd64-cross, linux-libc-dev-amd64-cross, libc6-dev-arm64-cross, linux-libc-dev-arm64-cross
+Description: Go-Enjin cross-compilation and debian packaging dependencies
+ niseroku is a local deployment system for the Go-Enjin project
+ and is really just a sub-command of the enjenv program.
+ .
+ This package provides the dependencies for niseroku to support debian
+ packaging, cross-compiling (arm64 and amd64) and deployments to
+ configured apt-enjin applications.

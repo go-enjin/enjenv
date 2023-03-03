@@ -1,0 +1,2 @@
+etc/init.d/niseroku-repos /etc/init.d
+etc/systemd/system/niseroku-repos.service /etc/systemd/system

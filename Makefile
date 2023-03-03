@@ -374,3 +374,8 @@ be-update: export GOPROXY=direct
 be-update:
 	@echo "# go get github.com/go-enjin/be@latest github.com/go-curses/cdk@latest github.com/go-curses/ctk@latest"
 	@go get github.com/go-enjin/be@latest github.com/go-curses/ctk@latest
+
+#: begin debian packaging branch changes
+-include Debian.mk
+export
+#: end debian packaging branch changes

@@ -1,0 +1,6 @@
+enjenv for Debian
+-----------------
+
+The enjenv project only supports arm64 and amd64 CPU architectures.
+
+ -- Kevin C. Krinke <kck@debian.osc>, Fri,  6 Jan 2023 14:03:11 -0500

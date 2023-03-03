@@ -1,0 +1,16 @@
+[Unit]
+Description="enjenv niseroku (reverse-proxy)"
+After=network-online.target
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/enjenv niseroku reverse-proxy
+Restart=on-failure
+RestartSec=1s
+KillMode=process
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=network-online.target

@@ -1,0 +1,16 @@
+[Unit]
+Description="enjenv niseroku (git-repository)"
+After=network-online.target
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/enjenv niseroku git-repository
+Restart=on-failure
+RestartSec=1s
+KillMode=process
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=network-online.target

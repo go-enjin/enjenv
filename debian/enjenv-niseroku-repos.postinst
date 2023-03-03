@@ -1,0 +1,67 @@
+#!/bin/bash
+
+set -e
+
+case "$1" in
+    "configure") ;;
+    "abort-upgrade"|"abort-remove"|"abort-deconfigure") exit 0;;
+    *)
+        fatal_error "postinst called with unknown argument \"$1\""
+        ;;
+esac
+
+NISEROKU_TOML=/etc/niseroku/niseroku.toml
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+check_error () {
+    varname="${1}"
+    shift
+    if [ -n "${1}" ]
+    then
+        db_fset "${varname}" seen false
+        fatal_error "${1}"
+    fi
+}
+
+error () {
+    while [ $# -gt 0 ]
+    do
+        echo "error: ${1}" 1>&2
+        shift
+    done
+}
+
+fatal_error () {
+    error "${1}"
+    exit 1
+}
+
+check_port () {
+    if [ "${1}" -ne "${1}" ]
+    then
+        echo "port given is not a number"
+    elif [ "${1}" -lt 1 -o "${1}" -gt 65534 ]
+    then
+        echo "port given is not within range: 1-65534"
+    fi
+}
+
+db_get enjenv-niseroku-repos/ports_git
+ports_git="${RET}"
+err=$(check_port "${ports_git}")
+check_error "enjenv-niseroku-repos/ports_git" "${err}"
+
+echo "# performing ${NISEROKU_TOML} updates..." 1>&2
+
+echo "#  enjenv niseroku config ports.git ${ports_git}" 1>&2
+/usr/bin/enjenv niseroku config ports.git ${ports_git}
+
+db_stop
+
+echo "# restarting niseroku-repos service"
+systemctl daemon-reload
+service niseroku-repos restart
+
+exit 0
