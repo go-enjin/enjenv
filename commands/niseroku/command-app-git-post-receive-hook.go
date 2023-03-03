@@ -117,6 +117,7 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 
 	pwd := bePath.Pwd()
 	if err = os.Chdir(buildDir); err != nil {
+		err = fmt.Errorf("chdir error: %v - %v", buildDir, err)
 		return
 	}
 	defer func() {
@@ -124,7 +125,7 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 	}()
 
 	if !bePath.IsFile("Procfile") {
-		err = fmt.Errorf("application Procfile not found: %v", app.Name)
+		err = fmt.Errorf("application Procfile not found: %v - %v/Procfile", app.Name, buildDir)
 		return
 	}
 
@@ -152,8 +153,6 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 	} else {
 		name = parts[0]
 	}
-
-	aptArchivesPath := filepath.Join(aptApp.AptArchivesPath, info.RefName)
 
 	var gpgInfo map[string][]string
 	if gpgInfo, err = app.ImportGpgSecrets(aptApp); err != nil {
@@ -185,26 +184,21 @@ func (c *Command) enjinRepoPostReceiveHandler(app *Application, config *Config, 
 	appOsEnviron := append(
 		app.OsEnviron(),
 		"GNUPGHOME="+gpgHome,
-		"AE_ARCHIVES="+aptArchivesPath,
+		"AE_GPG_HOME="+gpgHome,
+		"AE_SIGN_KEY="+signWith,
+		"AE_ARCHIVES="+aptApp.AptArchivesPath,
+		"UNTAGGED_COMMIT="+info.NewRev[:10],
 	)
 
-	pkgIo.STDOUT("# starting %v build process: %v - %v %v\n", info.RefName, name, argv)
+	pkgIo.STDOUT("# starting %v build process: %v - %v\n", info.RefName, name, argv)
+
 	if err = run.ExeWith(&run.Options{Path: ".", Name: name, Argv: argv, Environ: appOsEnviron}); err != nil {
 		return
 	}
 
-	// if ae.
-
-	/*
-		- load Procfile
-		- find Procfile flavour
-		- determine apt-archives path
-		- load gpg keys
-		- perform Procfile flavour command
-		- copy files to apt-archives path
-	*/
-
-	err = fmt.Errorf("testing")
+	pkgIo.STDOUT("# signaling for niseroku service reload\n")
+	c.config.SignalReloadGitRepository()
+	c.config.SignalReloadReverseProxy()
 	return
 }
 
@@ -288,9 +282,7 @@ func (c *Command) enjinRepoRunBuildpackProcess(app *Application, config *Config,
 
 	if ae := app.AptEnjin; ae != nil {
 		procfile := filepath.Join(buildDir, "Procfile")
-		pkgIo.STDOUT("apt-enjin found\n")
 		if bePath.IsFile(procfile) {
-			pkgIo.STDOUT("apt-enjin Procfile found: %v\n", procfile)
 			if procTypes, ee := common.ReadProcfile(procfile); ee != nil {
 				pkgIo.STDERR("apt-enjin Procfile error: %v\n", ee)
 			} else {
@@ -299,7 +291,6 @@ func (c *Command) enjinRepoRunBuildpackProcess(app *Application, config *Config,
 				}
 				osEnviron := app.OsEnviron()
 				for flavour, _ := range ae.Flavours {
-					pkgIo.STDOUT("apt-enjin Procfile checking: %v - %v\n", flavour, procTypes)
 					if command, ok := procTypes[flavour]; ok {
 						pkgIo.STDOUT("# apt-enjin: detected Procfile target - %v\n", flavour)
 						parts := strings.Split(command, " ")
