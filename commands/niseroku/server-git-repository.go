@@ -282,12 +282,10 @@ func (gr *GitRepository) updateAptEnjins() (err error) {
 				}
 			}
 
-			go func() {
-				gr.LogInfoF("restarting apt-enjin application: %v", app.Name)
-				if _, ee := pkgRun.EnjenvBg(gr.config.LogFile, "-", "niseroku", "--config", gr.config.Source, "app", "restart", app.Name); ee != nil {
-					gr.LogErrorF("error calling niseroku app restart %v: %v\n", app.Name, ee)
-				}
-			}()
+			gr.LogInfoF("restarting apt-enjin application: %v", app.Name)
+			if _, ee := pkgRun.EnjenvBg(gr.config.LogFile, "-", "niseroku", "--config", gr.config.Source, "app", "restart", app.Name); ee != nil {
+				gr.LogErrorF("error calling niseroku app restart %v: %v\n", app.Name, ee)
+			}
 		}
 	}
 
