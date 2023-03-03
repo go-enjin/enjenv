@@ -24,37 +24,40 @@ func (a *Application) Deploy() (err error) {
 		return
 	}
 
+	var label string
+	var targetSlug *Slug
 	thisSlug := a.GetThisSlug()
 	nextSlug := a.GetNextSlug()
 
-	if nextSlug != nil {
-		if thisSlug.Name == nextSlug.Name {
-			a.LogInfoF("re-deploying: %v\n", thisSlug)
-		} else {
-			a.LogInfoF("deploying next: %v\n", nextSlug)
-		}
-	} else {
-		thisSlug.RefreshWorkers()
-		a.LogInfoF("deploying this: %v\n", thisSlug)
-	}
-
-	var tgtSlug *Slug
-
-	if nextSlug != nil {
-		tgtSlug = nextSlug
-	} else if thisSlug != nil {
-		tgtSlug = thisSlug
-	} else {
+	switch {
+	case thisSlug == nil && nextSlug == nil:
 		err = fmt.Errorf("slug not found")
 		return
+	case thisSlug == nil && nextSlug != nil:
+		label = "first"
+		a.LogInfoF("deploying first: %v\n", nextSlug.Name)
+		targetSlug = nextSlug
+	case thisSlug != nil && nextSlug == nil:
+		label = "this"
+		a.LogInfoF("deploying this: %v\n", thisSlug.Name)
+		targetSlug = thisSlug
+	case thisSlug != nil && nextSlug != nil:
+		targetSlug = nextSlug
+		if thisSlug.Name == nextSlug.Name {
+			label = "same"
+			a.LogInfoF("deploying same: %v\n", thisSlug.Name)
+		} else {
+			label = "next"
+			a.LogInfoF("deploying next: %v\n", nextSlug.Name)
+		}
 	}
 
-	if err = a.migrateAppSlug(tgtSlug); err != nil {
-		a.LogErrorF("error migrating next slug: %v\n", tgtSlug.Name)
+	if err = a.migrateAppSlug(targetSlug); err != nil {
+		a.LogErrorF("error migrating %v slug: %v\n", label, targetSlug.Name)
 		return
 	}
-	tgtSlug.RefreshWorkers()
-	a.LogInfoF("migrated to slug: %v\n", tgtSlug)
+	targetSlug.RefreshWorkers()
+	a.LogInfoF("migrated to %v slug: %v\n", label, targetSlug)
 	<-a.awaitWorkersDone
 	return
 }
