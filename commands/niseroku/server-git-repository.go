@@ -26,8 +26,10 @@ import (
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/profiling"
+	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service"
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -279,6 +281,13 @@ func (gr *GitRepository) updateAptEnjins() (err error) {
 					}
 				}
 			}
+
+			go func() {
+				gr.LogInfoF("restarting apt-enjin application: %v", app.Name)
+				if _, ee := pkgRun.EnjenvBg(gr.config.LogFile, "-", "niseroku", "--config", gr.config.Source, "app", "restart", app.Name); ee != nil {
+					gr.LogErrorF("error calling niseroku app restart %v: %v\n", app.Name, ee)
+				}
+			}()
 		}
 	}
 
