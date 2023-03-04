@@ -32,10 +32,13 @@ func (a *Application) GetThisSlug() (slug *Slug) {
 	a.RLock()
 	defer a.RUnlock()
 	if a.ThisSlug != "" {
-		name := bePath.Base(a.ThisSlug)
-		if found, ok := a.Slugs[name]; ok {
-			slug = found
+		if name := bePath.Base(a.ThisSlug); bePath.IsFile(a.ThisSlug) {
+			if found, ok := a.Slugs[name]; ok {
+				slug = found
+				return
+			}
 		}
+		a.ThisSlug = ""
 	}
 	return
 }
@@ -44,10 +47,13 @@ func (a *Application) GetNextSlug() (slug *Slug) {
 	a.RLock()
 	defer a.RUnlock()
 	if a.NextSlug != "" {
-		name := bePath.Base(a.NextSlug)
-		if found, ok := a.Slugs[name]; ok {
-			slug = found
+		if name := bePath.Base(a.NextSlug); bePath.IsFile(a.NextSlug) {
+			if found, ok := a.Slugs[name]; ok {
+				slug = found
+				return
+			}
 		}
+		a.NextSlug = ""
 	}
 	return
 }
