@@ -297,8 +297,16 @@ func (s *Slug) StopAll() (stopped int) {
 		}
 	}
 	s.Workers = make(map[string]*SlugWorker)
-	_ = os.Remove(s.SettingsFile)
+	s.Cleanup()
 	return
+}
+
+func (s *Slug) Cleanup() {
+	if bePath.IsFile(s.SettingsFile) {
+		if err := os.Remove(s.SettingsFile); err != nil {
+			s.App.LogErrorF("error removing application settings file: %v - %v", s.App.Name, err)
+		}
+	}
 }
 
 func (s *Slug) SendSignalToAll(sig process.Signal) {
