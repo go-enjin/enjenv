@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -251,12 +252,16 @@ func (gr *GitRepository) updateGitHookScripts() (err error) {
 
 func (gr *GitRepository) updateAptEnjins() (err error) {
 
+	var restarts []string
+
 	for _, app := range gr.config.Applications {
 		var ae *AptEnjinConfig
 		if ae = app.AptEnjin; ae == nil {
 			continue
 		}
 		if ae.Enable {
+			var restart bool
+
 			for flavour, dists := range ae.Flavours {
 				flavourPath := filepath.Join(app.AptRepositoryPath, flavour)
 				confDir := filepath.Join(flavourPath, "conf")
@@ -276,23 +281,36 @@ func (gr *GitRepository) updateAptEnjins() (err error) {
 						return
 					}
 
-					if err = gr.processAptRepository(app, ae, dist.Codename, flavourPath, archivesPath); err != nil {
+					var changed bool
+					if changed, err = gr.processAptRepository(app, ae, dist.Codename, flavourPath, archivesPath); err != nil {
 						return
+					}
+					if changed {
+						restart = true
 					}
 				}
 			}
 
-			gr.LogInfoF("restarting apt-enjin application: %v", app.Name)
-			if _, ee := pkgRun.EnjenvBg(gr.config.LogFile, "-", "niseroku", "--config", gr.config.Source, "app", "restart", app.Name); ee != nil {
-				gr.LogErrorF("error calling niseroku app restart %v: %v\n", app.Name, ee)
+			if restart {
+				restarts = append(restarts, app.Name)
 			}
 		}
 	}
 
+	if len(restarts) > 0 && gr.config.IsReverseProxyRunning() {
+		for _, appName := range restarts {
+			go func(appName string) {
+				gr.LogInfoF("restarting apt-enjin application: %v", appName)
+				if _, ee := pkgRun.EnjenvBg(gr.config.LogFile, "-", "niseroku", "--config", gr.config.Source, "app", "restart", appName); ee != nil {
+					gr.LogErrorF("error calling niseroku app restart %v: %v", appName, ee)
+				}
+			}(appName)
+		}
+	}
 	return
 }
 
-func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConfig, codename, flavourPath, archivesPath string) (err error) {
+func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConfig, codename, flavourPath, archivesPath string) (changed bool, err error) {
 	var found []string
 	if found, err = bePath.ListFiles(archivesPath); err != nil {
 		return
@@ -303,15 +321,126 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 	}
 
 	appOsEnviron := app.OsEnviron()
+
+	listInfos := gr.repreproList(flavourPath, codename, appOsEnviron)
+
 	for _, file := range found {
-		if strings.HasSuffix(file, ".dsc") {
-			// gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v\nenviron=%v", flavourPath, file, appOsEnviron)
-			gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, file)
-			gr.reprepro("includedsc", flavourPath, codename, file, gr.LogFile, appOsEnviron)
+		filename := filepath.Base(file)
+
+		if strings.HasSuffix(filename, "dsc") {
+
+			if thisName, thisVersion, ok := ParseDebianDscFilename(filename); ok {
+				var proceed bool = true
+				if entries, ok := listInfos[thisName]; ok {
+					for _, entry := range entries {
+						if entry.Architecture == "source" {
+							if entry.Version == thisVersion {
+								proceed = false
+								break
+							}
+						}
+					}
+				}
+				if proceed {
+					gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, file)
+					gr.reprepro("includedsc", flavourPath, codename, file, gr.LogFile, appOsEnviron)
+					changed = true
+				}
+			} else {
+				gr.LogErrorF("error parsing debian dsc filename: %v", filename)
+			}
+
 		} else if strings.HasSuffix(file, ".deb") {
-			// gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v\nenviron=%v", flavourPath, file, appOsEnviron)
-			gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, file)
-			gr.reprepro("includedeb", flavourPath, codename, file, gr.LogFile, appOsEnviron)
+
+			if thisName, thisVersion, thisArch, ok := ParseDebianDebFilename(filename); ok {
+				var proceed bool = true
+				if entries, ok := listInfos[thisName]; ok {
+					for _, entry := range entries {
+						if thisArch == "all" {
+							if entry.Architecture == "source" {
+								continue
+							} else {
+								proceed = false
+								break
+							}
+						} else if entry.Architecture != thisArch {
+							continue
+						} else if entry.Version == thisVersion {
+							proceed = false
+							break
+						}
+					}
+				}
+				if proceed {
+					gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, file)
+					gr.reprepro("includedeb", flavourPath, codename, file, gr.LogFile, appOsEnviron)
+					changed = true
+				}
+			} else {
+				gr.LogErrorF("error parsing debian dsc filename: %v", filename)
+			}
+
+		}
+	}
+	return
+}
+
+var RxDscFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)\.dsc\s*$`)
+
+func ParseDebianDscFilename(input string) (name, version string, ok bool) {
+	if ok = RxDscFileName.MatchString(input); ok {
+		m := RxDscFileName.FindAllStringSubmatch(input, 1)
+		name = m[0][1]
+		version = m[0][2]
+	}
+	return
+}
+
+var RxDebFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)_(.+?)\.u?deb\s*$`)
+
+func ParseDebianDebFilename(input string) (name, version, arch string, ok bool) {
+	if ok = RxDebFileName.MatchString(input); ok {
+		m := RxDebFileName.FindAllStringSubmatch(input, 1)
+		name = m[0][1]
+		version = m[0][2]
+		arch = m[0][3]
+	}
+	return
+}
+
+var RxRepreproList = regexp.MustCompile(`^\s*([^|]+)\|([^|]+)\|([^|]+):\s*(\S+)\s*(\S+)\s*$`)
+
+type RepreproListEntry struct {
+	Codename     string
+	Component    string
+	Architecture string
+	Name         string
+	Version      string
+}
+
+func (gr *GitRepository) repreproList(flavourPath, codename string, appOsEnviron []string) (info map[string][]RepreproListEntry) {
+	info = make(map[string][]RepreproListEntry)
+	argv := []string{"-b", flavourPath, "list", codename}
+	if o, _, _, err := run.CmdWith(&run.Options{
+		Path:    flavourPath,
+		Name:    "reprepro",
+		Argv:    argv,
+		Environ: appOsEnviron,
+	}); err != nil {
+		gr.LogErrorF("reprepro CmdWith error: %v - %v", argv, err)
+	} else {
+		for _, line := range strings.Split(o, "\n") {
+			if RxRepreproList.MatchString(line) {
+				m := RxRepreproList.FindAllStringSubmatch(line, 1)
+				codeName, component, arch, name, version := m[0][1], m[0][2], m[0][3], m[0][4], m[0][5]
+				info[name] = append(info[name], RepreproListEntry{
+					Codename:     codeName,
+					Component:    component,
+					Architecture: arch,
+					Name:         name,
+					Version:      version,
+				})
+			}
 		}
 	}
 	return
