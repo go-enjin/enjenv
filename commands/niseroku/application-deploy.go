@@ -16,11 +16,50 @@ package niseroku
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"time"
+
+	bePath "github.com/go-enjin/be/pkg/path"
+
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
+func (a *Application) lockDeploy() (err error) {
+	if a.IsDeploying() {
+		err = fmt.Errorf("deployment already in progress")
+	} else {
+		_ = os.WriteFile(a.DeployFile, []byte(strconv.Itoa(os.Getpid())), 0664)
+	}
+	return
+}
+
+func (a *Application) unlockDeploy() {
+	if a.IsDeploying() {
+		_ = os.Remove(a.DeployFile)
+	}
+}
+
+func (a *Application) IsDeploying() (locked bool) {
+	if bePath.Exists(a.DeployFile) {
+		if proc, err := common.GetProcessFromPidFile(a.DeployFile); err == nil {
+			if locked, err = proc.IsRunning(); locked {
+				return
+			}
+		}
+		// remove stale deploy file
+		_ = os.Remove(a.DeployFile)
+	}
+	return
+}
+
 func (a *Application) Deploy() (err error) {
+	if err = a.lockDeploy(); err != nil {
+		return
+	}
+
 	if err = a.PrepareGpgSecrets(); err != nil {
+		a.unlockDeploy()
 		return
 	}
 
@@ -32,6 +71,7 @@ func (a *Application) Deploy() (err error) {
 	switch {
 	case thisSlug == nil && nextSlug == nil:
 		err = fmt.Errorf("slug not found")
+		a.unlockDeploy()
 		return
 	case thisSlug == nil && nextSlug != nil:
 		label = "first"
@@ -54,10 +94,12 @@ func (a *Application) Deploy() (err error) {
 
 	if err = a.migrateAppSlug(targetSlug); err != nil {
 		a.LogErrorF("error migrating %v slug: %v\n", label, targetSlug.Name)
+		a.unlockDeploy()
 		return
 	}
 	targetSlug.RefreshWorkers()
 	a.LogInfoF("migrated to %v slug: %v\n", label, targetSlug)
+	a.unlockDeploy()
 	<-a.awaitWorkersDone
 	return
 }

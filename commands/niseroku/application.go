@@ -65,6 +65,8 @@ type Application struct {
 	AptArchivesPath   string `toml:"-"`
 	AptRepositoryPath string `toml:"-"`
 
+	DeployFile string `toml:"-"`
+
 	awaitWorkersDone chan bool
 
 	tomlComments TomlComments
@@ -149,6 +151,7 @@ func (a *Application) Load() (err error) {
 	a.ErrorLog = fmt.Sprintf("%s/%v.error.log", a.Config.Paths.VarLogs, a.Name)
 	a.AccessLog = fmt.Sprintf("%s/%v.access.log", a.Config.Paths.VarLogs, a.Name)
 	a.NoticeLog = fmt.Sprintf("%s/%v.info.log", a.Config.Paths.VarLogs, a.Name)
+	a.DeployFile = fmt.Sprintf("%v/%v.deploy", a.Config.Paths.TmpRun, a.Name)
 
 	if a.AptPackage != nil {
 		// apt-packages do not require a valid origin or having any domains
