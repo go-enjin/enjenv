@@ -15,66 +15,30 @@
 package niseroku
 
 import (
-	"fmt"
-	"math/rand"
-	"time"
+	"strings"
+
+	bePath "github.com/go-enjin/be/pkg/path"
+
+	pkgIo "github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
-// TODO: figure out a better way to get unused ports
-
-func (c *Config) GetUnusedPort() (port int) {
-	c.RLock()
-	defer c.RUnlock()
-	rand.New(rand.NewSource(time.Now().UnixMicro()))
-	delta := c.Ports.AppEnd - c.Ports.AppStart
-	for loop := delta; loop > 0; loop -= 1 {
-		port = rand.Intn(delta) + c.Ports.AppStart
-		if _, exists := c.PortLookup[port]; !exists {
-			if _, reserved := c.ReservePorts[port]; !reserved {
-				break
+func (c *Config) GetAllRunningPorts() (ports map[int]*Application) {
+	ports = make(map[int]*Application)
+	files, _ := bePath.ListFiles(c.Paths.TmpRun)
+	for _, file := range files {
+		if strings.HasSuffix(file, ".port") {
+			if v, err := common.GetIntFromFile(file); err != nil {
+				pkgIo.StderrF("error getting int from file: %v - %v\n", file, err)
+			} else if RxSlugRunningName.MatchString(file) {
+				m := RxSlugRunningName.FindAllStringSubmatch(file, 1)
+				if app, ok := c.Applications[m[0][1]]; ok {
+					ports[v] = app
+				} else {
+					pkgIo.StderrF("application not found from slug running name: %v\n", file)
+				}
 			}
 		}
 	}
-	return
-}
-
-func (c *Config) AddToPortLookup(port int, app *Application) {
-	c.Lock()
-	defer c.Unlock()
-	c.PortLookup[port] = app
-}
-
-func (c *Config) RemoveFromPortLookup(port int) {
-	c.Lock()
-	defer c.Unlock()
-	delete(c.PortLookup, port)
-}
-
-func (c *Config) ReservePort(port int, app *Application) (err error) {
-	c.Lock()
-	defer c.Unlock()
-	if existingApp, exists := c.ReservePorts[port]; exists {
-		err = fmt.Errorf("port already reserved by: %v", existingApp.Name)
-		return
-	}
-	c.ReservePorts[port] = app
-	return
-}
-
-func (c *Config) RemovePortReservation(port int) {
-	c.Lock()
-	defer c.Unlock()
-	delete(c.ReservePorts, port)
-}
-
-func (c *Config) PromotePortReservation(port int) (err error) {
-	c.Lock()
-	defer c.Unlock()
-	if app, reservationExists := c.ReservePorts[port]; reservationExists {
-		c.PortLookup[port] = app
-		delete(c.ReservePorts, port)
-		return
-	}
-	err = fmt.Errorf("port not reserved")
 	return
 }
