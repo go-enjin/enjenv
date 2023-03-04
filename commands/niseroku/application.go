@@ -55,7 +55,6 @@ type Application struct {
 	Config    *Config          `toml:"-"`
 	Source    string           `toml:"-"`
 	GitRepo   *git.Repository  `toml:"-"`
-	PidFile   string           `toml:"-"`
 	RepoPath  string           `toml:"-"`
 	ErrorLog  string           `toml:"-"`
 	AccessLog string           `toml:"-"`
@@ -262,4 +261,19 @@ func (a *Application) LogError(err error) {
 func (a *Application) LogErrorF(format string, argv ...interface{}) {
 	prefix := fmt.Sprintf("[%v] ", a.Name)
 	beIo.AppendF(a.ErrorLog, prefix+format, argv...)
+}
+
+func (a *Application) Cleanup() {
+	if bePath.IsFile(a.DeployFile) {
+		_ = os.Remove(a.DeployFile)
+	}
+	if slug := a.GetThisSlug(); slug != nil {
+		slug.StopAll()
+		slug.Cleanup()
+	}
+	if slug := a.GetNextSlug(); slug != nil {
+		slug.StopAll()
+		slug.Cleanup()
+	}
+	return
 }
