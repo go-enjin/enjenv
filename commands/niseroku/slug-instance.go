@@ -16,6 +16,7 @@ package niseroku
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +24,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
 
@@ -178,6 +180,27 @@ func (s *SlugWorker) GetBinProcess() (proc *process.Process, err error) {
 	return
 }
 
+func (s *SlugWorker) ReserveUnusedPort() (port int) {
+	lookup := s.Slug.App.Config.GetAllRunningPorts()
+	rand.New(rand.NewSource(time.Now().UnixMicro()))
+	delta := s.Slug.App.Config.Ports.AppEnd - s.Slug.App.Config.Ports.AppStart
+	for loop := delta; loop > 0; loop -= 1 {
+		port = rand.Intn(delta) + s.Slug.App.Config.Ports.AppStart
+		if _, exists := lookup[port]; !exists {
+			if !common.IsAddressPortOpenWithTimeout(s.Slug.App.Origin.Host, port, 100*time.Millisecond) {
+				break
+			} else {
+				s.Slug.App.LogErrorF("error: port %d not reserved and yet is open by another process", port)
+			}
+		}
+	}
+	if port == 0 {
+		// TODO: determine if niseroku should ever panic during normal operations (startup is always ok to panic)
+		s.Slug.App.LogErrorF("critical error: failed to find any unused ports, please check the niseroku.toml settings for ports.app-start and ports.app-end values")
+	}
+	return
+}
+
 func (s *SlugWorker) PrepareStart(port int) (webCmd string, webArgv, environ []string, err error) {
 	if err = s.Unpack(); err != nil {
 		err = fmt.Errorf("error unpacking this slug: %v - %v", s.Slug.Name, err)
@@ -194,6 +217,7 @@ func (s *SlugWorker) PrepareStart(port int) (webCmd string, webArgv, environ []s
 		s.Slug.App.LogErrorF("%v: %d\n", err, port)
 		return
 	}
+
 	s.Port = port
 	if err = os.WriteFile(s.PortFile, []byte(strconv.Itoa(port)), 0660); err != nil {
 		err = fmt.Errorf("error writing port-file: %v - %v", s.PortFile, err)
@@ -300,6 +324,19 @@ func (s *SlugWorker) Stop() (stopped bool) {
 		} else if err != nil {
 			s.Slug.App.LogErrorF("error getting process from pid file: %v - %v\n", s.PidFile, err)
 		}
+	}
+	s.Cleanup()
+	return
+}
+
+func (s *SlugWorker) Destroy() (err error) {
+	s.Stop()
+	s.Cleanup()
+	return
+}
+
+func (s *SlugWorker) Cleanup() {
+	if bePath.IsFile(s.PidFile) {
 		if err := os.Remove(s.PidFile); err != nil {
 			s.Slug.App.LogErrorF("error removing slug pid file: %v - %v\n", s.PidFile, err)
 		} else {
@@ -320,20 +357,4 @@ func (s *SlugWorker) Stop() (stopped bool) {
 			s.Slug.App.LogInfoF("removed slug port file: %v\n", s.PortFile)
 		}
 	}
-	return
-}
-
-func (s *SlugWorker) Destroy() (err error) {
-	s.Stop()
-	if bePath.IsDir(s.RunPath) {
-		if err = os.RemoveAll(s.RunPath); err != nil {
-			return
-		}
-	}
-	if bePath.IsFile(s.PidFile) {
-		if err = os.Remove(s.PidFile); err != nil {
-			return
-		}
-	}
-	return
 }

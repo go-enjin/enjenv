@@ -343,13 +343,11 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 
 		start := time.Now()
 
-		reservedPort := s.App.Config.GetUnusedPort()
-		_ = s.App.Config.ReservePort(reservedPort, s.App)
-
 		var si *SlugWorker
 		if si, err = NewSlugWorker(s); err != nil {
 			return
 		}
+		reservedPort := si.ReserveUnusedPort()
 
 		wg.Add(1)
 		go func() {
@@ -365,12 +363,8 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 				if common.IsAddressPortOpenWithTimeout(s.App.Origin.Host, reservedPort, readyIntervalTimeout) {
 					if numReady += 1; numReady >= s.App.GetWebWorkers() {
 						s.liveHashLock.Lock()
-						_ = s.App.Config.PromotePortReservation(reservedPort)
 						for _, hash := range s.Settings.Live {
 							if worker, ok := s.Workers[hash]; ok {
-								if worker.Port > 0 {
-									s.App.Config.RemoveFromPortLookup(worker.Port)
-								}
 								worker.Stop()
 							}
 						}
