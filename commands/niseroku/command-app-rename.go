@@ -55,6 +55,10 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 
 	var oldApp *Application
 	if app, ok := c.config.Applications[oldName]; ok {
+		if app.IsDeploying() {
+			err = fmt.Errorf("application deployment in progress: %v", app.Name)
+			return
+		}
 		beIo.STDOUT("# stopping: %v\n", oldName)
 		_ = app.SendStopSignal()
 		oldApp = app

@@ -62,6 +62,9 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 		err = fmt.Errorf("repository not found")
 		tracking.Set("repoName", repoName)
 		return
+	} else if app.IsDeploying() {
+		err = fmt.Errorf("application deployment in progress")
+		return
 	}
 
 	for _, u := range c.config.Users {

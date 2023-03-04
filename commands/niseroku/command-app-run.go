@@ -48,6 +48,11 @@ func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
 		return
 	}
 
+	if app.IsDeploying() {
+		err = fmt.Errorf("application deployment in progress: %v", appName)
+		return
+	}
+
 	if !ctx.Bool("slug-process") {
 		binPath := basepath.EnjenvBinPath
 		argv := []string{binPath, "niseroku", "app", "run", "--slug-process", appName}

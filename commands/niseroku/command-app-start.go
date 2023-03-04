@@ -48,6 +48,8 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 			io.STDOUT("application in maintenance mode: %v (use --force to override)\n", name)
 		} else if app.ThisSlug == "" && app.NextSlug == "" {
 			io.STDERR("application slugs not found: %v\n", name)
+		} else if app.IsDeploying() {
+			io.STDERR("application deployment in progress: %v\n", name)
 		} else if ee := app.Invoke(); ee != nil {
 			io.STDERR("application invoke error: %v - %v\n", name, ee)
 		} else {
