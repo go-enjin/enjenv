@@ -23,6 +23,13 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
+func (c *Config) IsReverseProxyRunning() (running bool) {
+	if proc, err := common.GetProcessFromPidFile(c.Paths.ProxyPidFile); err == nil {
+		running, _ = proc.IsRunning()
+	}
+	return
+}
+
 func (c *Config) SignalReverseProxy(sig process.Signal) (sent bool) {
 	err := common.SendSignalToPidFromFile(c.Paths.ProxyPidFile, sig)
 	if sent = err == nil; sent {
@@ -38,6 +45,13 @@ func (c *Config) SignalReloadReverseProxy() (sent bool) {
 
 func (c *Config) SignalStopReverseProxy() (sent bool) {
 	sent = c.SignalReverseProxy(syscall.SIGTERM)
+	return
+}
+
+func (c *Config) IsGitRepositoryRunning() (running bool) {
+	if proc, err := common.GetProcessFromPidFile(c.Paths.RepoPidFile); err == nil {
+		running, _ = proc.IsRunning()
+	}
 	return
 }
 
