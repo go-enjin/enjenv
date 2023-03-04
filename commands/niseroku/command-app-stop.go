@@ -64,6 +64,9 @@ func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
 				stopped += slug.StopAll()
 			}
 		}
+
+		app.Cleanup()
+
 		if stopped > 0 {
 			io.STDOUT("application stopped: %v (workers stopped: %d)\n", app.Name, stopped)
 		} else {
