@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+	"syscall"
 
 	bePath "github.com/go-enjin/be/pkg/path"
 )
@@ -68,5 +69,18 @@ func RepairOwnership(path, userName, groupName string) (err error) {
 			}
 		}
 	}
+	return
+}
+
+func StatOwnerGroup(path string) (info os.FileInfo, uid, gid int, err error) {
+	if info, err = os.Stat(path); err != nil {
+		return
+	}
+	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+		uid = int(stat.Uid)
+		gid = int(stat.Gid)
+		return
+	}
+	err = fmt.Errorf("error converting os.FileInfo.Sys() to *syscall.Stat_t")
 	return
 }
