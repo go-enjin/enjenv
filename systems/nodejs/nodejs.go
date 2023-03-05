@@ -33,6 +33,7 @@ import (
 	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
+	"github.com/go-enjin/enjenv/pkg/globals"
 	"github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/system"
@@ -42,10 +43,6 @@ var (
 	Tag          = "node"
 	Name         = "nodejs"
 	CacheDirName = "nodecache"
-)
-
-var (
-	DefaultVersion = "16.17.0"
 )
 
 var (
@@ -59,7 +56,7 @@ func init() {
 	tag := strings.ToUpper(Tag)
 	Name = env.Get("ENJENV_"+tag+"_NAME", Name)
 	CacheDirName = env.Get("ENJENV_"+tag+"_CACHE_DIR_NAME", CacheDirName)
-	DefaultVersion = env.Get("ENJENV_DEFAULT_"+tag+"_VERSION", DefaultVersion)
+	globals.DefaultNodejsVersion = env.Get("ENJENV_DEFAULT_"+tag+"_VERSION", globals.DefaultNodejsVersion)
 }
 
 type System struct {
@@ -79,7 +76,7 @@ func (s *System) Init(this interface{}) {
 	s.CSystem.Init(this)
 	s.Ctx = context.New()
 	s.TagName = Name
-	s.Version = DefaultVersion
+	s.Version = globals.DefaultNodejsVersion
 	s.Url = "https://nodejs.org/dist"
 	s.OS = CheckOS(runtime.GOOS)
 	s.Arch = CheckArch(runtime.GOARCH)
@@ -91,7 +88,7 @@ func (s *System) Init(this interface{}) {
 }
 
 func (s *System) GetDefaultVersion() (version string) {
-	return DefaultVersion
+	return globals.DefaultNodejsVersion
 }
 
 func (s *System) Prepare(ctx *cli.Context) (err error) {

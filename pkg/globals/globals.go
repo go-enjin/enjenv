@@ -21,6 +21,11 @@ import (
 )
 
 var (
+	DefaultGolangVersion = "1.20.1"
+	DefaultNodejsVersion = "16.17.0"
+)
+
+var (
 	BuildVersion   = "v0.0.0"
 	BuildRelease   = "development"
 	BuildBinPath   = ""

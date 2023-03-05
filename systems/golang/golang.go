@@ -31,6 +31,7 @@ import (
 	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
+	"github.com/go-enjin/enjenv/pkg/globals"
 	"github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/system"
@@ -50,10 +51,6 @@ var (
 )
 
 var (
-	DefaultVersion = "1.20.1"
-)
-
-var (
 	rxVersion = regexp.MustCompile(`^(?:go)??(\d+?\.\d+?[.\d]+?)$`)
 	rxTarName = regexp.MustCompile(`go(\d+?\.\d+?[.\d]+?)\.([a-z0-9]+?)-([a-z0-9]+?)\.tar\.gz`)
 	rxTarGzs  = regexp.MustCompile(`(?ms)<tr(?:[^>]+?|)>\s*<td class="filename">\s*<a.+?href="/dl/([^"]+?\.tar\.gz)"[^<]*</a></td>\s*<td>[^<]*</td>\s*<td>[^<]*</td>\s*<td>[^<]*</td>\s*<td>[^<]*</td>\s*<td>\s*<tt>\s*(.+?)\s*</tt>\s*</td>\s*</tr>`)
@@ -70,7 +67,7 @@ func init() {
 	GoTmpDirName = env.Get("ENJENV_"+tag+"_TMP_DIR_NAME", GoTmpDirName)
 	GoCacheDirName = env.Get("ENJENV_"+tag+"_CACHE_DIR_NAME", GoCacheDirName)
 	GoModCacheDirName = env.Get("ENJENV_"+tag+"_MOD_CACHE_DIR_NAME", GoModCacheDirName)
-	DefaultVersion = env.Get("ENJENV_DEFAULT_"+tag+"_VERSION", DefaultVersion)
+	globals.DefaultGolangVersion = env.Get("ENJENV_DEFAULT_"+tag+"_VERSION", globals.DefaultGolangVersion)
 }
 
 type System struct {
@@ -87,7 +84,7 @@ func (s *System) Init(this interface{}) {
 	s.CSystem.Init(this)
 	s.TagName = Name
 	s.Url = "https://go.dev/dl"
-	s.Version = DefaultVersion
+	s.Version = globals.DefaultGolangVersion
 	s.Root = s.TagName + "/" + Tag
 	s.CSystem.Root = s.Root
 	s.CSystem.TagName = s.TagName
@@ -95,7 +92,7 @@ func (s *System) Init(this interface{}) {
 }
 
 func (s *System) GetDefaultVersion() (version string) {
-	return DefaultVersion
+	return globals.DefaultGolangVersion
 }
 
 func (s *System) installNancy() (err error) {
