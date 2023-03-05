@@ -189,8 +189,8 @@ func (s *SlugWorker) ReserveUnusedPort() (port int) {
 		if _, exists := lookup[port]; !exists {
 			if !common.IsAddressPortOpenWithTimeout(s.Slug.App.Origin.Host, port, 100*time.Millisecond) {
 				break
-			} else {
-				s.Slug.App.LogErrorF("error: port %d not reserved and yet is open by another process", port)
+			} else if s.Slug.App.ThisSlug != s.Slug.App.Name {
+				s.Slug.App.LogErrorF("warning: port %d not reserved and yet is open by another process", port)
 			}
 		}
 	}
