@@ -137,7 +137,7 @@ func (a *Application) OsEnvironAptEnjinOnly() (aptEnv map[string]string) {
 }
 
 func (a *Application) PurgeGpgSecrets() (err error) {
-	home := filepath.Join(a.Config.Paths.AptSecrets, a.Name, ".gpg")
+	home := a.GetGpgHome()
 	if bePath.IsDir(home) {
 		if err = os.RemoveAll(home); err != nil {
 			return
