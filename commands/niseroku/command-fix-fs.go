@@ -72,12 +72,16 @@ func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 		}
 	}
 
-	if err = os.Chown(c.config.Paths.ProxyPidFile, uid, gid); err != nil {
-		beIo.StderrF("error changing ownership of: %v - %v\n", c.config.Paths.ProxyPidFile, err)
+	if bePath.IsFile(c.config.Paths.ProxyPidFile) {
+		if err = os.Chown(c.config.Paths.ProxyPidFile, uid, gid); err != nil {
+			beIo.StderrF("error changing ownership of: %v - %v\n", c.config.Paths.ProxyPidFile, err)
+		}
 	}
 
-	if err = os.Chown(c.config.Paths.RepoPidFile, uid, gid); err != nil {
-		beIo.StderrF("error changing ownership of: %v - %v\n", c.config.Paths.RepoPidFile, err)
+	if bePath.IsFile(c.config.Paths.RepoPidFile) {
+		if err = os.Chown(c.config.Paths.RepoPidFile, uid, gid); err != nil {
+			beIo.StderrF("error changing ownership of: %v - %v\n", c.config.Paths.RepoPidFile, err)
+		}
 	}
 
 	beIo.STDOUT("# filesystem repair completed\n")
