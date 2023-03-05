@@ -41,7 +41,21 @@ func MakeExe(argv ...string) (err error) {
 
 func EnjenvExe(argv ...string) (err error) {
 	if enjenvBin := basepath.WhichBin(); enjenvBin != "" {
-		err = run.CheckExe(enjenvBin, argv...)
+		_, err = run.Exe(enjenvBin, argv...)
+	} else {
+		err = fmt.Errorf("enjenv not found")
+	}
+	return
+}
+
+func EnjenvExeWith(path string, environ []string, argv ...string) (err error) {
+	if enjenvBin := basepath.WhichBin(); enjenvBin != "" {
+		err = run.ExeWith(&run.Options{
+			Path:    path,
+			Name:    enjenvBin,
+			Argv:    argv,
+			Environ: environ,
+		})
 	} else {
 		err = fmt.Errorf("enjenv not found")
 	}
@@ -51,6 +65,20 @@ func EnjenvExe(argv ...string) (err error) {
 func EnjenvCmd(argv ...string) (o, e string, err error) {
 	if enjenvBin := basepath.WhichBin(); enjenvBin != "" {
 		o, e, err = run.CheckCmd(enjenvBin, argv...)
+	} else {
+		err = fmt.Errorf("enjenv not found")
+	}
+	return
+}
+
+func EnjenvCmdWith(path string, environ []string, argv ...string) (o, e string, err error) {
+	if enjenvBin := basepath.WhichBin(); enjenvBin != "" {
+		o, e, _, err = run.CmdWith(&run.Options{
+			Path:    path,
+			Name:    enjenvBin,
+			Argv:    argv,
+			Environ: environ,
+		})
 	} else {
 		err = fmt.Errorf("enjenv not found")
 	}
