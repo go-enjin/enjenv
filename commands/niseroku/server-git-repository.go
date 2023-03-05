@@ -148,6 +148,7 @@ func (gr *GitRepository) Reload() (err error) {
 		gr.LogErrorF("error reloading config: %v", err)
 		return
 	}
+	gr.LogInfoF("git-repository config reloaded")
 	err = gr.performReload()
 	return
 }
@@ -156,12 +157,6 @@ func (gr *GitRepository) performReload() (err error) {
 	gr.Lock()
 	defer gr.Unlock()
 
-	if err = gr.config.PrepareDirectories(); err != nil {
-		err = fmt.Errorf("error preparing directories: %v", err)
-		return
-	}
-
-	gr.LogInfoF("git-repository config reloaded")
 	for _, app := range maps.ValuesSortedByKeys(gr.config.Applications) {
 		if ee := app.SetupRepo(); ee != nil {
 			gr.LogErrorF("error updating git repo setup: %v - %v", app.Name, ee)
@@ -169,16 +164,24 @@ func (gr *GitRepository) performReload() (err error) {
 			gr.LogInfoF("app repo updated: %v", app.Name)
 		}
 	}
+
 	if ee := gr.updateGitHookScripts(); ee != nil {
 		gr.LogErrorF("error updating git hook scripts: %v", ee)
 	} else {
 		gr.LogInfoF("git hook scripts updated")
 	}
+
 	if ee := gr.updateAptEnjins(); ee != nil {
 		gr.LogErrorF("error updating apt-enjins: %v", ee)
 	} else {
 		gr.LogInfoF("all apt-enjins updated")
 	}
+
+	if err = gr.config.PrepareDirectories(); err != nil {
+		err = fmt.Errorf("error preparing directories: %v", err)
+		return
+	}
+
 	return
 }
 
