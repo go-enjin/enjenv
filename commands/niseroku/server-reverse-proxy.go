@@ -82,10 +82,12 @@ func (rp *ReverseProxy) autocertHostPolicy(_ context.Context, host string) (err 
 
 func (rp *ReverseProxy) Bind() (err error) {
 
+	rp.LogInfoF("preparing directories")
 	if err = rp.config.PrepareDirectories(); err != nil {
 		err = fmt.Errorf("error preparing directories: %v", err)
 		return
 	}
+	rp.LogInfoF("directories prepared")
 
 	rp.Lock()
 	defer rp.Unlock()

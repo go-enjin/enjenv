@@ -160,8 +160,6 @@ func (gr *GitRepository) performReload() (err error) {
 	for _, app := range maps.ValuesSortedByKeys(gr.config.Applications) {
 		if ee := app.SetupRepo(); ee != nil {
 			gr.LogErrorF("error updating git repo setup: %v - %v", app.Name, ee)
-		} else {
-			gr.LogInfoF("app repo updated: %v", app.Name)
 		}
 	}
 
@@ -173,14 +171,14 @@ func (gr *GitRepository) performReload() (err error) {
 
 	if ee := gr.updateAptEnjins(); ee != nil {
 		gr.LogErrorF("error updating apt-enjins: %v", ee)
-	} else {
-		gr.LogInfoF("all apt-enjins updated")
 	}
 
+	gr.LogInfoF("preparing directories")
 	if err = gr.config.PrepareDirectories(); err != nil {
 		err = fmt.Errorf("error preparing directories: %v", err)
 		return
 	}
+	gr.LogInfoF("directories prepared")
 
 	return
 }
