@@ -89,7 +89,7 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 						time.Sleep(100 * time.Millisecond)
 						_, app, _ = rp.GetAppDomain(r)
 						if thisSlug = app.GetThisSlug(); thisSlug != nil {
-							rp.LogInfoF("limiter polling [%d] slug running+ready: %v", i, thisSlug.Name)
+							// rp.LogInfoF("limiter polling [%d] slug running+ready: %v", i, thisSlug.Name)
 							if running, ready = thisSlug.IsRunningReady(); running && ready {
 								break
 							}
