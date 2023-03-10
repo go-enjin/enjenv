@@ -1,3 +1,15 @@
+enjenv (0.1.2) unstable; urgency=medium
+
+  * tagged v0.1.2 release build - 6851182fa28ae9dded3f2d43f85201ea304f9e5b
+  * packaging changes:
+   * added --restart-after-upgrade to dh_installsystemd calls
+  * changes:
+   * new restart-slugs-on-start setting
+   * app start will no longer start if app is already running and ready
+   * set UNTAGGED_VERSION to v0.1.2 for build correctness in non-git checkouts
+
+ -- The Go-Enjin Team <go.enjin.org@gmail.com>  Fri, 10 Mar 2023 16:29:24 -0500
+
 enjenv (0.1.1) unstable; urgency=medium
 
   * tagged v0.1.1 release build - ffc313aed9cabca96eee5245b899cb2e5ea9c741

@@ -29,8 +29,8 @@ override_dh_auto_install:
 	$(MAKE) install-niseroku-utils
 
 override_dh_installsystemd:
-	dh_installsystemd --name=niseroku-proxy
-	dh_installsystemd --name=niseroku-repos
+	dh_installsystemd --name=niseroku-proxy --restart-after-upgrade
+	dh_installsystemd --name=niseroku-repos --restart-after-upgrade
 
 override_dh_shlibdeps:
 
