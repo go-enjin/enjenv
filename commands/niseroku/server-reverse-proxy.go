@@ -126,7 +126,11 @@ func (rp *ReverseProxy) Bind() (err error) {
 	go func() {
 		if rp.config.IncludeSlugs.OnStart {
 			rp.LogInfoF("restarting all applications")
-			if _, ee := pkgRun.EnjenvBg(rp.config.LogFile, "-", "niseroku", "--config", rp.config.Source, "app", "restart", "--all"); ee != nil {
+			var startMode string
+			if startMode = "start"; rp.config.RestartSlugsOnStart {
+				startMode = "restart"
+			}
+			if _, ee := pkgRun.EnjenvBg(rp.config.LogFile, "-", "niseroku", "--config", rp.config.Source, "app", startMode, "--all"); ee != nil {
 				rp.LogErrorF("error calling niseroku app restart --all: %v\n", ee)
 			}
 		} else {
