@@ -180,6 +180,15 @@ func (s *Slug) GetReadyIntervalTimeout() (timeout time.Duration) {
 	return
 }
 
+func (s *Slug) GetSlugWorkerHashes() (workers []string) {
+	s.RLock()
+	defer s.RUnlock()
+	for hash, _ := range s.Workers {
+		workers = append(workers, hash)
+	}
+	return
+}
+
 func (s *Slug) GetNumWorkers() (num int) {
 	s.RLock()
 	defer s.RUnlock()
