@@ -62,14 +62,16 @@ type Config struct {
 
 	SlugNice int `toml:"slug-nice"`
 
+	RestartSlugsOnStart bool `toml:"restart-slugs-on-start"`
+
 	IncludeSlugs IncludeSlugsConfig `toml:"include-slugs"`
 
 	Timeouts TimeoutsConfig `toml:"timeouts"`
 
 	ProxyLimit RateLimit `toml:"proxy-limit"`
 
-	RunAs RunAsConfig `toml:"run-as"`
 	Ports PortsConfig `toml:"ports"`
+	RunAs RunAsConfig `toml:"run-as"`
 	Paths PathsConfig `toml:"paths"`
 
 	Source   string `toml:"-"`
@@ -155,6 +157,7 @@ func WriteDefaultConfig(niserokuConfig string) (err error) {
 		ProxyLimit: RateLimit{
 			LogLimited: true,
 		},
+		RestartSlugsOnStart: false,
 		IncludeSlugs: IncludeSlugsConfig{
 			OnStart: true,
 			OnStop:  false,
@@ -355,16 +358,17 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 	}
 
 	config = &Config{
-		Source:       niserokuConfig,
-		LogFile:      cfg.LogFile,
-		NeedRoot:     needRootUser,
-		BindAddr:     bindAddr,
-		EnableSSL:    cfg.EnableSSL,
-		BuildPack:    cfg.BuildPack,
-		AccountEmail: cfg.AccountEmail,
-		KeepSlugs:    cfg.KeepSlugs,
-		SlugNice:     cfg.SlugNice,
-		IncludeSlugs: cfg.IncludeSlugs,
+		Source:              niserokuConfig,
+		LogFile:             cfg.LogFile,
+		NeedRoot:            needRootUser,
+		BindAddr:            bindAddr,
+		EnableSSL:           cfg.EnableSSL,
+		BuildPack:           cfg.BuildPack,
+		AccountEmail:        cfg.AccountEmail,
+		KeepSlugs:           cfg.KeepSlugs,
+		SlugNice:            cfg.SlugNice,
+		RestartSlugsOnStart: cfg.RestartSlugsOnStart,
+		IncludeSlugs:        cfg.IncludeSlugs,
 		Timeouts: TimeoutsConfig{
 			SlugStartup:   slugStartupTimeout,
 			ReadyInterval: readyIntervalTimeout,
@@ -499,6 +503,7 @@ func (c *Config) MergeConfig(cfg *Config) (err error) {
 	c.BuildPack = cfg.BuildPack
 	c.AccountEmail = cfg.AccountEmail
 	c.KeepSlugs = cfg.KeepSlugs
+	c.RestartSlugsOnStart = cfg.RestartSlugsOnStart
 	c.IncludeSlugs = cfg.IncludeSlugs
 	c.Timeouts.SlugStartup = cfg.Timeouts.SlugStartup
 	c.Timeouts.ReadyInterval = cfg.Timeouts.ReadyInterval
@@ -557,6 +562,8 @@ func (c *Config) GetTomlValue(key string) (v interface{}) {
 		v = c.AccountEmail
 	case "slug-nice":
 		v = c.SlugNice
+	case "restart-slugs-on-start":
+		v = c.RestartSlugsOnStart
 	case "include-slugs.on-start":
 		v = c.IncludeSlugs.OnStart
 	case "include-slugs.on-stop":
@@ -619,6 +626,8 @@ func (c *Config) SetTomlValue(key string, v string) (err error) {
 		c.AccountEmail, err = c.parseStringValue(v)
 	case "slug-nice":
 		c.SlugNice, err = c.parseIntValue(v)
+	case "restart-slugs-on-start":
+		c.RestartSlugsOnStart, err = c.parseBoolValue(v)
 	case "include-slugs.on-start":
 		c.IncludeSlugs.OnStart, err = c.parseBoolValue(v)
 	case "include-slugs.on-stop":

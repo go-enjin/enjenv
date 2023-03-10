@@ -94,6 +94,14 @@ var configTomlComments = TomlComments{
 		},
 	},
 	{
+		Statement: "restart-slugs-on-start",
+		Lines: []string{
+			": restart-slugs-on-start (bool)",
+			":     * slugs included on-start will be restarted",
+			":     * set to false to only start slugs not already started",
+		},
+	},
+	{
 		Statement: "[include-slugs]",
 		Lines: []string{
 			": [include-slugs]   (section)",
