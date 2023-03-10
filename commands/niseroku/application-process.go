@@ -28,6 +28,19 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
+func (a *Application) IsRunningReady() (runningReady bool) {
+	if a.IsDeploying() {
+		return
+	}
+	if slug := a.GetThisSlug(); slug != nil {
+		running, ready := slug.IsRunningReady()
+		if runningReady = running && ready; runningReady {
+			return
+		}
+	}
+	return
+}
+
 func (a *Application) GetThisSlug() (slug *Slug) {
 	a.RLock()
 	defer a.RUnlock()
