@@ -154,7 +154,7 @@ func (s *System) ActionGoBuild(ctx *cli.Context) (err error) {
 	argv := ctx.Args().Slice()
 	argv = append(extra, argv...)
 	io.NotifyF("go build", "running go build for %v", appName)
-	io.StdoutF("go build %v\n", argv)
+	io.StdoutF("go build %#+v\n", argv)
 	_, err = s.GoBin("build", argv...)
 	return
 }
