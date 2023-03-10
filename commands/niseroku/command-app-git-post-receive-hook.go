@@ -126,7 +126,11 @@ func (c *Command) enjinRepoPrepareBuildpackProcess(app *Application, config *Con
 		}
 	}
 	if err = bePath.Mkdir(bpi.envDir); err != nil {
-		err = fmt.Errorf("error making enjin deployment path: %v - %v", bpi.envDir, err)
+		err = fmt.Errorf("error making enjin env path: %v - %v", bpi.envDir, err)
+		return
+	}
+	if err = app.ApplySettings(bpi.envDir); err != nil {
+		err = fmt.Errorf("error applying enjin env path: %v - %v", bpi.envDir, err)
 		return
 	}
 
