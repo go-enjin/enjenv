@@ -50,6 +50,8 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 			io.STDERR("application slugs not found: %v\n", name)
 		} else if app.IsDeploying() {
 			io.STDERR("application deployment in progress: %v\n", name)
+		} else if app.IsRunningReady() && !forceOverride {
+			io.STDERR("application already running ready: %v\n", name)
 		} else if ee := app.Invoke(); ee != nil {
 			io.STDERR("application invoke error: %v - %v\n", name, ee)
 		} else {
