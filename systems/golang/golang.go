@@ -186,11 +186,14 @@ func (s *System) ExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
 	if bePath.IsDir(path) {
 		content += fmt.Sprintf("export %v_VERSION=\"%v\"\n", strings.ToUpper(Tag), s.Version)
-		goFlags := s.goFlagsWithModCacheRw()
-		content += fmt.Sprintf("export GOFLAGS=\"%v\"\n", goFlags)
-		env.Set("GOFLAGS", goFlags)
 		for k, v := range s.Ctx.AsMapStrings() {
-			value := basepath.MakeEnjenvPath(v)
+			var value string
+			switch k {
+			case "GOFLAGS":
+				value = s.goFlagsWithModCacheRw()
+			default:
+				value = basepath.MakeEnjenvPath(v)
+			}
 			content += fmt.Sprintf("export %v=\"%v\"\n", k, value)
 			env.Set(k, value)
 		}
