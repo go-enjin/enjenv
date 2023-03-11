@@ -318,3 +318,13 @@ func (s *System) GoBin(name string, argv ...string) (status int, err error) {
 	argv = append([]string{name}, argv...)
 	return run.Exe(bin, argv...)
 }
+
+func (s *System) GoBinWith(environ []string, path, name string, argv ...string) (err error) {
+	options := &run.Options{
+		Path:    path,
+		Name:    basepath.MakeEnjenvPath(s.Root, "bin", "go"),
+		Argv:    append([]string{name}, argv...),
+		Environ: environ,
+	}
+	return run.ExeWith(options)
+}
