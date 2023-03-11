@@ -17,6 +17,7 @@ package golang
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -96,7 +97,7 @@ func (s *System) GetDefaultVersion() (version string) {
 }
 
 func (s *System) installNancy() (err error) {
-	tmpdir := s.Ctx.String("GOTMPDIR", env.Get("TMPDIR", "./tmp"))
+	tmpdir := env.Get("GOTMPDIR", env.Get("TMPDIR", "./tmp"))
 	if !bePath.IsDir(tmpdir) {
 		if err = bePath.Mkdir(tmpdir); err != nil {
 			return
@@ -118,7 +119,8 @@ func (s *System) installNancy() (err error) {
 	if err = os.Chdir("nancy"); err != nil {
 		return
 	}
-	if _, err = s.GoBin("build", "-v"); err != nil {
+	environ := append(os.Environ(), s.Ctx.AsOsEnviron()...)
+	if err = s.GoBinWith(environ, filepath.Join(tmpdir, "nancy"), "build", "-v"); err != nil {
 		return
 	}
 	dst := basepath.MakeEnjenvPath(s.Root, "bin", "nancy")
@@ -143,32 +145,29 @@ func (s *System) NancyBin(argv ...string) (status int, err error) {
 }
 
 func (s *System) Prepare(ctx *cli.Context) (err error) {
-	_ = io.SetupCustomIndent(ctx)
 	if err = s.CSystem.Prepare(ctx); err != nil {
 		return
 	}
-	if err = io.SetupSlackIfPresent(ctx); err != nil {
-		return
-	}
-	s.Root = s.TagName + "/" + Tag
+	s.Root = filepath.Join(s.TagName, Tag)
 	s.CSystem.Root = s.Root
 
 	s.TarGz = fmt.Sprintf("go%v.%v-%v.tar.gz", s.Version, runtime.GOOS, runtime.GOARCH)
 	s.TarGzPath = basepath.MakeEnjenvPath(s.TagName, s.TarGz)
 	s.TarGzUrl = fmt.Sprintf("%v/%v", s.Url, s.TarGz)
 
-	s.Ctx.Set("GOROOT", s.Root)
-	s.Ctx.Set("GOENV", s.TagName+"/"+GoEnvFileName)
-	s.Ctx.Set("GOTMPDIR", s.TagName+"/"+GoTmpDirName)
-	s.Ctx.Set("GOCACHE", s.TagName+"/"+GoCacheDirName)
-	s.Ctx.Set("GOMODCACHE", s.TagName+"/"+GoModCacheDirName)
+	s.Ctx.SetSpecific("GOROOT", s.Root)
+	s.Ctx.SetSpecific("GOENV", filepath.Join(s.TagName, GoEnvFileName))
+	s.Ctx.SetSpecific("GOTMPDIR", filepath.Join(s.TagName, GoTmpDirName))
+	s.Ctx.SetSpecific("GOCACHE", filepath.Join(s.TagName, GoCacheDirName))
+	s.Ctx.SetSpecific("GOMODCACHE", filepath.Join(s.TagName, GoModCacheDirName))
 	for k, v := range s.Ctx.AsMapStrings() {
 		env.Set(k, basepath.MakeEnjenvPath(v))
 	}
-	env.Set("GOFLAGS", s.goFlagsWithModCacheRw())
+	withModRw := s.goFlagsWithModCacheRw()
+	s.Ctx.SetSpecific("GOFLAGS", withModRw)
+	env.Set("GOFLAGS", withModRw)
 
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "go", "bin"))
-
 	return
 }
 
