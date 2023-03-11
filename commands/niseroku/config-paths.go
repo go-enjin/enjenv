@@ -27,7 +27,7 @@ func (c *Config) PrepareDirectories() (err error) {
 	c.Lock()
 	defer c.Unlock()
 
-	var uid, gid int
+	var uid, gid int = -1, -1
 	if syscall.Geteuid() == 0 {
 		if uid, gid, err = common.GetUidGid(c.RunAs.User, c.RunAs.Group); err != nil {
 			return
