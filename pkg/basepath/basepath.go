@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-enjin/be/pkg/cli/env"
@@ -129,7 +130,6 @@ func FindEnjenvDir() string {
 }
 
 func MakeEnjenvPath(names ...string) (path string) {
-	name := strings.Join(names, "/")
-	path = fmt.Sprintf("%v/%v", EnjenvPath, name)
+	path = filepath.Join(append([]string{EnjenvPath}, names...)...)
 	return
 }
