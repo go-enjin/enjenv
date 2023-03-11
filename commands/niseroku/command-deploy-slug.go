@@ -103,7 +103,7 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 
 	for _, appName := range needsRestart {
 		app, _ := c.config.Applications[appName]
-		if _, _, ee := pkgRun.EnjenvCmd("niseroku", "--config", c.config.Source, "app", "start", app.Name); ee != nil {
+		if _, _, ee := pkgRun.EnjenvCmd("niseroku", "--config", c.config.Source, "app", "start", "--force", app.Name); ee != nil {
 			beIo.StderrF("error restarting application: %v\n", app.Name)
 		} else {
 			beIo.StdoutF("# restarting application: %v\n", app.Name)
