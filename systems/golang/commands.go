@@ -56,6 +56,9 @@ func (s *System) IncludeCommands(app *cli.App) (commands []*cli.Command) {
 					Usage:     "build nancy from a git clone",
 					UsageText: appNamePrefix + " setup-nancy",
 					Action: func(ctx *cli.Context) (err error) {
+						if err = s.Prepare(ctx); err != nil {
+							return
+						}
 						if s.nancyPresent() {
 							io.StdoutF("# found nancy, nothing to do\n")
 							return
