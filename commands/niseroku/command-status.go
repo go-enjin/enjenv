@@ -116,7 +116,7 @@ func (c *Command) statusDisplayWatchingSnapshot(snapshot *WatchSnapshot) {
 			pid = strconv.Itoa(stat.Pid)
 			nice = fmt.Sprintf("%d", stat.Nice)
 			cpu = fmt.Sprintf("%.2f", stat.Cpu)
-			mem = fmt.Sprintf("%.2f", stat.Mem)
+			mem = humanize.Bytes(stat.Mem * 1024)
 			num = fmt.Sprintf("%d", stat.Num)
 			threads = fmt.Sprintf("%d", stat.Threads)
 		}
