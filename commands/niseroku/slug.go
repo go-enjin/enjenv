@@ -361,7 +361,8 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 		wg.Add(1)
 		go func() {
 			if ee := si.StartForeground(reservedPort); ee != nil {
-				s.App.LogErrorF("slug instance start error: %v [%v] - %v", s.Name, si.Hash, ee)
+				// s.App.LogErrorF("slug instance start error: %v [%v] - %v", s.Name, si.Hash, ee)
+				err = ee
 			}
 			wg.Done()
 		}()
@@ -407,5 +408,8 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 	}
 
 	wg.Wait()
+	if err != nil && workersReady != nil {
+		workersReady <- true
+	}
 	return
 }

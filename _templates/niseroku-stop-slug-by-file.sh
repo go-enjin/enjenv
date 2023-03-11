@@ -2,15 +2,16 @@
 
 stop_old_slug () {
     TGT="$1"
-    TGT_NAME=$(basename "${TGT}" | perl -pe 's!\.(pid|port|settings)$!!')
+    TGT_NAME=$(basename "${TGT}" | perl -pe 's!\.(pid|port|settings|deploy)$!!')
     TGT_BASE=$(echo "${TGT_NAME}" | perl -pe 's!\.([0-9a-fA-F]{10})$!!')
+    TGT_APPN=$(echo "${TGT_BASE}" | perl -pe 's!--.*$!!')
     TGT_PATH=$(dirname "${TGT}")
     RUN_PATH="${TGT_PATH}/${TGT_NAME}"
     SET_FILE="${TGT_PATH}/${TGT_BASE}.settings"
+    DEP_FILE="${TGT_PATH}/${TGT_APPN}.deploy"
     PID_FILE="${TGT_PATH}/${TGT_NAME}.pid"
     PORT_FILE="${TGT_PATH}/${TGT_NAME}.port"
 
-    echo "# checking for running pid"
     if [ -f "${PID_FILE}" ]
     then
         TGT_PID=$(cat "${PID_FILE}")
@@ -29,25 +30,28 @@ stop_old_slug () {
         rm -f "${PID_FILE}"
     fi
 
-    echo "# checking [run.d]: ${RUN_PATH}"
     if [ -d "${RUN_PATH}" ]
     then
         echo "# removing: ${RUN_PATH}"
         rm -rf "${RUN_PATH}"
     fi
 
-    echo "# checking [port]: ${PORT_FILE}"
     if [ -f "${PORT_FILE}" ]
     then
         echo "# removing: ${PORT_FILE}"
         rm -f "${PORT_FILE}"
     fi
 
-    echo "# checking [settings]: ${SET_FILE}"
     if [ -f "${SET_FILE}" ]
     then
         echo "# removing: ${SET_FILE}"
         rm -f "${SET_FILE}"
+    fi
+
+    if [ -f "${DEP_FILE}" ]
+    then
+        echo "# removing: ${DEP_FILE}"
+        rm -f "${DEP_FILE}"
     fi
 }
 

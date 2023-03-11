@@ -35,9 +35,7 @@ func (a *Application) lockDeploy() (err error) {
 }
 
 func (a *Application) unlockDeploy() {
-	if a.IsDeploying() {
-		_ = os.Remove(a.DeployFile)
-	}
+	_ = os.Remove(a.DeployFile)
 }
 
 func (a *Application) IsDeploying() (locked bool) {
