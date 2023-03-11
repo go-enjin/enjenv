@@ -25,7 +25,7 @@ CDK_PATH ?= ../../go-curses/cdk
 CTK_PATH ?= ../../go-curses/ctk
 
 BIN_NAME ?= enjenv
-UNTAGGED_VERSION ?= v0.1.3
+UNTAGGED_VERSION ?= v0.1.4
 UNTAGGED_COMMIT ?= 0000000000
 
 PWD = $(shell pwd)
