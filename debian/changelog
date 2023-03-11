@@ -1,3 +1,14 @@
+enjenv (0.1.4) unstable; urgency=medium
+
+  * tagged v0.1.3 release build - 5e2f8db22ab0ae3a8668da92d0e42aa6f5df81c7
+  * packaging changes:
+   * remove forced service restarts from postinst scripts
+  * changes:
+   * status command bugfix for mem column fmt error
+   * add --force to deploy-slug and renaming app startup commands
+
+ -- The Go-Enjin Team <go.enjin.org@gmail.com>  Sat, 11 Mar 2023 16:34:38 -0500
+
 enjenv (0.1.3) unstable; urgency=medium
 
   * tagged v0.1.3 release build - 6890d05acad7ed555df74b632ab83c86b9262c45

@@ -84,8 +84,4 @@ fi
 
 db_stop
 
-echo "# restarting niseroku-proxy service"
-systemctl daemon-reload
-service niseroku-proxy restart
-
 exit 0

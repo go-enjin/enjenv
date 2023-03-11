@@ -60,8 +60,4 @@ echo "#  enjenv niseroku config ports.git ${ports_git}" 1>&2
 
 db_stop
 
-echo "# restarting niseroku-repos service"
-systemctl daemon-reload
-service niseroku-repos restart
-
 exit 0
