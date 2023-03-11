@@ -24,7 +24,7 @@ import (
 
 func PerformMkdirChownChmod(uid, gid int, fileMode, dirMode os.FileMode, directories ...string) (err error) {
 
-	canChown := syscall.Geteuid() == 0
+	canChown := syscall.Geteuid() == 0 && uid > 0 && gid > 0
 
 	for _, target := range directories {
 
@@ -53,7 +53,7 @@ func PerformMkdirChownChmod(uid, gid int, fileMode, dirMode os.FileMode, directo
 }
 
 func PerformChown(target string, uid, gid int) (err error) {
-	if path.Exists(target) {
+	if path.Exists(target) && uid > 0 && gid > 0 {
 		err = os.Chown(target, uid, gid)
 	}
 	return
@@ -67,7 +67,7 @@ func PerformChmod(target string, mode os.FileMode) (err error) {
 }
 
 func PerformChownChmod(uid, gid int, fileMode, dirMode os.FileMode, paths ...string) (err error) {
-	canChown := syscall.Geteuid() == 0
+	canChown := syscall.Geteuid() == 0 && uid > 0 && gid > 0
 
 	getModifiedFileMode := func(tgt string) (modified os.FileMode) {
 		modified = fileMode
