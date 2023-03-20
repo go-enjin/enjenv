@@ -1,3 +1,15 @@
+enjenv (0.1.6) unstable; urgency=medium
+
+  * tagged v0.1.6 release build - 91efb00c1ea0ebac64e9be60261eb7ccdd71d04d
+  * packaging changes:
+   * updated Debian.mk to v0.1.0
+  * changes:
+   * commands/enjin (be-extract-locales): better template parsing regex patterns, fixes semantic-theme issues
+   * Makefile: cleanups and code cosmetic changes
+   * pkg/basepath: allow relative path invocations of enjenv (command used starts with ../)
+
+ -- The Go-Enjin Team <go.enjin.org@gmail.com>  Mon, 20 Mar 2023 14:58:05 -0400
+
 enjenv (0.1.5) unstable; urgency=medium
 
   * tagged v0.1.5 release build - 783f439e67228cede873527c879fcc9eac3f4100

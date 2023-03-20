@@ -14,6 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DEBIAN_MK_VERSION := v0.1.0
+
+#:: begin changelog
+#
+# v0.1.0:
+#   * initial versioning of Debian.mk
+#   * updates and fixes for better arm/amd cross compilation support
+#
+#:: end changelog
+
 #
 #: Global Settings
 #
@@ -26,8 +36,8 @@ export AE_SIGN_KEY ?=
 
 #: bin checks
 
-export WHICH_GPG = $(shell which gpg)
-export WHICH_DPKG_BUILDPACKAGE = $(shell which dpkg-buildpackage)
+export WHICH_GPG := $(shell which gpg)
+export WHICH_DPKG_BUILDPACKAGE := $(shell which dpkg-buildpackage)
 
 #
 #: Helper Defines
@@ -56,15 +66,26 @@ endef
 
 define _move_deb_files =
 	mkdir -vp ${AE_ARCHIVES}/${APT_FLAVOUR}; \
-	mv -v ../enjenv[-_]*.{dsc,xz,buildinfo,changes,deb} ${AE_ARCHIVES}/${APT_FLAVOUR}/
+	mv -v ../${BIN_NAME}[-_]*.{dsc,xz,buildinfo,changes,deb} ${AE_ARCHIVES}/${APT_FLAVOUR}/
 endef
 
 define _dpkg_buildpackage =
 	if [ -n "${AE_SIGN_KEY}" ]; then \
-		GNUPGHOME="${AE_GPG_HOME}" \
-		dpkg-buildpackage --build=full --post-clean --host-arch $(1) --sign-key="${AE_SIGN_KEY}"; \
+		env GNUPGHOME="${AE_GPG_HOME}" ${DPKG_ARCH_EXPORTS} \
+			${WHICH_DPKG_BUILDPACKAGE} \
+			--build=full \
+			--post-clean \
+			--build-profiles=cross,nocheck,nostrip \
+			--host-arch $(1) \
+			--sign-key="${AE_SIGN_KEY}"; \
 	else \
-		dpkg-buildpackage --build=full --post-clean --host-arch $(1) --no-sign; \
+		env ${DPKG_ARCH_EXPORTS} \
+			${WHICH_DPKG_BUILDPACKAGE} \
+			--build=full \
+			--post-clean \
+			--build-profiles=cross,nocheck,nostrip \
+			--host-arch $(1) \
+			--no-sign; \
 	fi
 endef
 
@@ -118,11 +139,19 @@ debian-deps:
 		gcc-multilib-x86-64-linux-gnu libc6-dev-amd64-cross linux-libc-dev-amd64-cross \
 		gcc-multilib-aarch64-linux-gnu libc6-dev-arm64-cross linux-libc-dev-arm64-cross
 
+deb-arm64: export CC=aarch64-linux-gnu-gcc
+deb-arm64: export CXX=aarch64-linux-gnu-g++
+deb-arm64: export CROSS_COMPILE="aarch64-linux-gnu-"
+deb-arm64: export DPKG_ARCH_EXPORTS="$(shell dpkg-architecture -a arm64 2> /dev/null)"
 deb-arm64: _prepare_gpg
 	@echo "# building arm64 debian package"
 	@$(call _dpkg_buildpackage,arm64)
 	@$(call _move_deb_files);
 
+deb-amd64: export CC=x86_64-linux-gnu-gcc
+deb-amd64: export CXX=x86_64-linux-gnu-g++
+deb-amd64: export CROSS_COMPILE="x86_64-linux-gnu-"
+deb-amd64: export DPKG_ARCH_EXPORTS="$(shell dpkg-architecture -a amd64 2> /dev/null)"
 deb-amd64: _prepare_gpg
 	@echo "# building amd64 debian package"
 	@$(call _dpkg_buildpackage,amd64)
