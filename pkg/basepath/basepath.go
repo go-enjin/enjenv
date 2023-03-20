@@ -58,7 +58,7 @@ func BinCheck() (absPath, buildBinHash string, err error) {
 	}
 	argv0 := os.Args[0]
 
-	if strings.HasPrefix(argv0, "./") {
+	if strings.HasPrefix(argv0, "./") || strings.HasPrefix(argv0, "../") {
 		if absPath, err = path.Abs(argv0); err != nil {
 			err = fmt.Errorf("error finding absolute path to: %v - %v", argv0, err)
 			return
