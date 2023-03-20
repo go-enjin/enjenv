@@ -20,12 +20,24 @@
 -include .env
 export
 
+.PHONY: all help
+.PHONY: clean distclean realclean
+.PHONY: local unlocal tidy be-update
+.PHONY: debug build build-all build-amd64 build-arm64
+.PHONY: release release-all release-amd64 release-arm64
+.PHONY: profile.proxy.cpu profile.proxy.mem
+.PHONY: profile.repos.cpu profile.repos.mem
+.PHONY: profile.watch.cpu profile.watch.mem
+.PHONY: install install-autocomplete
+.PHONY: install-niseroku install-niseroku-logrotate install-niseroku-utils
+.PHONY: install-niseroku-systemd install-niseroku-sysv-init
+
 BE_PATH ?= ../be
 CDK_PATH ?= ../../go-curses/cdk
 CTK_PATH ?= ../../go-curses/ctk
 
 BIN_NAME ?= enjenv
-UNTAGGED_VERSION ?= v0.1.5
+UNTAGGED_VERSION ?= v0.1.6
 UNTAGGED_COMMIT ?= 0000000000
 
 PWD = $(shell pwd)
@@ -80,12 +92,12 @@ define _build_target =
 -s -w \
 -buildid='' \
 -X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}'\
+-X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}' \
 " \
 		-gcflags="-trimpath='${TRIM_PATHS}'" \
 		-asmflags="-trimpath='${TRIM_PATHS}'" \
 		-trimpath \
-		./cmd/enjenv || exit 1
+		./cmd/enjenv
 endef
 
 define _build_debug =
@@ -95,7 +107,7 @@ define _build_debug =
 		-ldflags="\
 -buildid='' \
 -X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}'\
+-X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}' \
 " \
 		-gcflags="-N -l -trimpath='${TRIM_PATHS}'" \
 		-asmflags="-trimpath='${TRIM_PATHS}'" \
@@ -142,11 +154,19 @@ define _profile_run =
 	fi
 endef
 
-.PHONY: all help clean build install local unlocal tidy
+define _clean =
+	for FOUND in $(1); do \
+		if [ -n "$${FOUND}" ]; then \
+			rm -rfv $${FOUND}; \
+		fi; \
+	done
+endef
 
 help:
 	@echo "usage: make <help|clean|local|unlocal|tidy>"
-	@echo "       make <debug|build|build-all|build-amd64|build-arm64>"
+	@echo "       make <debug>"
+	@echo "       make <build|build-amd64|build-arm64|build-all>"
+	@echo "       make <release|release-amd64|release-arm64|release-all>"
 	@echo "       make <profile.proxy.cpu|profile.proxy.mem>"
 	@echo "       make <profile.repos.cpu|profile.repos.mem>"
 	@echo "       make <profile.watch.cpu|profile.watch.mem>"
@@ -156,14 +176,6 @@ help:
 	@echo "       make <install-niseroku-systemd>"
 	@echo "       make <install-niseroku-logrotate>"
 	@echo "       make <install-niseroku-sysv-init>"
-
-define _clean =
-	for FOUND in $(1); do \
-		if [ -n "$${FOUND}" ]; then \
-			rm -rfv $${FOUND}; \
-		fi; \
-	done
-endef
 
 clean:
 	@$(call _clean,${CLEAN_FILES})
@@ -262,19 +274,19 @@ define _install_build =
 endef
 
 install:
-	@if [ -f "enjenv.linux.${BUILD_ARCH}" ]; then \
-		$(call _install_build,"enjenv.linux.${BUILD_ARCH}","enjenv"); \
+	@if [ -f "${BIN_NAME}.linux.${BUILD_ARCH}" ]; then \
+		$(call _install_build,"${BIN_NAME}.linux.${BUILD_ARCH}","${BIN_NAME}"); \
 	else \
-		echo "error: missing enjenv.linux.${BUILD_ARCH} binary" 1>&2; \
+		echo "error: missing ${BIN_NAME}.linux.${BUILD_ARCH} binary" 1>&2; \
 	fi
 
 install-autocomplete: ETC_PATH=${DESTDIR}/etc
 install-autocomplete: AUTOCOMPLETE_PATH=${ETC_PATH}/bash_completion.d
-install-autocomplete: ENJENV_AUTOCOMPLETE_FILE=${AUTOCOMPLETE_PATH}/enjenv
+install-autocomplete: ENJENV_AUTOCOMPLETE_FILE=${AUTOCOMPLETE_PATH}/${BIN_NAME}
 install-autocomplete: NISEROKU_AUTOCOMPLETE_FILE=${AUTOCOMPLETE_PATH}/niseroku
 install-autocomplete:
 	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
-	@echo "# installing enjenv bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
+	@echo "# installing ${BIN_NAME} bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
 	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
 	@${CMD} sha256sum "${ENJENV_AUTOCOMPLETE_FILE}"
 	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
