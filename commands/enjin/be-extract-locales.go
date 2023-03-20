@@ -29,6 +29,7 @@ import (
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
 	beStrings "github.com/go-enjin/be/pkg/strings"
+
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -59,8 +60,12 @@ produces a basic out.gotext.json file.
 }
 
 var (
-	rxpExtractFn   = `_\s+("[^"]+?"|[^_][^"\s]+)\s*`
-	rxpExtractArgs = `_\s+("[^"]+?"|[^_][^"\s]+)\s*([^}]*)`
+	rxpQuotedText = `".+?"`
+	rxpContextKey = `\.[a-zA-Z0-9][_.a-zA-Z0-9]+`
+	rxpPipeline   = `\(.+?\)`
+
+	rxpExtractFn   = `_\s+(` + rxpQuotedText + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*`
+	rxpExtractArgs = `_\s+(` + rxpQuotedText + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*([^}]*)`
 	rxpExtractNote = `/\*\s+?([^*}]+)\s+?\*/`
 
 	rxExtractFnNope         = regexp.MustCompile(`\(\s*([^_][^"\s]+)\s*(.*)\s*\)`)
