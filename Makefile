@@ -54,6 +54,8 @@ CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
 DISTCLEAN_FILES ?=
 REALCLEAN_FILES ?=
 
+UPX_BIN := $(shell which upx)
+
 define _trim_path =
 $(shell \
 if [ "${GOPATH}" != "" ]; then \
@@ -121,10 +123,10 @@ define _build_debug =
 endef
 
 define _upx_build =
-	if [ -x /usr/bin/upx ]; then \
+	if [ -n "${UPX_BIN}" -a -x "${UPX_BIN}" ]; then \
 		echo -n "# packing: $(1) - "; \
 		du -hs "$(1)" | awk '{print $$1}'; \
-		/usr/bin/upx -qq -7 --no-color --no-progress "$(1)"; \
+		${UPX_BIN} -qq -7 --no-color --no-progress "$(1)"; \
 		echo -n "# packed: $(1) - "; \
 		du -hs "$(1)" | awk '{print $$1}'; \
 		sha256sum "$(1)"; \
