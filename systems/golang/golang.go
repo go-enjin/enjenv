@@ -96,6 +96,21 @@ func (s *System) GetDefaultVersion() (version string) {
 	return globals.DefaultGolangVersion
 }
 
+func (s *System) makeOsEnvironCtx() (environ []string) {
+	environ = os.Environ()
+	for k, v := range s.Ctx.AsMapStrings() {
+		var value string
+		switch k {
+		case "GOFLAGS":
+			value = s.goFlagsWithModCacheRw()
+		default:
+			value = basepath.MakeEnjenvPath(v)
+		}
+		environ = append(environ, k+"="+value)
+	}
+	return
+}
+
 func (s *System) installNancy() (err error) {
 	tmpdir := env.Get("GOTMPDIR", env.Get("TMPDIR", "./tmp"))
 	if !bePath.IsDir(tmpdir) {
@@ -119,7 +134,7 @@ func (s *System) installNancy() (err error) {
 	if err = os.Chdir("nancy"); err != nil {
 		return
 	}
-	environ := append(os.Environ(), s.Ctx.AsOsEnviron()...)
+	environ := s.makeOsEnvironCtx()
 	if err = s.GoBinWith(environ, filepath.Join(tmpdir, "nancy"), "build", "-v"); err != nil {
 		return
 	}
