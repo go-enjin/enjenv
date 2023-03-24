@@ -83,37 +83,41 @@ $(shell \
 )
 endef
 
+
+# 1: bin-name, 2: goos, 3: goarch, 4: ldflags, 5: gcflags, 6: asmflags, 7: argv
+define _cmd_go_build
+$(shell echo "\
+GOOS=\"$(2)\" GOARCH=\"$(3)\" \
+go build -v \
+		-o \"$(1)\" \
+		-ldflags=\"$(4) \
+-buildid='' \
+-X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
+-X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}' \
+\" \
+		-gcflags=\"$(5)\" \
+		-asmflags=\"$(6)\" \
+		$(7) \
+		./cmd/enjenv")
+endef
+
+# 1: bin-name, 2: goos, 3: goarch, 4: ldflags
+define _cmd_go_build_trimpath
+$(call _cmd_go_build,$(1),$(2),$(3),$(4),-trimpath='${TRIM_PATHS}',-trimpath='${TRIM_PATHS}',-trimpath)
+endef
+
 # 1: bin-name, 2: goos, 3: goarch
 define _build_target =
 	echo "# building $(2)-$(3) (release): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"; \
-	${CMD} GOOS="$(2)" GOARCH="$(3)" go build -v \
-		-o "$(1)" \
-		-ldflags="\
--s -w \
--buildid='' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}' \
-" \
-		-gcflags="-trimpath='${TRIM_PATHS}'" \
-		-asmflags="-trimpath='${TRIM_PATHS}'" \
-		-trimpath \
-		./cmd/enjenv
+	echo $(call _cmd_go_build_trimpath,$(1),$(2),$(3),-s -w); \
+	$(call _cmd_go_build_trimpath,$(1),$(2),$(3),-s -w)
 endef
 
+# 1: bin-name, 2: goos, 3: goarch
 define _build_debug =
-	@echo "# building $(2)-$(3) (debug): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"
-	@${CMD} GOOS="$(2)" GOARCH="$(3)" go build -v \
-		-o "$(1)" \
-		-ldflags="\
--buildid='' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}' \
-" \
-		-gcflags="-N -l -trimpath='${TRIM_PATHS}'" \
-		-asmflags="-trimpath='${TRIM_PATHS}'" \
-		-trimpath \
-		-tags debug \
-		./cmd/enjenv
+	echo "# building $(2)-$(3) (debug): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"; \
+	echo $(call _cmd_go_build,$(1),$(2),$(3),,-N -l); \
+	$(call _cmd_go_build,$(1),$(2),$(3),,-N -l)
 endef
 
 define _upx_build =
@@ -189,6 +193,14 @@ realclean: distclean
 debug: BUILD_VERSION=$(call _tag_ver)
 debug: BUILD_RELEASE=$(call _rel_ver)
 debug: TRIM_PATHS=$(call _trim_path)
+debug: export CGO_ENABLED=1
+ifeq (${BUILD_OS},linux)
+ifeq (${BUILD_ARCH},arm64)
+debug: export CC=aarch64-linux-gnu-gcc
+else
+debug: export CC=x86_64-linux-gnu-gcc
+endif
+endif
 debug:
 	@$(call _build_debug,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
 	@sha256sum "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
@@ -232,6 +244,14 @@ profile.watch.mem: debug
 build: BUILD_VERSION=$(call _tag_ver)
 build: BUILD_RELEASE=$(call _rel_ver)
 build: TRIM_PATHS=$(call _trim_path)
+build: export CGO_ENABLED=1
+ifeq (${BUILD_OS},linux)
+ifeq (${BUILD_ARCH},arm64)
+build: export CC=aarch64-linux-gnu-gcc
+else
+build: export CC=x86_64-linux-gnu-gcc
+endif
+endif
 build:
 	@$(call _build_target,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
 	@sha256sum "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
