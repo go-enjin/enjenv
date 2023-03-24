@@ -43,8 +43,8 @@ UNTAGGED_COMMIT ?= 0000000000
 PWD = $(shell pwd)
 SHELL = /bin/bash
 
-BUILD_OS ?= linux
-BUILD_ARCH ?= `uname -m | perl -pe 's!aarch64!arm64!;s!x86_64!amd64!;'`
+BUILD_OS   := `uname -os | awk '{print $$1}' | perl -pe '$$_=lc($$_)'`
+BUILD_ARCH := `uname -m | perl -pe 's!aarch64!arm64!;s!x86_64!amd64!;'`
 
 prefix ?= /usr
 
@@ -130,15 +130,15 @@ define _upx_build =
 endef
 
 define _profile_run =
-	@if [ -f "${BIN_NAME}.linux.${BUILD_ARCH}" ]; then \
+	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
 		echo "# starting niseroku $(1)..."; \
 		case "$(1)" in \
 			"proxy") \
-				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku reverse-proxy;; \
+				./${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} niseroku reverse-proxy;; \
 			"repos") \
-				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku git-repository;; \
+				./${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} niseroku git-repository;; \
 			"watch") \
-				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku status watch;; \
+				./${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} niseroku status watch;; \
 		esac; \
 		if [ -f pprof.$(1)/$(2).pprof ]; then \
 			echo "# ./pprof.$(1)/$(2).pprof found; ready to run pprof"; \
@@ -150,7 +150,7 @@ define _profile_run =
 			echo "# ./pprof.$(1)/$(2).pprof not found"; \
 		fi; \
 	else \
-		echo "# ${BIN_NAME}.linux.${BUILD_ARCH} not found"; \
+		echo "# ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} not found"; \
 	fi
 endef
 
@@ -190,7 +190,8 @@ debug: BUILD_VERSION=$(call _tag_ver)
 debug: BUILD_RELEASE=$(call _rel_ver)
 debug: TRIM_PATHS=$(call _trim_path)
 debug:
-	@$(call _build_debug,"${BIN_NAME}.linux.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
+	@$(call _build_debug,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
+	@sha256sum "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
 
 profile.proxy.cpu: export ENJENV_ENABLE_PROFILING=true
 profile.proxy.cpu: export ENJENV_PROFILING_TYPE=cpu
@@ -232,7 +233,8 @@ build: BUILD_VERSION=$(call _tag_ver)
 build: BUILD_RELEASE=$(call _rel_ver)
 build: TRIM_PATHS=$(call _trim_path)
 build:
-	@$(call _build_target,"${BIN_NAME}.linux.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
+	@$(call _build_target,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
+	@sha256sum "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
 
 build-amd64: BUILD_VERSION=$(call _tag_ver)
 build-amd64: BUILD_RELEASE=$(call _rel_ver)
@@ -240,8 +242,8 @@ build-amd64: TRIM_PATHS=$(call _trim_path)
 build-amd64: export CGO_ENABLED=1
 build-amd64: export CC=x86_64-linux-gnu-gcc
 build-amd64:
-	@$(call _build_target,"${BIN_NAME}.linux.amd64",linux,amd64)
-	@sha256sum "${BIN_NAME}.linux.amd64"
+	@$(call _build_target,"${BIN_NAME}.${BUILD_OS}.amd64",${BUILD_OS},amd64)
+	@sha256sum "${BIN_NAME}.${BUILD_OS}.amd64"
 
 build-arm64: BUILD_VERSION=$(call _tag_ver)
 build-arm64: BUILD_RELEASE=$(call _rel_ver)
@@ -249,19 +251,19 @@ build-arm64: TRIM_PATHS=$(call _trim_path)
 build-arm64: export CGO_ENABLED=1
 build-arm64: export CC=aarch64-linux-gnu-gcc
 build-arm64:
-	@$(call _build_target,"${BIN_NAME}.linux.arm64",linux,arm64)
-	@sha256sum "${BIN_NAME}.linux.arm64"
+	@$(call _build_target,"${BIN_NAME}.${BUILD_OS}.arm64",${BUILD_OS},arm64)
+	@sha256sum "${BIN_NAME}.${BUILD_OS}.arm64"
 
 build-all: build-amd64 build-arm64
 
 release: build
-	@$(call _upx_build,"${BIN_NAME}.linux.${BUILD_ARCH}")
+	@$(call _upx_build,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}")
 
 release-arm64: build-arm64
-	@$(call _upx_build,"${BIN_NAME}.linux.arm64")
+	@$(call _upx_build,"${BIN_NAME}.${BUILD_OS}.arm64")
 
 release-amd64: build-amd64
-	@$(call _upx_build,"${BIN_NAME}.linux.amd64")
+	@$(call _upx_build,"${BIN_NAME}.${BUILD_OS}.amd64")
 
 release-all: release-amd64 release-arm64
 
@@ -274,10 +276,10 @@ define _install_build =
 endef
 
 install:
-	@if [ -f "${BIN_NAME}.linux.${BUILD_ARCH}" ]; then \
-		$(call _install_build,"${BIN_NAME}.linux.${BUILD_ARCH}","${BIN_NAME}"); \
+	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
+		$(call _install_build,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}","${BIN_NAME}"); \
 	else \
-		echo "error: missing ${BIN_NAME}.linux.${BUILD_ARCH} binary" 1>&2; \
+		echo "error: missing ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} binary" 1>&2; \
 	fi
 
 install-autocomplete: ETC_PATH=${DESTDIR}/etc
