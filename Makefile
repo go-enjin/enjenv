@@ -307,6 +307,7 @@ endef
 
 install:
 	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
+		echo "# ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} present"; \
 		$(call _install_build,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}","${BIN_NAME}"); \
 	else \
 		echo "error: missing ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} binary" 1>&2; \
