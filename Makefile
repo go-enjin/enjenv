@@ -18,7 +18,7 @@
 #CMD=echo
 
 -include .env
-export
+#export
 
 .PHONY: all help
 .PHONY: clean distclean realclean
