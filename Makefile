@@ -302,13 +302,13 @@ define _install_build =
 	echo "# installing $(1) to: $${BIN_PATH}/$(2)"; \
 	[ -d "$${BIN_PATH}" ] || mkdir -vp "$${BIN_PATH}"; \
 	${CMD} /usr/bin/install -v -m 0775 -T "$(1)" "$${BIN_PATH}/$(2)"; \
-	${CMD} ${SHASUM_BIN} "$${BIN_PATH}/$(2)"
+	${CMD} ${SHASUM_BIN} "$${BIN_PATH}/$(2)";
 endef
 
 install:
 	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
 		echo "# ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} present"; \
-		$(call _install_build,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}","${BIN_NAME}"); \
+		$(call _install_build,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}","${BIN_NAME}") \
 	else \
 		echo "error: missing ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} binary" 1>&2; \
 	fi
