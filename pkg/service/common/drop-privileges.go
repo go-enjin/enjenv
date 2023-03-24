@@ -50,10 +50,10 @@ func DropPrivilegesTo(userName, groupName string) (err error) {
 			return
 		}
 
-		if cerr, errno := C.setgid(C.__gid_t(gid)); cerr != 0 {
+		if cerr, errno := C.setgid(C.gid_t(gid)); cerr != 0 {
 			err = fmt.Errorf("set GID error: %v", errno)
 			return
-		} else if cerr, errno = C.setuid(C.__uid_t(uid)); cerr != 0 {
+		} else if cerr, errno = C.setuid(C.uid_t(uid)); cerr != 0 {
 			err = fmt.Errorf("set UID error: %v", errno)
 			return
 		}
