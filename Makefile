@@ -56,6 +56,12 @@ REALCLEAN_FILES ?=
 
 UPX_BIN := $(shell which upx)
 
+SHASUM_BIN := $(shell which sha256sum)
+
+ifeq (${SHASUM_BIN},)
+SHASUM_BIN := echo missing sha256sum
+endif
+
 define _trim_path =
 $(shell \
 if [ "${GOPATH}" != "" ]; then \
@@ -76,7 +82,7 @@ $(shell \
 			git rev-parse --short=10 HEAD; \
 		else \
 			[ -d .git ] && git diff 2> /dev/null \
-				| sha256sum - 2> /dev/null \
+				| ${SHASUM_BIN} - 2> /dev/null \
 				| perl -pe 's!^\s*([a-f0-9]{10}).*!\1!'; \
 		fi; \
 	else \
@@ -131,7 +137,7 @@ define _upx_build =
 		${UPX_BIN} -qq -7 --no-color --no-progress "$(1)"; \
 		echo -n "# packed: $(1) - "; \
 		du -hs "$(1)" | awk '{print $$1}'; \
-		sha256sum "$(1)"; \
+		${SHASUM_BIN} "$(1)"; \
 	else \
 		echo "# upx command not found, nothing to do"; \
 	fi
@@ -207,7 +213,7 @@ endif
 endif
 debug:
 	@$(call _build_debug,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
-	@sha256sum "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
+	@${SHASUM_BIN} "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
 
 profile.proxy.cpu: export ENJENV_ENABLE_PROFILING=true
 profile.proxy.cpu: export ENJENV_PROFILING_TYPE=cpu
@@ -258,7 +264,7 @@ endif
 endif
 build:
 	@$(call _build_target,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
-	@sha256sum "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
+	@${SHASUM_BIN} "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
 
 build-amd64: BUILD_VERSION=$(call _tag_ver)
 build-amd64: BUILD_RELEASE=$(call _rel_ver)
@@ -267,7 +273,7 @@ build-amd64: export CGO_ENABLED=1
 build-amd64: export CC=x86_64-linux-gnu-gcc
 build-amd64:
 	@$(call _build_target,"${BIN_NAME}.${BUILD_OS}.amd64",${BUILD_OS},amd64)
-	@sha256sum "${BIN_NAME}.${BUILD_OS}.amd64"
+	@${SHASUM_BIN} "${BIN_NAME}.${BUILD_OS}.amd64"
 
 build-arm64: BUILD_VERSION=$(call _tag_ver)
 build-arm64: BUILD_RELEASE=$(call _rel_ver)
@@ -276,7 +282,7 @@ build-arm64: export CGO_ENABLED=1
 build-arm64: export CC=aarch64-linux-gnu-gcc
 build-arm64:
 	@$(call _build_target,"${BIN_NAME}.${BUILD_OS}.arm64",${BUILD_OS},arm64)
-	@sha256sum "${BIN_NAME}.${BUILD_OS}.arm64"
+	@${SHASUM_BIN} "${BIN_NAME}.${BUILD_OS}.arm64"
 
 build-all: build-amd64 build-arm64
 
@@ -296,7 +302,7 @@ define _install_build =
 	echo "# installing $(1) to: $${BIN_PATH}/$(2)"; \
 	[ -d "$${BIN_PATH}" ] || mkdir -vp "$${BIN_PATH}"; \
 	${CMD} /usr/bin/install -v -m 0775 -T "$(1)" "$${BIN_PATH}/$(2)"; \
-	${CMD} sha256sum "$${BIN_PATH}/$(2)"
+	${CMD} ${SHASUM_BIN} "$${BIN_PATH}/$(2)"
 endef
 
 install:
@@ -314,10 +320,10 @@ install-autocomplete:
 	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
 	@echo "# installing ${BIN_NAME} bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
 	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
-	@${CMD} sha256sum "${ENJENV_AUTOCOMPLETE_FILE}"
+	@${CMD} ${SHASUM_BIN} "${ENJENV_AUTOCOMPLETE_FILE}"
 	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
 	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${NISEROKU_AUTOCOMPLETE_FILE}"
-	@${CMD} sha256sum "${NISEROKU_AUTOCOMPLETE_FILE}"
+	@${CMD} ${SHASUM_BIN} "${NISEROKU_AUTOCOMPLETE_FILE}"
 
 install-niseroku: ETC_PATH=${DESTDIR}/etc
 install-niseroku: NISEROKU_PATH=${ETC_PATH}/niseroku
@@ -330,7 +336,7 @@ install-niseroku:
 		[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"; \
 		if [ ! -d "${NISEROKU_PATH}" ]; then mkdir -p "${NISEROKU_PATH}"; fi; \
 		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
-		${CMD} sha256sum "${NISEROKU_TOML_FILE}"; \
+		${CMD} ${SHASUM_BIN} "${NISEROKU_TOML_FILE}"; \
 	fi
 
 install-niseroku-logrotate: ETC_PATH=${DESTDIR}/etc
@@ -340,7 +346,7 @@ install-niseroku-logrotate:
 	@echo "# installing ${NISEROKU_LOGROTATE_FILE}"
 	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
 	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"
-	@${CMD} sha256sum "${NISEROKU_LOGROTATE_FILE}"
+	@${CMD} ${SHASUM_BIN} "${NISEROKU_LOGROTATE_FILE}"
 
 install-niseroku-sysv-init: ETC_PATH=${DESTDIR}/etc
 install-niseroku-sysv-init: SYSV_INIT_PATH=${ETC_PATH}/init.d
@@ -350,10 +356,10 @@ install-niseroku-sysv-init:
 	@echo "# installing ${NISEROKU_PROXY_SYSV_INIT_FILE}"
 	@[ -d "${SYSV_INIT_PATH}" ] || mkdir -vp "${SYSV_INIT_PATH}"
 	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-proxy.init" "${NISEROKU_PROXY_SYSV_INIT_FILE}"
-	@${CMD} sha256sum "${NISEROKU_PROXY_SYSV_INIT_FILE}"
+	@${CMD} ${SHASUM_BIN} "${NISEROKU_PROXY_SYSV_INIT_FILE}"
 	@echo "# installing ${NISEROKU_REPOS_SYSV_INIT_FILE}"
 	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-repos.init" "${NISEROKU_REPOS_SYSV_INIT_FILE}"
-	@${CMD} sha256sum "${NISEROKU_REPOS_SYSV_INIT_FILE}"
+	@${CMD} ${SHASUM_BIN} "${NISEROKU_REPOS_SYSV_INIT_FILE}"
 
 install-niseroku-systemd: ETC_PATH=${DESTDIR}/etc
 install-niseroku-systemd: SYSTEMD_PATH=${ETC_PATH}/systemd/system
@@ -363,10 +369,10 @@ install-niseroku-systemd:
 	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
 	@echo "# installing ${NISEROKU_PROXY_SERVICE_FILE}"
 	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-proxy.service" "${NISEROKU_PROXY_SERVICE_FILE}"
-	@$${CMD} sha256sum "${NISEROKU_PROXY_SERVICE_FILE}"
+	@$${CMD} ${SHASUM_BIN} "${NISEROKU_PROXY_SERVICE_FILE}"
 	@echo "# installing ${NISEROKU_REPOS_SERVICE_FILE}"
 	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-repos.service" "${NISEROKU_REPOS_SERVICE_FILE}"
-	@${CMD} sha256sum "${NISEROKU_REPOS_SERVICE_FILE}"
+	@${CMD} ${SHASUM_BIN} "${NISEROKU_REPOS_SERVICE_FILE}"
 
 install-niseroku-utils: ETC_PATH=${DESTDIR}/etc
 install-niseroku-utils:
