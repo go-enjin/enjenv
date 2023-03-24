@@ -122,13 +122,10 @@ define _build_debug =
 	$(call _cmd_go_build,$(1),$(2),$(3),,-N -l)
 endef
 
-ifeq (${BUILD_OS},darwin)
 define _upx_build =
-	echo "# upx command not supported on darwin, nothing to do"
-endef
-else
-define _upx_build =
-	if [ -n "${UPX_BIN}" -a -x "${UPX_BIN}" ]; then \
+	if [ "${BUILD_OS}" == "darwin" ]; then \
+		echo "# upx command not supported on darwin, nothing to do"; \
+	elif [ -n "${UPX_BIN}" -a -x "${UPX_BIN}" ]; then \
 		echo -n "# packing: $(1) - "; \
 		du -hs "$(1)" | awk '{print $$1}'; \
 		${UPX_BIN} -qq -7 --no-color --no-progress "$(1)"; \
@@ -139,7 +136,6 @@ define _upx_build =
 		echo "# upx command not found, nothing to do"; \
 	fi
 endef
-endif
 
 define _profile_run =
 	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
