@@ -303,7 +303,7 @@ define _install_build
 	BIN_PATH="${DESTDIR}${prefix}/bin"; \
 	echo "# installing $(1) to: $${BIN_PATH}/$(2)"; \
 	[ -d "$${BIN_PATH}" ] || mkdir -vp "$${BIN_PATH}"; \
-	${CMD} /usr/bin/install -v -m 0775 -T "$(1)" "$${BIN_PATH}/$(2)"; \
+	${CMD} /usr/bin/install -v -m 0775 "$(1)" "$${BIN_PATH}/$(2)"; \
 	${CMD} ${SHASUM_CMD} "$${BIN_PATH}/$(2)";
 endef
 
@@ -322,10 +322,10 @@ install-autocomplete: NISEROKU_AUTOCOMPLETE_FILE=${AUTOCOMPLETE_PATH}/niseroku
 install-autocomplete:
 	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
 	@echo "# installing ${BIN_NAME} bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
-	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
+	@${CMD} /usr/bin/install -v -m 0775 "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
 	@${CMD} ${SHASUM_CMD} "${ENJENV_AUTOCOMPLETE_FILE}"
 	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
-	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${NISEROKU_AUTOCOMPLETE_FILE}"
+	@${CMD} /usr/bin/install -v -m 0775 "_templates/bash_autocomplete" "${NISEROKU_AUTOCOMPLETE_FILE}"
 	@${CMD} ${SHASUM_CMD} "${NISEROKU_AUTOCOMPLETE_FILE}"
 
 install-niseroku: ETC_PATH=${DESTDIR}/etc
@@ -338,7 +338,7 @@ install-niseroku:
 		echo "# installing ${NISEROKU_TOML_FILE}"; \
 		[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"; \
 		if [ ! -d "${NISEROKU_PATH}" ]; then mkdir -p "${NISEROKU_PATH}"; fi; \
-		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
+		${CMD} /usr/bin/install -v -b -m 0664 "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
 		${CMD} ${SHASUM_CMD} "${NISEROKU_TOML_FILE}"; \
 	fi
 
@@ -348,7 +348,7 @@ install-niseroku-logrotate: NISEROKU_LOGROTATE_FILE=${LOGROTATE_PATH}/niseroku
 install-niseroku-logrotate:
 	@echo "# installing ${NISEROKU_LOGROTATE_FILE}"
 	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
-	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0664 "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"
 	@${CMD} ${SHASUM_CMD} "${NISEROKU_LOGROTATE_FILE}"
 
 install-niseroku-sysv-init: ETC_PATH=${DESTDIR}/etc
@@ -358,10 +358,10 @@ install-niseroku-sysv-init: NISEROKU_REPOS_SYSV_INIT_FILE=${SYSV_INIT_PATH}/nise
 install-niseroku-sysv-init:
 	@echo "# installing ${NISEROKU_PROXY_SYSV_INIT_FILE}"
 	@[ -d "${SYSV_INIT_PATH}" ] || mkdir -vp "${SYSV_INIT_PATH}"
-	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-proxy.init" "${NISEROKU_PROXY_SYSV_INIT_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0775 "_templates/niseroku-proxy.init" "${NISEROKU_PROXY_SYSV_INIT_FILE}"
 	@${CMD} ${SHASUM_CMD} "${NISEROKU_PROXY_SYSV_INIT_FILE}"
 	@echo "# installing ${NISEROKU_REPOS_SYSV_INIT_FILE}"
-	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-repos.init" "${NISEROKU_REPOS_SYSV_INIT_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0775 "_templates/niseroku-repos.init" "${NISEROKU_REPOS_SYSV_INIT_FILE}"
 	@${CMD} ${SHASUM_CMD} "${NISEROKU_REPOS_SYSV_INIT_FILE}"
 
 install-niseroku-systemd: ETC_PATH=${DESTDIR}/etc
@@ -371,10 +371,10 @@ install-niseroku-systemd: NISEROKU_REPOS_SERVICE_FILE=${SYSTEMD_PATH}/niseroku-r
 install-niseroku-systemd:
 	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
 	@echo "# installing ${NISEROKU_PROXY_SERVICE_FILE}"
-	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-proxy.service" "${NISEROKU_PROXY_SERVICE_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0664 "_templates/niseroku-proxy.service" "${NISEROKU_PROXY_SERVICE_FILE}"
 	@$${CMD} ${SHASUM_CMD} "${NISEROKU_PROXY_SERVICE_FILE}"
 	@echo "# installing ${NISEROKU_REPOS_SERVICE_FILE}"
-	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-repos.service" "${NISEROKU_REPOS_SERVICE_FILE}"
+	@${CMD} /usr/bin/install -v -b -m 0664 "_templates/niseroku-repos.service" "${NISEROKU_REPOS_SERVICE_FILE}"
 	@${CMD} ${SHASUM_CMD} "${NISEROKU_REPOS_SERVICE_FILE}"
 
 install-niseroku-utils: ETC_PATH=${DESTDIR}/etc
