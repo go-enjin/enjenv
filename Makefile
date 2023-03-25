@@ -47,7 +47,11 @@ SHELL = /bin/bash
 BUILD_OS   := $(shell uname -s | awk '{print $$1}' | perl -pe '$$_=lc($$_)')
 BUILD_ARCH := $(shell uname -m | perl -pe 's!aarch64!arm64!;s!x86_64!amd64!;')
 
+ifneq (${HOMEBREW_PREFIX},)
+prefix ?= ${HOMEBREW_PREFIX}
+else
 prefix ?= /usr
+endif
 
 GIT_STATUS := $([ -d .git ] && git status 2> /dev/null)
 
