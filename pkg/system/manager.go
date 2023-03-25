@@ -293,53 +293,76 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 				Usage:     "create bash_completion, activate and deactivate shell scripts",
 				UsageText: app.Name + " write-scripts",
 				Action: func(ctx *cli.Context) (err error) {
-					// activate
-					content := fmt.Sprintf("export ENJENV_PATH=\"%v\"\n", basepath.EnjenvPath)
+					writeFile := func(name string, data string) (err error) {
+						if err = os.WriteFile(name, []byte(data), 0660); err != nil {
+							err = fmt.Errorf("error writing %v: %v", name, err)
+							return
+						}
+						io.StdoutF("# wrote: %v\n", name)
+						return
+					}
+
+					// functions
+					if err = writeFile(basepath.MakeEnjenvPath("functions"), ShellFunctionsSource); err != nil {
+						return
+					}
+
+					// bash_completion
+					if err = writeFile(basepath.MakeEnjenvPath("bash_completion"), BashCompletionSource); err != nil {
+						return
+					}
+
+					// activate (re-use script)
+					content := "#: source enjenv common shell functions\n"
+					content += `source "$(dirname "${BASH_SOURCE[0]}")/functions"`
+					content += "\n\n"
+					content += "#: ENJENV_PATH overrides the default ./.enjenv path location\n"
+					content += fmt.Sprintf(`export ENJENV_PATH="%v"`+"\n", basepath.EnjenvPath)
+					content += "#: TMPDIR is required (if not already present)\n"
+					content += fmt.Sprintf(`[ -z "${TMPDIR}" ] && export TMPDIR="%v"`+"\n", basepath.MakeEnjenvPath(TmpDirName))
 					systems := make([]System, 0)
 					for _, s := range m.systems {
 						if e := s.Self().Prepare(ctx); e != nil {
-							io.ErrorF("error preparing %v: %v\n", s.Self().Name(), e)
+							_ = io.ErrorF("error preparing %v: %v\n", s.Self().Name(), e)
 							continue
 						}
 						systems = append(systems, s)
 						if v, e := s.Self().ExportString(ctx); e == nil {
+							content += fmt.Sprintf("\n#: begin enjenv %v variables\n\n", s.Name())
 							content += v
+							content += fmt.Sprintf("\n\n#: end enjenv %v variables\n\n", s.Name())
 						}
-						s.ExportPathVariable(false)
+						if v := s.GetExportPaths(); len(v) > 0 {
+							for _, p := range v {
+								content += fmt.Sprintf(`_enjenv_add_path "%s"`+"\n", p)
+							}
+						}
 					}
-					content += fmt.Sprintf("export TMPDIR=\"%v\"\n", basepath.MakeEnjenvPath(TmpDirName))
-					content += fmt.Sprintf("export PATH=\"%v\"\n", strings.Join(env.GetPaths(), ":"))
-					script := basepath.MakeEnjenvPath("activate")
-					if err = os.WriteFile(script, []byte(content), 0660); err != nil {
-						err = fmt.Errorf("error writing %v: %v", script, err)
+					if err = writeFile(basepath.MakeEnjenvPath("activate"), content); err != nil {
 						return
 					}
-					io.StdoutF("# wrote: %v\n", script)
 
-					// deactivate
-					content = fmt.Sprintf("unset ENJENV_PATH;\n")
+					// deactivate (re-use content, script)
+					content = "#: source enjenv common shell functions\n"
+					content += `source "$(dirname "${BASH_SOURCE[0]}")/functions"`
+					content += "\n\n"
+					content = fmt.Sprintf(`[ -n "${ENJENV_PATH}" ] && unset ENJENV_PATH;` + "\n")
+					content += fmt.Sprintf(`[ "${TMPDIR}" == "%s" ] && unset TMPDIR`+"\n", basepath.MakeEnjenvPath(TmpDirName))
 					for _, s := range systems {
 						if v, e := s.Self().UnExportString(ctx); e == nil {
 							content += v
 						}
-						s.UnExportPathVariable(false)
+						if v := s.GetExportPaths(); len(v) > 0 {
+							for _, p := range v {
+								content += fmt.Sprintf(`_enjenv_rem_path "%s"`+"\n", p)
+							}
+						}
 					}
-					content += fmt.Sprintf("export TMPDIR;\n")
-					content += fmt.Sprintf("export PATH=\"%v\"\n", strings.Join(env.GetPaths(), ":"))
-					script = basepath.MakeEnjenvPath("deactivate")
-					if err = os.WriteFile(script, []byte(content), 0660); err != nil {
-						err = fmt.Errorf("error writing %v: %v", script, err)
+					content += "_enjenv_unset_functions\n"
+					if err = writeFile(basepath.MakeEnjenvPath("deactivate"), content); err != nil {
 						return
 					}
-					io.StdoutF("# wrote: %v\n", script)
 
-					// bash_completion
-					script = basepath.MakeEnjenvPath("bash_completion")
-					if err = os.WriteFile(script, []byte(BashCompletionScript), 0660); err != nil {
-						err = fmt.Errorf("error writing %v: %v", script, err)
-						return
-					}
-					io.StdoutF("# wrote: %v\n", script)
 					return
 				},
 			},
