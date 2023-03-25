@@ -63,7 +63,7 @@ ifeq (${SHASUM_BIN},)
 SHASUM_BIN := echo missing sha256sum
 endif
 
-define _trim_path =
+define _trim_path
 $(shell \
 if [ "${GOPATH}" != "" ]; then \
 	echo "${GOPATH};${PWD}"; \
@@ -72,11 +72,11 @@ else \
 fi)
 endef
 
-define _tag_ver =
+define _tag_ver
 $(shell ([ -d .git ] && git describe 2> /dev/null) || echo "${UNTAGGED_VERSION}")
 endef
 
-define _rel_ver =
+define _rel_ver
 $(shell \
 	if [ -d .git ]; then \
 		if [ -z "${GIT_STATUS}" ]; then \
@@ -116,20 +116,20 @@ $(call _cmd_go_build,$(1),$(2),$(3),$(4),-trimpath='${TRIM_PATHS}',-trimpath='${
 endef
 
 # 1: bin-name, 2: goos, 3: goarch
-define _build_target =
+define _build_target
 	echo "# building $(2)-$(3) (release): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"; \
 	echo $(call _cmd_go_build_trimpath,$(1),$(2),$(3),-s -w); \
 	$(call _cmd_go_build_trimpath,$(1),$(2),$(3),-s -w)
 endef
 
 # 1: bin-name, 2: goos, 3: goarch
-define _build_debug =
+define _build_debug
 	echo "# building $(2)-$(3) (debug): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"; \
 	echo $(call _cmd_go_build,$(1),$(2),$(3),,-N -l); \
 	$(call _cmd_go_build,$(1),$(2),$(3),,-N -l)
 endef
 
-define _upx_build =
+define _upx_build
 	if [ "${BUILD_OS}" == "darwin" ]; then \
 		echo "# upx command not supported on darwin, nothing to do"; \
 	elif [ -n "${UPX_BIN}" -a -x "${UPX_BIN}" ]; then \
@@ -144,7 +144,7 @@ define _upx_build =
 	fi
 endef
 
-define _profile_run =
+define _profile_run
 	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
 		echo "# starting niseroku $(1)..."; \
 		case "$(1)" in \
@@ -169,7 +169,7 @@ define _profile_run =
 	fi
 endef
 
-define _clean =
+define _clean
 	for FOUND in $(1); do \
 		if [ -n "$${FOUND}" ]; then \
 			rm -rfv $${FOUND}; \
@@ -298,7 +298,7 @@ release-amd64: build-amd64
 
 release-all: release-amd64 release-arm64
 
-define _install_build =
+define _install_build
 	BIN_PATH="${DESTDIR}${prefix}/bin"; \
 	echo "# installing $(1) to: $${BIN_PATH}/$(2)"; \
 	[ -d "$${BIN_PATH}" ] || mkdir -vp "$${BIN_PATH}"; \
