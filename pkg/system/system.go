@@ -46,6 +46,7 @@ type System interface {
 	VersionAction(ctx *cli.Context) (err error)
 	CleanAction(ctx *cli.Context) (err error)
 	ExportPathVariable(export bool)
+	GetExportPaths() []string
 	ExportAction(ctx *cli.Context) (err error)
 	UnExportPathVariable(export bool)
 	UnExportAction(ctx *cli.Context) (err error)
@@ -162,6 +163,11 @@ func (s *CSystem) ExportPathVariable(export bool) {
 	if export {
 		io.StdoutF("export PATH=\"%v\"\n", cleaned)
 	}
+	return
+}
+
+func (s *CSystem) GetExportPaths() (list []string) {
+	list = append(list, basepath.MakeEnjenvPath(s.Root, "bin"))
 	return
 }
 
