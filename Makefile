@@ -33,6 +33,7 @@
 .PHONY: install-niseroku-systemd install-niseroku-sysv-init
 
 BE_PATH ?= ../be
+BE_LOCAL_PATH ?= ${BE_PATH}
 CDK_PATH ?= ../../go-curses/cdk
 CTK_PATH ?= ../../go-curses/ctk
 
@@ -391,10 +392,10 @@ install-niseroku-utils:
 	fi
 
 local:
-	@if [ -d "${BE_PATH}" ]; then \
-		go mod edit -replace="github.com/go-enjin/be=${BE_PATH}"; \
+	@if [ -d "${BE_LOCAL_PATH}" ]; then \
+		go mod edit -replace="github.com/go-enjin/be=${BE_LOCAL_PATH}"; \
 	else \
-		echo "BE_PATH not set or not a directory: \"${BE_PATH}\""; \
+		echo "BE_LOCAL_PATH not set or not a directory: \"${BE_LOCAL_PATH}\""; \
 	fi
 	@if [ -d "${CDK_PATH}" ]; then \
 		go mod edit -replace="github.com/go-curses/cdk=${CDK_PATH}"; \
