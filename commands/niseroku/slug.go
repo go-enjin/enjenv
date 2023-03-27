@@ -367,6 +367,9 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 			wg.Done()
 		}()
 
+		workerWG := &sync.WaitGroup{}
+		workerWG.Add(1)
+
 		go func() {
 			s.App.LogInfoF("polling slug startup: %v - %v\n", s.Name, slugStartupTimeout)
 			for now := time.Now(); now.Sub(start) < slugStartupTimeout; now = time.Now() {
@@ -389,6 +392,7 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 						}
 					}
 					s.App.LogInfoF("slug %d of %d ready: %v [%v] on port %d (%v)\n", numReady, s.App.GetWebWorkers(), s.Name, si.Hash, reservedPort, time.Now().Sub(start))
+					workerWG.Done()
 					return
 				}
 			}
@@ -396,6 +400,7 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 			s.App.LogInfoF("slug startup timeout reached: %v [%v] on port %d\n", s.Name, si.Hash, reservedPort)
 			s.StopWorker(si.Hash)
 			err = fmt.Errorf("slug startup timeout reached")
+			workerWG.Done()
 			if workersReady != nil {
 				workersReady <- true
 			}
@@ -405,6 +410,8 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 		if err = s.Settings.Save(); err != nil {
 			return
 		}
+
+		workerWG.Wait()
 	}
 
 	wg.Wait()
