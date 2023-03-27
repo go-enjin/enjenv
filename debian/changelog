@@ -1,3 +1,50 @@
+enjenv (0.1.7) unstable; urgency=medium
+
+  * tagged v0.1.7 release build - fc4caebdd9a26f6a53d03d309fb9f09d8c8a8239
+  * packaging changes:
+   * use new install-arm64 and install-amd64 targets in debian/rules
+  * changes:
+   * pkg/service/common (drop privileges): bugfix for darwin builds, use C.[ug]id_t instead of C.__[ug]id_
+t
+   * Makefile: darwin build support updates
+   * Makefile: comment out global 'export' command for performance reasons, .env files must 'export NAME=V
+ALUE' to fully propagate the settings
+   * Makefile: more build/debug target cleanups, consolidate go build calls for consistency
+   * Makefile: find which upx path instead of hard-coded /usr/bin
+   * Makefile: upx not supported on darwin; code cosmetic changes
+   * Makefile: bugfix for handling darwin upx
+   * Makefile: bugfix for BUILD_OS uname call (mac does not have -o)
+   * Makefile: guard against missing sha256sum binary
+   * Makefile: use shell instead of backticks for BUILD_OS and BUILD_ARCH
+   * Makefile: install target code cosmetic changes
+   * Makefile: move semicolon to within _install_build
+   * Makefile: support BE_LOCAL_PATH (matching Enjin.mk), defaulting with BE_PATH
+   * Makefile: remove trailing ' =' on fuction block definition declarations (support older versions of ma
+ke)
+   * Makefile: refactor shasums again, rely upon 'shasum -a 256' which exists on both darwin and linux (un
+like sha256sum which is only linux)
+   * Makefile: install target support for HOMEBREW_PREFIX
+   * Makefile: only use install command arguments present on both darwin and linux (remove -T)
+   * Revert "Makefile: install target support for HOMEBREW_PREFIX"
+   * pkg/system: adding bash_completion string embed script
+   * pkg/system: adding functions.sh string embed script
+   * pkg/system (system): new GetExportPaths()[]string method
+   * pkg/system (common): replace bash completion string with embed string; added shell functions source e
+mbed string
+   * pkg/system (write-scripts): refactor activate and deactivate scripts to handle PATH environment setti
+ngs without hard-coding any actual PATH value
+   * Golang.cmd.mk: added v0.1.1
+   * Makefile: migrate to Golang.cmd.mk; code cosmetic changes
+   * go.mod: be-update; tidy
+   * commands/niseroku: renamed slug-instance.go to slug-worker.go
+   * .gitignore: added .env.niseroku and .niseroku
+   * commands/niseroku (slug): start foreground workers one at a time, reduces already in use port selecti
+on race condition
+   * Makefile: added install-arm64 and install-amd64 targets
+   * Makefile: setting UNTAGGED_VERSION to v0.1.7
+
+ -- The Go-Enjin Team <go.enjin.org@gmail.com>  Mon, 27 Mar 2023 13:06:22 -0400
+
 enjenv (0.1.6) unstable; urgency=medium
 
   * tagged v0.1.6 release build - 91efb00c1ea0ebac64e9be60261eb7ccdd71d04d
