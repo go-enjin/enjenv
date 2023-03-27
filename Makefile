@@ -18,7 +18,7 @@
 #CMD=echo
 
 -include .env
-export
+#export
 
 .PHONY: all help
 .PHONY: clean distclean realclean
@@ -32,113 +32,39 @@ export
 .PHONY: install-niseroku install-niseroku-logrotate install-niseroku-utils
 .PHONY: install-niseroku-systemd install-niseroku-sysv-init
 
-BE_PATH ?= ../be
-CDK_PATH ?= ../../go-curses/cdk
-CTK_PATH ?= ../../go-curses/ctk
+BE_LOCAL_PATH ?= ../../go-enjin/be
+
+GOPKG_KEYS ?= CDK CTK
+
+CDK_GO_PACKAGE ?= github.com/go-curses/cdk
+CDK_LOCAL_PATH ?= ../../go-curses/cdk
+
+CTK_GO_PACKAGE ?= github.com/go-curses/ctk
+CTK_LOCAL_PATH ?= ../../go-curses/ctk
 
 BIN_NAME ?= enjenv
-UNTAGGED_VERSION ?= v0.1.6
+UNTAGGED_VERSION ?= v0.1.7
 UNTAGGED_COMMIT ?= 0000000000
-
-PWD = $(shell pwd)
-SHELL = /bin/bash
-
-BUILD_OS ?= linux
-BUILD_ARCH ?= `uname -m | perl -pe 's!aarch64!arm64!;s!x86_64!amd64!;'`
-
-prefix ?= /usr
-
-GIT_STATUS := $([ -d .git ] && git status 2> /dev/null)
 
 CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
 DISTCLEAN_FILES ?=
 REALCLEAN_FILES ?=
 
-define _trim_path =
-$(shell \
-if [ "${GOPATH}" != "" ]; then \
-	echo "${GOPATH};${PWD}"; \
-else \
-	echo "${PWD}"; \
-fi)
-endef
+BUILD_VERSION_VAR := github.com/go-enjin/enjenv/pkg/globals.BuildVersion
+BUILD_RELEASE_VAR := github.com/go-enjin/enjenv/pkg/globals.BuildRelease
 
-define _tag_ver =
-$(shell ([ -d .git ] && git describe 2> /dev/null) || echo "${UNTAGGED_VERSION}")
-endef
+include Golang.cmd.mk
 
-define _rel_ver =
-$(shell \
-	if [ -d .git ]; then \
-		if [ -z "${GIT_STATUS}" ]; then \
-			git rev-parse --short=10 HEAD; \
-		else \
-			[ -d .git ] && git diff 2> /dev/null \
-				| sha256sum - 2> /dev/null \
-				| perl -pe 's!^\s*([a-f0-9]{10}).*!\1!'; \
-		fi; \
-	else \
-		echo "${UNTAGGED_COMMIT}"; \
-	fi \
-)
-endef
-
-# 1: bin-name, 2: goos, 3: goarch
-define _build_target =
-	echo "# building $(2)-$(3) (release): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"; \
-	${CMD} GOOS="$(2)" GOARCH="$(3)" go build -v \
-		-o "$(1)" \
-		-ldflags="\
--s -w \
--buildid='' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}' \
-" \
-		-gcflags="-trimpath='${TRIM_PATHS}'" \
-		-asmflags="-trimpath='${TRIM_PATHS}'" \
-		-trimpath \
-		./cmd/enjenv
-endef
-
-define _build_debug =
-	@echo "# building $(2)-$(3) (debug): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"
-	@${CMD} GOOS="$(2)" GOARCH="$(3)" go build -v \
-		-o "$(1)" \
-		-ldflags="\
--buildid='' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildVersion=${BUILD_VERSION}' \
--X 'github.com/go-enjin/enjenv/pkg/globals.BuildRelease=${BUILD_RELEASE}' \
-" \
-		-gcflags="-N -l -trimpath='${TRIM_PATHS}'" \
-		-asmflags="-trimpath='${TRIM_PATHS}'" \
-		-trimpath \
-		-tags debug \
-		./cmd/enjenv
-endef
-
-define _upx_build =
-	if [ -x /usr/bin/upx ]; then \
-		echo -n "# packing: $(1) - "; \
-		du -hs "$(1)" | awk '{print $$1}'; \
-		/usr/bin/upx -qq -7 --no-color --no-progress "$(1)"; \
-		echo -n "# packed: $(1) - "; \
-		du -hs "$(1)" | awk '{print $$1}'; \
-		sha256sum "$(1)"; \
-	else \
-		echo "# upx command not found, skipping binary packing stage"; \
-	fi
-endef
-
-define _profile_run =
-	@if [ -f "${BIN_NAME}.linux.${BUILD_ARCH}" ]; then \
+define _profile_run
+	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
 		echo "# starting niseroku $(1)..."; \
 		case "$(1)" in \
 			"proxy") \
-				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku reverse-proxy;; \
+				./${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} niseroku reverse-proxy;; \
 			"repos") \
-				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku git-repository;; \
+				./${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} niseroku git-repository;; \
 			"watch") \
-				./${BIN_NAME}.linux.${BUILD_ARCH} niseroku status watch;; \
+				./${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} niseroku status watch;; \
 		esac; \
 		if [ -f pprof.$(1)/$(2).pprof ]; then \
 			echo "# ./pprof.$(1)/$(2).pprof found; ready to run pprof"; \
@@ -150,16 +76,8 @@ define _profile_run =
 			echo "# ./pprof.$(1)/$(2).pprof not found"; \
 		fi; \
 	else \
-		echo "# ${BIN_NAME}.linux.${BUILD_ARCH} not found"; \
+		echo "# ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} not found"; \
 	fi
-endef
-
-define _clean =
-	for FOUND in $(1); do \
-		if [ -n "$${FOUND}" ]; then \
-			rm -rfv $${FOUND}; \
-		fi; \
-	done
 endef
 
 help:
@@ -178,19 +96,54 @@ help:
 	@echo "       make <install-niseroku-sysv-init>"
 
 clean:
-	@$(call _clean,${CLEAN_FILES})
+	@$(call __clean,${CLEAN_FILES})
 
 distclean: clean
-	@$(call _clean,${DISTCLEAN_FILES})
+	@$(call __clean,${DISTCLEAN_FILES})
 
 realclean: distclean
-	@$(call _clean,${REALCLEAN_FILES})
+	@$(call __clean,${REALCLEAN_FILES})
 
-debug: BUILD_VERSION=$(call _tag_ver)
-debug: BUILD_RELEASE=$(call _rel_ver)
-debug: TRIM_PATHS=$(call _trim_path)
-debug:
-	@$(call _build_debug,"${BIN_NAME}.linux.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
+debug: BUILD_VERSION=$(call __tag_ver)
+debug: BUILD_RELEASE=$(call __rel_ver)
+debug: TRIM_PATHS=$(call __go_trim_path)
+debug: __golang
+	@$(call __go_build_debug,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH},./cmd/enjenv)
+	@${SHASUM_CMD} "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
+
+build: BUILD_VERSION=$(call __tag_ver)
+build: BUILD_RELEASE=$(call __rel_ver)
+build: TRIM_PATHS=$(call __go_trim_path)
+build: __golang
+	@$(call __go_build_release,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH},./cmd/enjenv)
+	@${SHASUM_CMD} "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
+
+build-amd64: BUILD_VERSION=$(call __tag_ver)
+build-amd64: BUILD_RELEASE=$(call __rel_ver)
+build-amd64: TRIM_PATHS=$(call __go_trim_path)
+build-amd64: __golang
+	@$(call __go_build_release,"${BIN_NAME}.${BUILD_OS}.amd64",${BUILD_OS},amd64,./cmd/enjenv)
+	@${SHASUM_CMD} "${BIN_NAME}.${BUILD_OS}.amd64"
+
+build-arm64: BUILD_VERSION=$(call __tag_ver)
+build-arm64: BUILD_RELEASE=$(call __rel_ver)
+build-arm64: TRIM_PATHS=$(call __go_trim_path)
+build-arm64: __golang
+	@$(call __go_build_release,"${BIN_NAME}.${BUILD_OS}.arm64",${BUILD_OS},arm64,./cmd/enjenv)
+	@${SHASUM_CMD} "${BIN_NAME}.${BUILD_OS}.arm64"
+
+build-all: build-amd64 build-arm64
+
+release: build
+	@$(call __upx_build,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}")
+
+release-arm64: build-arm64
+	@$(call __upx_build,"${BIN_NAME}.${BUILD_OS}.arm64")
+
+release-amd64: build-amd64
+	@$(call __upx_build,"${BIN_NAME}.${BUILD_OS}.amd64")
+
+release-all: release-amd64 release-arm64
 
 profile.proxy.cpu: export ENJENV_ENABLE_PROFILING=true
 profile.proxy.cpu: export ENJENV_PROFILING_TYPE=cpu
@@ -228,164 +181,93 @@ profile.watch.mem: export ENJENV_PROFILING_PATH=./pprof.watch
 profile.watch.mem: debug
 	@$(call _profile_run,"watch","mem")
 
-build: BUILD_VERSION=$(call _tag_ver)
-build: BUILD_RELEASE=$(call _rel_ver)
-build: TRIM_PATHS=$(call _trim_path)
-build:
-	@$(call _build_target,"${BIN_NAME}.linux.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH})
-
-build-amd64: BUILD_VERSION=$(call _tag_ver)
-build-amd64: BUILD_RELEASE=$(call _rel_ver)
-build-amd64: TRIM_PATHS=$(call _trim_path)
-build-amd64: export CGO_ENABLED=1
-build-amd64: export CC=x86_64-linux-gnu-gcc
-build-amd64:
-	@$(call _build_target,"${BIN_NAME}.linux.amd64",linux,amd64)
-	@sha256sum "${BIN_NAME}.linux.amd64"
-
-build-arm64: BUILD_VERSION=$(call _tag_ver)
-build-arm64: BUILD_RELEASE=$(call _rel_ver)
-build-arm64: TRIM_PATHS=$(call _trim_path)
-build-arm64: export CGO_ENABLED=1
-build-arm64: export CC=aarch64-linux-gnu-gcc
-build-arm64:
-	@$(call _build_target,"${BIN_NAME}.linux.arm64",linux,arm64)
-	@sha256sum "${BIN_NAME}.linux.arm64"
-
-build-all: build-amd64 build-arm64
-
-release: build
-	@$(call _upx_build,"${BIN_NAME}.linux.${BUILD_ARCH}")
-
-release-arm64: build-arm64
-	@$(call _upx_build,"${BIN_NAME}.linux.arm64")
-
-release-amd64: build-amd64
-	@$(call _upx_build,"${BIN_NAME}.linux.amd64")
-
-release-all: release-amd64 release-arm64
-
-define _install_build =
-	BIN_PATH="${DESTDIR}${prefix}/bin"; \
-	echo "# installing $(1) to: $${BIN_PATH}/$(2)"; \
-	[ -d "$${BIN_PATH}" ] || mkdir -vp "$${BIN_PATH}"; \
-	${CMD} /usr/bin/install -v -m 0775 -T "$(1)" "$${BIN_PATH}/$(2)"; \
-	${CMD} sha256sum "$${BIN_PATH}/$(2)"
-endef
-
 install:
-	@if [ -f "${BIN_NAME}.linux.${BUILD_ARCH}" ]; then \
-		$(call _install_build,"${BIN_NAME}.linux.${BUILD_ARCH}","${BIN_NAME}"); \
+	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
+		echo "# ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} present"; \
+		$(call __install_exe,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}","${INSTALL_BIN_PATH}/${BIN_NAME}"); \
 	else \
-		echo "error: missing ${BIN_NAME}.linux.${BUILD_ARCH} binary" 1>&2; \
+		echo "error: missing ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} binary" 1>&2; \
 	fi
 
-install-autocomplete: ETC_PATH=${DESTDIR}/etc
-install-autocomplete: AUTOCOMPLETE_PATH=${ETC_PATH}/bash_completion.d
-install-autocomplete: ENJENV_AUTOCOMPLETE_FILE=${AUTOCOMPLETE_PATH}/${BIN_NAME}
-install-autocomplete: NISEROKU_AUTOCOMPLETE_FILE=${AUTOCOMPLETE_PATH}/niseroku
-install-autocomplete:
-	@[ -d "${AUTOCOMPLETE_PATH}" ] || mkdir -vp "${AUTOCOMPLETE_PATH}"
-	@echo "# installing ${BIN_NAME} bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
-	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${ENJENV_AUTOCOMPLETE_FILE}"
-	@${CMD} sha256sum "${ENJENV_AUTOCOMPLETE_FILE}"
-	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
-	@${CMD} /usr/bin/install -v -m 0775 -T "_templates/bash_autocomplete" "${NISEROKU_AUTOCOMPLETE_FILE}"
-	@${CMD} sha256sum "${NISEROKU_AUTOCOMPLETE_FILE}"
+install-arm64:
+	@if [ -f "${BIN_NAME}.${BUILD_OS}.arm64" ]; then \
+		echo "# ${BIN_NAME}.${BUILD_OS}.arm64 present"; \
+		$(call __install_exe,"${BIN_NAME}.${BUILD_OS}.arm64","${INSTALL_BIN_PATH}/${BIN_NAME}"); \
+	else \
+		echo "error: missing ${BIN_NAME}.${BUILD_OS}.arm64 binary" 1>&2; \
+	fi
 
-install-niseroku: ETC_PATH=${DESTDIR}/etc
-install-niseroku: NISEROKU_PATH=${ETC_PATH}/niseroku
+install-amd64:
+	@if [ -f "${BIN_NAME}.${BUILD_OS}.amd64" ]; then \
+		echo "# ${BIN_NAME}.${BUILD_OS}.amd64 present"; \
+		$(call __install_exe,"${BIN_NAME}.${BUILD_OS}.amd64","${INSTALL_BIN_PATH}/${BIN_NAME}"); \
+	else \
+		echo "error: missing ${BIN_NAME}.${BUILD_OS}.amd64 binary" 1>&2; \
+	fi
+
+install-autocomplete: ENJENV_AUTOCOMPLETE_FILE=${INSTALL_AUTOCOMPLETE_PATH}/${BIN_NAME}
+install-autocomplete: NISEROKU_AUTOCOMPLETE_FILE=${INSTALL_AUTOCOMPLETE_PATH}/niseroku
+install-autocomplete:
+	@echo "# installing ${BIN_NAME} bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
+	@$(call __install_exe,_templates/bash_autocomplete,${ENJENV_AUTOCOMPLETE_FILE})
+	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
+	@$(call __install_exe,_templates/bash_autocomplete,${NISEROKU_AUTOCOMPLETE_FILE})
+
+install-niseroku: NISEROKU_PATH=${INSTALL_ETC_PATH}/niseroku
 install-niseroku: NISEROKU_TOML_FILE=${NISEROKU_PATH}/niseroku.toml
 install-niseroku:
 	@if [ -f "${NISEROKU_TOML_FILE}" ]; then \
 		echo "# skipping ${NISEROKU_TOML_FILE} (exists already)"; \
 	else \
 		echo "# installing ${NISEROKU_TOML_FILE}"; \
-		[ -d "${NISEROKU_PATH}" ] || mkdir -vp "${NISEROKU_PATH}"; \
-		if [ ! -d "${NISEROKU_PATH}" ]; then mkdir -p "${NISEROKU_PATH}"; fi; \
-		${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.toml" "${NISEROKU_TOML_FILE}"; \
-		${CMD} sha256sum "${NISEROKU_TOML_FILE}"; \
+		$(call __install_file,0664 -b,_templates/niseroku.toml,${NISEROKU_TOML_FILE}); \
 	fi
 
-install-niseroku-logrotate: ETC_PATH=${DESTDIR}/etc
-install-niseroku-logrotate: LOGROTATE_PATH=${ETC_PATH}/logrotate.d
+install-niseroku-logrotate: LOGROTATE_PATH=${INSTALL_ETC_PATH}/logrotate.d
 install-niseroku-logrotate: NISEROKU_LOGROTATE_FILE=${LOGROTATE_PATH}/niseroku
 install-niseroku-logrotate:
 	@echo "# installing ${NISEROKU_LOGROTATE_FILE}"
-	@[ -d "${LOGROTATE_PATH}" ] || mkdir -vp "${LOGROTATE_PATH}"
-	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku.logrotate" "${NISEROKU_LOGROTATE_FILE}"
-	@${CMD} sha256sum "${NISEROKU_LOGROTATE_FILE}"
+	@$(call __install_file,0664 -b,_templates/niseroku.logrotate,${NISEROKU_LOGROTATE_FILE})
 
-install-niseroku-sysv-init: ETC_PATH=${DESTDIR}/etc
-install-niseroku-sysv-init: SYSV_INIT_PATH=${ETC_PATH}/init.d
+install-niseroku-sysv-init: SYSV_INIT_PATH=${INSTALL_ETC_PATH}/init.d
 install-niseroku-sysv-init: NISEROKU_PROXY_SYSV_INIT_FILE=${SYSV_INIT_PATH}/niseroku-proxy
 install-niseroku-sysv-init: NISEROKU_REPOS_SYSV_INIT_FILE=${SYSV_INIT_PATH}/niseroku-repos
 install-niseroku-sysv-init:
 	@echo "# installing ${NISEROKU_PROXY_SYSV_INIT_FILE}"
-	@[ -d "${SYSV_INIT_PATH}" ] || mkdir -vp "${SYSV_INIT_PATH}"
-	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-proxy.init" "${NISEROKU_PROXY_SYSV_INIT_FILE}"
-	@${CMD} sha256sum "${NISEROKU_PROXY_SYSV_INIT_FILE}"
+	@$(call __install_exe,_templates/niseroku-proxy.init,${NISEROKU_PROXY_SYSV_INIT_FILE})
 	@echo "# installing ${NISEROKU_REPOS_SYSV_INIT_FILE}"
-	@${CMD} /usr/bin/install -v -b -m 0775 -T "_templates/niseroku-repos.init" "${NISEROKU_REPOS_SYSV_INIT_FILE}"
-	@${CMD} sha256sum "${NISEROKU_REPOS_SYSV_INIT_FILE}"
+	@$(call __install_exe,_templates/niseroku-repos.init,${NISEROKU_REPOS_SYSV_INIT_FILE})
 
-install-niseroku-systemd: ETC_PATH=${DESTDIR}/etc
-install-niseroku-systemd: SYSTEMD_PATH=${ETC_PATH}/systemd/system
+install-niseroku-systemd: SYSTEMD_PATH=${INSTALL_ETC_PATH}/systemd/system
 install-niseroku-systemd: NISEROKU_PROXY_SERVICE_FILE=${SYSTEMD_PATH}/niseroku-proxy.service
 install-niseroku-systemd: NISEROKU_REPOS_SERVICE_FILE=${SYSTEMD_PATH}/niseroku-repos.service
 install-niseroku-systemd:
-	@[ -d "${SYSTEMD_PATH}" ] || mkdir -vp "${SYSTEMD_PATH}"
 	@echo "# installing ${NISEROKU_PROXY_SERVICE_FILE}"
-	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-proxy.service" "${NISEROKU_PROXY_SERVICE_FILE}"
-	@$${CMD} sha256sum "${NISEROKU_PROXY_SERVICE_FILE}"
+	@$(call __install_file,0664,_templates/niseroku-proxy.service,${NISEROKU_PROXY_SERVICE_FILE})
 	@echo "# installing ${NISEROKU_REPOS_SERVICE_FILE}"
-	@${CMD} /usr/bin/install -v -b -m 0664 -T "_templates/niseroku-repos.service" "${NISEROKU_REPOS_SERVICE_FILE}"
-	@${CMD} sha256sum "${NISEROKU_REPOS_SERVICE_FILE}"
+	@$(call __install_file,0664,_templates/niseroku-repos.service,${NISEROKU_REPOS_SERVICE_FILE})
 
-install-niseroku-utils: ETC_PATH=${DESTDIR}/etc
 install-niseroku-utils:
 	@if [ -f "_templates/niseroku.sh" ]; then \
 		echo "# installing niseroku wrapper script"; \
-		$(call _install_build,"_templates/niseroku.sh","niseroku"); \
+		$(call __install_exe,"_templates/niseroku.sh","${INSTALL_BIN_PATH}/niseroku"); \
 	else \
 		echo "error: missing niseroku wrapper script" 1>&2; \
 	fi
 	@if [ -f "_templates/niseroku-tail.sh" ]; then \
 		echo "# installing niseroku-tail wrapper script"; \
-		$(call _install_build,"_templates/niseroku-tail.sh","niseroku-tail"); \
+		$(call __install_exe,"_templates/niseroku-tail.sh","${INSTALL_BIN_PATH}/niseroku-tail"); \
 	else \
 		echo "error: missing niseroku-tail wrapper script" 1>&2; \
 	fi
 
-local:
-	@if [ -d "${BE_PATH}" ]; then \
-		go mod edit -replace="github.com/go-enjin/be=${BE_PATH}"; \
-	else \
-		echo "BE_PATH not set or not a directory: \"${BE_PATH}\""; \
-	fi
-	@if [ -d "${CDK_PATH}" ]; then \
-		go mod edit -replace="github.com/go-curses/cdk=${CDK_PATH}"; \
-	else \
-		echo "CDK_PATH not set or not a directory: \"${CDK_PATH}\""; \
-	fi
-	@if [ -d "${CTK_PATH}" ]; then \
-		go mod edit -replace="github.com/go-curses/ctk=${CTK_PATH}"; \
-	else \
-		echo "CTK_PATH not set or not a directory: \"${CTK_PATH}\""; \
-	fi
+local: __local
 
-unlocal:
-	@go mod edit -dropreplace="github.com/go-enjin/be"
-	@go mod edit -dropreplace="github.com/go-curses/cdk"
-	@go mod edit -dropreplace="github.com/go-curses/ctk"
+unlocal: __unlocal
 
-tidy:
-	@go mod tidy
+tidy: __tidy
 
-be-update: export GOPROXY=direct
-be-update:
-	@echo "# go get github.com/go-enjin/be@latest github.com/go-curses/cdk@latest github.com/go-curses/ctk@latest"
-	@go get github.com/go-enjin/be@latest github.com/go-curses/ctk@latest
+be-update: __be_update
 
 #: begin debian packaging branch changes
 -include Debian.mk

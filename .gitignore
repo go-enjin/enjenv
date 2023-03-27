@@ -1,5 +1,7 @@
 /.env
 /.enjenv
+/.env.niseroku
+/.niseroku
 /enjenv
 /enjenv.*.*
 /.idea
