@@ -189,6 +189,22 @@ install:
 		echo "error: missing ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} binary" 1>&2; \
 	fi
 
+install-arm64:
+	@if [ -f "${BIN_NAME}.${BUILD_OS}.arm64" ]; then \
+		echo "# ${BIN_NAME}.${BUILD_OS}.arm64 present"; \
+		$(call __install_exe,"${BIN_NAME}.${BUILD_OS}.arm64","${INSTALL_BIN_PATH}/${BIN_NAME}"); \
+	else \
+		echo "error: missing ${BIN_NAME}.${BUILD_OS}.arm64 binary" 1>&2; \
+	fi
+
+install-amd64:
+	@if [ -f "${BIN_NAME}.${BUILD_OS}.amd64" ]; then \
+		echo "# ${BIN_NAME}.${BUILD_OS}.amd64 present"; \
+		$(call __install_exe,"${BIN_NAME}.${BUILD_OS}.amd64","${INSTALL_BIN_PATH}/${BIN_NAME}"); \
+	else \
+		echo "error: missing ${BIN_NAME}.${BUILD_OS}.amd64 binary" 1>&2; \
+	fi
+
 install-autocomplete: ENJENV_AUTOCOMPLETE_FILE=${INSTALL_AUTOCOMPLETE_PATH}/${BIN_NAME}
 install-autocomplete: NISEROKU_AUTOCOMPLETE_FILE=${INSTALL_AUTOCOMPLETE_PATH}/niseroku
 install-autocomplete:
