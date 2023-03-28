@@ -72,6 +72,12 @@ func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 		}
 	}
 
+	if bePath.IsFile(c.config.Paths.ProxyRpcSock) {
+		if err = os.Chown(c.config.Paths.ProxyRpcSock, uid, gid); err != nil {
+			beIo.StderrF("error changing ownership of: %v - %v\n", c.config.Paths.ProxyRpcSock, err)
+		}
+	}
+
 	if bePath.IsFile(c.config.Paths.ProxyPidFile) {
 		if err = os.Chown(c.config.Paths.ProxyPidFile, uid, gid); err != nil {
 			beIo.StderrF("error changing ownership of: %v - %v\n", c.config.Paths.ProxyPidFile, err)
