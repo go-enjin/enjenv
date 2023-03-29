@@ -539,10 +539,13 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	memUsed := strings.ReplaceAll(humanize.Bytes(stats.MemUsed*1024), " ", "")
 	memTotal := strings.ReplaceAll(humanize.Bytes(stats.MemTotal*1024), " ", "")
-	memPerc := float64(stats.MemUsed) / float64(stats.MemTotal) * 100.0
+
 	swpUsed := strings.ReplaceAll(humanize.Bytes(stats.SwapUsed*1024), " ", "")
 	swpTotal := strings.ReplaceAll(humanize.Bytes(stats.SwapTotal*1024), " ", "")
-	swpPerc := float64(stats.SwapUsed) / float64(stats.SwapTotal) * 100.0
+
+	totUsed := strings.ReplaceAll(humanize.Bytes((stats.MemUsed+stats.SwapUsed)*1024), " ", "")
+	totTotal := strings.ReplaceAll(humanize.Bytes((stats.MemTotal+stats.SwapTotal)*1024), " ", "")
+	totPerc := float64(stats.MemUsed+stats.SwapUsed) / float64(stats.MemTotal+stats.SwapTotal) * 100.0
 
 	/* STATUS ROW */
 	statusFields := []string{
@@ -574,17 +577,18 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	_, _ = tw.Write([]byte(fmt.Sprintf("\t" + dim("]") + "\n")))
 	_ = tw.Flush()
 	_ = sw.sysValueCPU.SetMarkup(buf.String())
-
-	_ = sw.sysLabelMEM.SetMarkup(fmt.Sprintf("MEM: %s%%", formatPercFloat(memPerc, "%.2f")))
+	_ = sw.sysLabelMEM.SetMarkup(fmt.Sprintf("MEM: %s%%", formatPercFloat(totPerc, "%.2f")))
 
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
-	// memInfo := fmt.Sprintf("Used:\t%s\tTotal:\t%s", memUsed, memTotal)
-	memInfo := dim("Real:") + " "
-	memInfo += memUsed + " / " + memTotal
-	memInfo += "\t" + dim("Swap:") + " "
-	memInfo += swpUsed + " / " + swpTotal
-	memInfo += " (" + formatPercFloat(swpPerc, "%.2f") + "%)"
+
+	var memInfo string
+	memInfo += dim("Total:") + " " + totUsed + " / " + totTotal
+	memInfo += "\t"
+	memInfo += dim("Real:") + " " + memUsed + " / " + memTotal
+	memInfo += "\t"
+	memInfo += dim("Swap:") + " " + swpUsed + " / " + swpTotal
+
 	_, _ = tw.Write([]byte(memInfo))
 	_ = tw.Flush()
 	_ = sw.sysValueMEM.SetMarkup(buf.String())
