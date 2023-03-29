@@ -35,6 +35,19 @@ import (
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
+func makeCommandStatus(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "status",
+		Usage:     "display the status of all niseroku services",
+		UsageText: app.Name + " niseroku status",
+		Action:    c.actionStatus,
+		Subcommands: []*cli.Command{
+			makeCommandStatusWatch(c, app),
+		},
+	}
+	return
+}
+
 func (c *Command) actionStatus(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

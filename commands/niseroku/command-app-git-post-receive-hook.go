@@ -22,11 +22,12 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
-	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-git/go-git/v5"
 	cp "github.com/otiai10/copy"
 	"github.com/sosedoff/gitkit"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/be/pkg/cli/env"
 
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -37,6 +38,15 @@ import (
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
+
+func makeCommandAppGitPostReceiveHook(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:   "git-post-receive-hook",
+		Action: c.actionAppGitPostReceiveHook,
+		Hidden: true,
+	}
+	return
+}
 
 func (c *Command) actionAppGitPostReceiveHook(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {

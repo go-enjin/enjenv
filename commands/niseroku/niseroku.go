@@ -99,223 +99,27 @@ handled directly.
 				},
 			},
 			Subcommands: []*cli.Command{
-				{
-					Name:      "reverse-proxy",
-					Usage:     "niseroku reverse-proxy service",
-					UsageText: app.Name + " niseroku reverse-proxy",
-					Action:    c.actionReverseProxy,
-					Subcommands: []*cli.Command{
-						{
-							Name:      "reload",
-							Usage:     "reload reverse-proxy services",
-							UsageText: app.Name + " niseroku reverse-proxy reload",
-							Action:    c.actionReverseProxyReload,
-						},
-						{
-							Name:      "stop",
-							Usage:     "stop reverse-proxy services",
-							UsageText: app.Name + " niseroku reverse-proxy stop",
-							Action:    c.actionReverseProxyStop,
-						},
-						{
-							Name:      "cmd",
-							Usage:     "run proxy-control commands",
-							UsageText: app.Name + " niseroku reverse-proxy cmd <name> [argv...]",
-							Action:    c.actionProxyControlCommand,
-							Hidden:    true,
-						},
-					},
-				},
-				{
-					Name:      "git-repository",
-					Usage:     "niseroku git-repository service",
-					UsageText: app.Name + " niseroku git-repository",
-					Action:    c.actionGitRepository,
-					Subcommands: []*cli.Command{
-						{
-							Name:      "reload",
-							Usage:     "reload git-repository services",
-							UsageText: app.Name + " niseroku git-repository reload",
-							Action:    c.actionGitRepositoryReload,
-						},
-						{
-							Name:      "stop",
-							Usage:     "stop git-repository services",
-							UsageText: app.Name + " niseroku git-repository stop",
-							Action:    c.actionGitRepositoryStop,
-						},
-					},
-				},
-				{
-					Name:      "reload",
-					Usage:     "reload all niseroku services",
-					UsageText: app.Name + " niseroku reload",
-					Action:    c.actionReload,
-				},
-				{
-					Name:      "stop",
-					Usage:     "stop all niseroku services",
-					UsageText: app.Name + " niseroku stop",
-					Action:    c.actionStop,
-				},
-				{
-					Name:      "status",
-					Usage:     "display the status of all niseroku services",
-					UsageText: app.Name + " niseroku status",
-					Action:    c.actionStatus,
-					Subcommands: []*cli.Command{
-						{
-							Name:      "watch",
-							Usage:     "continually display the status of all niseroku services",
-							UsageText: app.Name + " niseroku status watch",
-							Action:    c.actionStatusWatch,
-							Flags: []cli.Flag{
-								&cli.DurationFlag{
-									Name:    "update-frequency",
-									Usage:   "time.Duration between update cycles",
-									Aliases: []string{"n"},
-								},
-								&cli.PathFlag{
-									Name:   "tty-path",
-									Usage:  "specify the TTY path for go-curses",
-									Value:  "/dev/tty",
-									Hidden: true,
-								},
-							},
-						},
-					},
-				},
-				{
-					Name:      "config",
-					Usage:     "get, set and test configuration settings",
-					UsageText: app.Name + " niseroku config [key] [value]",
-					Description: `
-With no arguments specified, displays all the settings where each key is output
-in a toml-specific format. For example: "ports.git = 2403".
-
-With just the key argument, displays the value of that key.
-
-When both key and value are given, applies the value to the configuration
-setting. Prints "OK" if no value parsing or config file saving errors occurred.
-`,
-					Action: c.actionConfig,
-					Subcommands: []*cli.Command{
-						{
-							Name:        "test",
-							Usage:       "test the current config file for syntax and other errors",
-							UsageText:   app.Name + " niseroku config test",
-							Description: `Prints "OK" if no parsing errors occurred.`,
-							Action:      c.actionConfigTest,
-						},
-					},
-					Flags: []cli.Flag{
-						&cli.BoolFlag{
-							Name:  "reset-comments",
-							Usage: "restore default comments on config save",
-						},
-						&cli.PathFlag{
-							Name:  "init-default",
-							Usage: "write a default niseroku.toml file",
-						},
-					},
-				},
-				{
-					Name:      "deploy-slug",
-					Usage:     "deploy a built slug",
-					UsageText: "niseroku deploy-slug <slug.zip> [slugs.zip...]",
-					Action:    c.actionDeploySlug,
-					Flags: []cli.Flag{
-						&cli.BoolFlag{
-							Name:  "verbose",
-							Usage: "use STDOUT and STDERR for command logging",
-						},
-					},
-				},
-				{
-					Name:      "fix-fs",
-					Usage:     "repair file ownership and modes",
-					UsageText: app.Name + " niseroku fix-fs",
-					Action:    c.actionFixFs,
-				},
+				makeCommandReverseProxy(c, app),
+				makeCommandGitRepository(c, app),
+				makeCommandReload(c, app),
+				makeCommandStop(c, app),
+				makeCommandStatus(c, app),
+				makeCommandConfig(c, app),
+				makeCommandDeploySlug(c, app),
+				makeCommandFixFs(c, app),
 				{
 					Name:  "app",
 					Usage: "manage specific enjin applications",
 					Subcommands: []*cli.Command{
-
-						{
-							Name:   "git-pre-receive-hook",
-							Action: c.actionAppGitPreReceiveHook,
-							Hidden: true,
-						},
-
-						{
-							Name:   "git-post-receive-hook",
-							Action: c.actionAppGitPostReceiveHook,
-							Hidden: true,
-						},
-
-						{
-							Name:      "run",
-							Usage:     "run an app slug process",
-							UsageText: app.Name + " niseroku app run <name>",
-							Action:    c.actionAppRun,
-							Flags: []cli.Flag{
-								&cli.BoolFlag{
-									Name:   "slug-process",
-									Hidden: true,
-								},
-							},
-						},
-
-						{
-							Name:      "start",
-							Usage:     "start one or more applications",
-							UsageText: app.Name + " niseroku app start <name> [name...]",
-							Action:    c.actionAppStart,
-							Flags: []cli.Flag{
-								&cli.BoolFlag{
-									Name:  "all",
-									Usage: "start all applications",
-								},
-								&cli.BoolFlag{
-									Name:  "force",
-									Usage: "start regardless of maintenance mode",
-								},
-							},
-						},
-
-						{
-							Name:      "stop",
-							Usage:     "stop one or more running applications",
-							UsageText: app.Name + " niseroku app stop <name> [name...]",
-							Action:    c.actionAppStop,
-							Flags: []cli.Flag{
-								&cli.BoolFlag{
-									Name:  "all",
-									Usage: "stop all applications",
-								},
-							},
-						},
-
-						{
-							Name:      "restart",
-							Usage:     "restart one or more applications",
-							UsageText: app.Name + " niseroku app restart <name> [name...]",
-							Action:    c.actionAppRestart,
-							Flags: []cli.Flag{
-								&cli.BoolFlag{
-									Name:  "all",
-									Usage: "restart all applications",
-								},
-							},
-						},
-
-						{
-							Name:      "rename",
-							Usage:     "rename an application",
-							UsageText: app.Name + " niseroku app rename <old> <new>",
-							Action:    c.actionAppRename,
-						},
+						makeCommandAppGitPreReceiveHook(c, app),
+						makeCommandAppGitPostReceiveHook(c, app),
+						makeCommandAppExec(c, app),
+						makeCommandAppPromote(c, app),
+						makeCommandAppRun(c, app),
+						makeCommandAppStart(c, app),
+						makeCommandAppStop(c, app),
+						makeCommandAppRestart(c, app),
+						makeCommandAppRename(c, app),
 					},
 				},
 			},

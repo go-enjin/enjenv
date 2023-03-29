@@ -27,6 +27,29 @@ var (
 	DefaultStatusWatchUpdateFrequency = time.Second
 )
 
+func makeCommandStatusWatch(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "watch",
+		Usage:     "continually display the status of all niseroku services",
+		UsageText: app.Name + " niseroku status watch",
+		Action:    c.actionStatusWatch,
+		Flags: []cli.Flag{
+			&cli.DurationFlag{
+				Name:    "update-frequency",
+				Usage:   "time.Duration between update cycles",
+				Aliases: []string{"n"},
+			},
+			&cli.PathFlag{
+				Name:   "tty-path",
+				Usage:  "specify the TTY path for go-curses",
+				Value:  "/dev/tty",
+				Hidden: true,
+			},
+		},
+	}
+	return
+}
+
 func (c *Command) actionStatusWatch(ctx *cli.Context) (err error) {
 	profiling.Start()
 	defer profiling.Stop()

@@ -29,6 +29,22 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
+func makeCommandDeploySlug(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "deploy-slug",
+		Usage:     "deploy a built slug",
+		UsageText: "niseroku deploy-slug <slug.zip> [slugs.zip...]",
+		Action:    c.actionDeploySlug,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "verbose",
+				Usage: "use STDOUT and STDERR for command logging",
+			},
+		},
+	}
+	return
+}
+
 func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

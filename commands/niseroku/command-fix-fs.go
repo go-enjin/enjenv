@@ -31,6 +31,16 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
+func makeCommandFixFs(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "fix-fs",
+		Usage:     "repair file ownership and modes",
+		UsageText: app.Name + " niseroku fix-fs",
+		Action:    c.actionFixFs,
+	}
+	return
+}
+
 func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 	defer func() {
 		if err != nil {

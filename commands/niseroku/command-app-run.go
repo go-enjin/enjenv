@@ -27,6 +27,23 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
+func makeCommandAppRun(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "run",
+		Usage:     "run an app slug process",
+		UsageText: app.Name + " niseroku app run <name>",
+		Action:    c.actionAppRun,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:   "slug-process",
+				Hidden: true,
+			},
+		},
+		Hidden: true,
+	}
+	return
+}
+
 func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

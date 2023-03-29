@@ -23,6 +23,15 @@ import (
 	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
+func makeCommandAppGitPreReceiveHook(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:   "git-pre-receive-hook",
+		Action: c.actionAppGitPreReceiveHook,
+		Hidden: true,
+	}
+	return
+}
+
 func (c *Command) actionAppGitPreReceiveHook(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

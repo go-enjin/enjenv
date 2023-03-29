@@ -20,6 +20,16 @@ import (
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
+func makeCommandReload(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "reload",
+		Usage:     "reload all niseroku services",
+		UsageText: app.Name + " niseroku reload",
+		Action:    c.actionReload,
+	}
+	return
+}
+
 func (c *Command) actionReload(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

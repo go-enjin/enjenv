@@ -26,6 +26,22 @@ import (
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 )
 
+func makeCommandAppRestart(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "restart",
+		Usage:     "restart one or more applications",
+		UsageText: app.Name + " niseroku app restart <name> [name...]",
+		Action:    c.actionAppRestart,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "all",
+				Usage: "restart all applications",
+			},
+		},
+	}
+	return
+}
+
 func (c *Command) actionAppRestart(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
