@@ -743,6 +743,16 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	for _, appName := range appOrder {
 		app, _ := sw.cliCmd.config.Applications[appName]
 
+		var skip bool
+		if len(app.Workers) == 0 {
+			skip = true
+		} else if v, ok := app.Workers["web"]; ok {
+			skip = v <= 0
+		}
+		if skip {
+			continue
+		}
+
 		var appStats []WatchProc
 
 		if v, ok := appSnaps[app.Name]; ok {
