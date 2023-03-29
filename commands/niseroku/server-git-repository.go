@@ -173,7 +173,7 @@ func (gr *GitRepository) performReload() (err error) {
 		gr.LogErrorF("error updating apt-enjins: %v", ee)
 	}
 
-	gr.LogInfoF("# running fix-fs in the background")
+	gr.LogInfoF("starting fix-fs process")
 	if _, ee := pkgRun.EnjenvBg(gr.config.LogFile, gr.config.LogFile, "niseroku", "fix-fs"); ee != nil {
 		gr.LogErrorF("error fixing filesystem: %v", ee)
 	}
