@@ -336,6 +336,24 @@ func (s *Slug) Destroy() (err error) {
 	return
 }
 
+func (s *Slug) StartShell() (err error) {
+	var si *SlugWorker
+	if si, err = NewSlugWorker(s); err != nil {
+		return
+	}
+	err = si.RunShell()
+	return
+}
+
+func (s *Slug) StartCommand(name string, argv ...string) (err error) {
+	var si *SlugWorker
+	if si, err = NewSlugWorker(s); err != nil {
+		return
+	}
+	err = si.RunCommand(name, argv...)
+	return
+}
+
 func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 	if len(s.Settings.Next) > 0 {
 		err = fmt.Errorf("already starting next workers: %v", s.Name)
