@@ -260,6 +260,38 @@ func (s *SlugWorker) PrepareStart(port int) (webCmd string, webArgv, environ []s
 	return
 }
 
+func (s *SlugWorker) RunShell() (err error) {
+	err = s.RunCommand("/bin/bash", "-l")
+	return
+}
+
+func (s *SlugWorker) RunCommand(name string, argv ...string) (err error) {
+	var _, environ []string
+	port := s.ReserveUnusedPort()
+	if _, _, environ, err = s.PrepareStart(port); err != nil {
+		if strings.Contains(err.Error(), "slug already running") || strings.Contains(err.Error(), "maintenance mode") {
+			s.Slug.App.LogInfoF("%v", err)
+			err = nil
+			return
+		}
+		s.Slug.App.LogErrorF("error preparing slug: %v (port=%d) - %v\n", s.Slug.Name, port, err)
+		return
+	}
+
+	if strings.HasPrefix(name, "/") || strings.HasPrefix(name, "./") || strings.HasPrefix(name, "../") {
+		if v, ee := filepath.Abs(name); ee == nil {
+			name = v
+		}
+	}
+	if v, ee := exec.LookPath(name); ee == nil {
+		name = v
+	}
+
+	err = run.Interactive(environ, s.RunPath, name, argv...)
+	s.Stop()
+	return
+}
+
 func (s *SlugWorker) StartForeground(port int) (err error) {
 	var webCmd string
 	var webArgv, environ []string
