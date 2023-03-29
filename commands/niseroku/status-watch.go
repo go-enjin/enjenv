@@ -50,17 +50,16 @@ var statusWatchAccelmap string
 
 // Build Configuration Flags
 // setting these will enable command line flags and their corresponding features
-// use `go build -v -ldflags="-X 'github.com/go-enjin/enjenv/commands/niseroku.IncludeLogFullPaths=false'"`
+// use `go build -v -ldflags="-X 'github.com/go-enjin/enjenv/commands/niseroku.CdkIncludeLogFullPaths=false'"`
 var (
-	IncludeProfiling          = "false"
-	IncludeLogFile            = "false"
-	IncludeLogFormat          = "false"
-	IncludeLogFullPaths       = "false"
-	IncludeLogLevel           = "false"
-	IncludeLogLevels          = "false"
-	IncludeLogTimestamps      = "false"
-	IncludeLogTimestampFormat = "false"
-	IncludeLogOutput          = "false"
+	CdkIncludeProfiling     = "false"
+	CdkIncludeLogFile       = "false"
+	CdkIncludeLogFormat     = "false"
+	CdkIncludeLogFullPaths  = "false"
+	CdkIncludeLogLevel      = "false"
+	CdkIncludeLogLevels     = "false"
+	CdkIncludeLogTimestamps = "false"
+	CdkIncludeLogOutput     = "false"
 )
 
 var (
@@ -68,15 +67,14 @@ var (
 )
 
 func init() {
-	cdk.Build.Profiling = cstrings.IsTrue(IncludeProfiling)
-	cdk.Build.LogFile = cstrings.IsTrue(IncludeLogFile)
-	cdk.Build.LogFormat = cstrings.IsTrue(IncludeLogFormat)
-	cdk.Build.LogFullPaths = cstrings.IsTrue(IncludeLogFullPaths)
-	cdk.Build.LogLevel = cstrings.IsTrue(IncludeLogLevel)
-	cdk.Build.LogLevels = cstrings.IsTrue(IncludeLogLevels)
-	cdk.Build.LogTimestamps = cstrings.IsTrue(IncludeLogTimestamps)
-	cdk.Build.LogTimestampFormat = cstrings.IsTrue(IncludeLogTimestampFormat)
-	cdk.Build.LogOutput = cstrings.IsTrue(IncludeLogOutput)
+	cdk.Build.Profiling = cstrings.IsTrue(CdkIncludeProfiling)
+	cdk.Build.LogFile = cstrings.IsTrue(CdkIncludeLogFile)
+	cdk.Build.LogFormat = cstrings.IsTrue(CdkIncludeLogFormat)
+	cdk.Build.LogFullPaths = cstrings.IsTrue(CdkIncludeLogFullPaths)
+	cdk.Build.LogLevel = cstrings.IsTrue(CdkIncludeLogLevel)
+	cdk.Build.LogLevels = cstrings.IsTrue(CdkIncludeLogLevels)
+	cdk.Build.LogTimestamps = cstrings.IsTrue(CdkIncludeLogTimestamps)
+	cdk.Build.LogOutput = cstrings.IsTrue(CdkIncludeLogOutput)
 }
 
 type StatusWatch struct {
