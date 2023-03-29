@@ -19,6 +19,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/profiling"
 )
 
@@ -34,5 +35,23 @@ func (c *Command) actionReverseProxy(ctx *cli.Context) (err error) {
 		return
 	}
 	err = rp.Start()
+	return
+}
+
+func (c *Command) actionProxyControlCommand(ctx *cli.Context) (err error) {
+	if err = c.Prepare(ctx); err != nil {
+		return
+	}
+	argv := ctx.Args().Slice()
+	if len(argv) < 1 {
+		cli.ShowCommandHelpAndExit(ctx, "cmd", 1)
+	}
+	name := argv[0]
+	argv = argv[1:]
+	var response string
+	if response, err = c.config.CallProxyControlCommand(name, argv...); err != nil {
+		return
+	}
+	io.STDOUT("%v", response)
 	return
 }
