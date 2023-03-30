@@ -16,10 +16,12 @@ package niseroku
 
 import (
 	"fmt"
+	"syscall"
 
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func makeCommandAppExec(c *Command, app *cli.App) (cmd *cli.Command) {
@@ -39,6 +41,14 @@ func (c *Command) actionAppExec(ctx *cli.Context) (err error) {
 	io.LogFile = ""
 	if argc := ctx.NArg(); argc < 1 {
 		cli.ShowCommandHelpAndExit(ctx, "exec", 1)
+	}
+
+	// drop privileges
+	if syscall.Getuid() == 0 {
+		if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
+			err = fmt.Errorf("error dropping root privileges: %v", err)
+			return
+		}
 	}
 
 	cliArgv := ctx.Args().Slice()
