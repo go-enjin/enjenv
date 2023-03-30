@@ -20,6 +20,16 @@ import (
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
+func makeCommandStop(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "stop",
+		Usage:     "stop all niseroku services",
+		UsageText: app.Name + " niseroku stop",
+		Action:    c.actionStop,
+	}
+	return
+}
+
 func (c *Command) actionStop(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

@@ -24,6 +24,26 @@ import (
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
+func makeCommandAppStart(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "start",
+		Usage:     "start one or more applications",
+		UsageText: app.Name + " niseroku app start <name> [name...]",
+		Action:    c.actionAppStart,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "all",
+				Usage: "start all applications",
+			},
+			&cli.BoolFlag{
+				Name:  "force",
+				Usage: "start regardless of maintenance mode",
+			},
+		},
+	}
+	return
+}
+
 func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

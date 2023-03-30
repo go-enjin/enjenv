@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#export _enjenv_debug_="true"
+
 function _enjenv_has_path () {
     ARG="$1"; while IFS=: read -d: -r present
     do
@@ -31,13 +33,13 @@ function _enjenv_add_path () {
         then
             if _enjenv_has_path "${ARG}"
             then
-                echo "# already present: ${ARG}"
+                [ -z "${_enjenv_debug_}" ] || echo "# already present: ${ARG}"
                 continue
             fi
-            echo "# exporting: ${ARG}"
+            [ -z "${_enjenv_debug_}" ] || echo "# exporting: ${ARG}"
             export PATH="${ARG}:${PATH}"
         else
-            echo "# not a directory, nothing to do: ${ARG}"
+            [ -z "${_enjenv_debug_}" ] || echo "# not a directory, nothing to do: ${ARG}"
         fi
     done
 }
@@ -49,10 +51,10 @@ function _enjenv_rem_path () {
         shift
         if ! _enjenv_has_path "${ARG}"
         then
-            echo "# not present, nothing to do: ${ARG}"
+            [ -z "${_enjenv_debug_}" ] || echo "# not present, nothing to do: ${ARG}"
             continue
         fi
-        echo "# removing: ${ARG}"
+        [ -z "${_enjenv_debug_}" ] || echo "# removing: ${ARG}"
         export PATH=$(echo $PATH | perl -pe "@parts=split(m/:/,\$_);@pruned=();foreach \$part (@parts) { push(@pruned,\$part) if (\$part ne '${ARG}'); }; \$_=join(':',@pruned);")
     done
 }

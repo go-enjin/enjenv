@@ -50,17 +50,16 @@ var statusWatchAccelmap string
 
 // Build Configuration Flags
 // setting these will enable command line flags and their corresponding features
-// use `go build -v -ldflags="-X 'github.com/go-enjin/enjenv/commands/niseroku.IncludeLogFullPaths=false'"`
+// use `go build -v -ldflags="-X 'github.com/go-enjin/enjenv/commands/niseroku.CdkIncludeLogFullPaths=false'"`
 var (
-	IncludeProfiling          = "false"
-	IncludeLogFile            = "false"
-	IncludeLogFormat          = "false"
-	IncludeLogFullPaths       = "false"
-	IncludeLogLevel           = "false"
-	IncludeLogLevels          = "false"
-	IncludeLogTimestamps      = "false"
-	IncludeLogTimestampFormat = "false"
-	IncludeLogOutput          = "false"
+	CdkIncludeProfiling     = "false"
+	CdkIncludeLogFile       = "false"
+	CdkIncludeLogFormat     = "false"
+	CdkIncludeLogFullPaths  = "false"
+	CdkIncludeLogLevel      = "false"
+	CdkIncludeLogLevels     = "false"
+	CdkIncludeLogTimestamps = "false"
+	CdkIncludeLogOutput     = "false"
 )
 
 var (
@@ -68,15 +67,14 @@ var (
 )
 
 func init() {
-	cdk.Build.Profiling = cstrings.IsTrue(IncludeProfiling)
-	cdk.Build.LogFile = cstrings.IsTrue(IncludeLogFile)
-	cdk.Build.LogFormat = cstrings.IsTrue(IncludeLogFormat)
-	cdk.Build.LogFullPaths = cstrings.IsTrue(IncludeLogFullPaths)
-	cdk.Build.LogLevel = cstrings.IsTrue(IncludeLogLevel)
-	cdk.Build.LogLevels = cstrings.IsTrue(IncludeLogLevels)
-	cdk.Build.LogTimestamps = cstrings.IsTrue(IncludeLogTimestamps)
-	cdk.Build.LogTimestampFormat = cstrings.IsTrue(IncludeLogTimestampFormat)
-	cdk.Build.LogOutput = cstrings.IsTrue(IncludeLogOutput)
+	cdk.Build.Profiling = cstrings.IsTrue(CdkIncludeProfiling)
+	cdk.Build.LogFile = cstrings.IsTrue(CdkIncludeLogFile)
+	cdk.Build.LogFormat = cstrings.IsTrue(CdkIncludeLogFormat)
+	cdk.Build.LogFullPaths = cstrings.IsTrue(CdkIncludeLogFullPaths)
+	cdk.Build.LogLevel = cstrings.IsTrue(CdkIncludeLogLevel)
+	cdk.Build.LogLevels = cstrings.IsTrue(CdkIncludeLogLevels)
+	cdk.Build.LogTimestamps = cstrings.IsTrue(CdkIncludeLogTimestamps)
+	cdk.Build.LogOutput = cstrings.IsTrue(CdkIncludeLogOutput)
 }
 
 type StatusWatch struct {
@@ -541,10 +539,13 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	memUsed := strings.ReplaceAll(humanize.Bytes(stats.MemUsed*1024), " ", "")
 	memTotal := strings.ReplaceAll(humanize.Bytes(stats.MemTotal*1024), " ", "")
-	memPerc := float64(stats.MemUsed) / float64(stats.MemTotal) * 100.0
+
 	swpUsed := strings.ReplaceAll(humanize.Bytes(stats.SwapUsed*1024), " ", "")
 	swpTotal := strings.ReplaceAll(humanize.Bytes(stats.SwapTotal*1024), " ", "")
-	swpPerc := float64(stats.SwapUsed) / float64(stats.SwapTotal) * 100.0
+
+	totUsed := strings.ReplaceAll(humanize.Bytes((stats.MemUsed+stats.SwapUsed)*1024), " ", "")
+	totTotal := strings.ReplaceAll(humanize.Bytes((stats.MemTotal+stats.SwapTotal)*1024), " ", "")
+	totPerc := float64(stats.MemUsed+stats.SwapUsed) / float64(stats.MemTotal+stats.SwapTotal) * 100.0
 
 	/* STATUS ROW */
 	statusFields := []string{
@@ -576,17 +577,18 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	_, _ = tw.Write([]byte(fmt.Sprintf("\t" + dim("]") + "\n")))
 	_ = tw.Flush()
 	_ = sw.sysValueCPU.SetMarkup(buf.String())
-
-	_ = sw.sysLabelMEM.SetMarkup(fmt.Sprintf("MEM: %s%%", formatPercFloat(memPerc, "%.2f")))
+	_ = sw.sysLabelMEM.SetMarkup(fmt.Sprintf("MEM: %s%%", formatPercFloat(totPerc, "%.2f")))
 
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 8, 2, 2, ' ', tabwriter.FilterHTML)
-	// memInfo := fmt.Sprintf("Used:\t%s\tTotal:\t%s", memUsed, memTotal)
-	memInfo := dim("Real:") + " "
-	memInfo += memUsed + " / " + memTotal
-	memInfo += "\t" + dim("Swap:") + " "
-	memInfo += swpUsed + " / " + swpTotal
-	memInfo += " (" + formatPercFloat(swpPerc, "%.2f") + "%)"
+
+	var memInfo string
+	memInfo += dim("Total:") + " " + totUsed + " / " + totTotal
+	memInfo += "\t"
+	memInfo += dim("Real:") + " " + memUsed + " / " + memTotal
+	memInfo += "\t"
+	memInfo += dim("Swap:") + " " + swpUsed + " / " + swpTotal
+
 	_, _ = tw.Write([]byte(memInfo))
 	_ = tw.Flush()
 	_ = sw.sysValueMEM.SetMarkup(buf.String())
@@ -740,6 +742,16 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	for _, appName := range appOrder {
 		app, _ := sw.cliCmd.config.Applications[appName]
+
+		var skip bool
+		if len(app.Workers) == 0 {
+			skip = true
+		} else if v, ok := app.Workers["web"]; ok {
+			skip = v <= 0
+		}
+		if skip {
+			continue
+		}
 
 		var appStats []WatchProc
 

@@ -82,12 +82,10 @@ func (rp *ReverseProxy) autocertHostPolicy(_ context.Context, host string) (err 
 
 func (rp *ReverseProxy) Bind() (err error) {
 
-	rp.LogInfoF("preparing directories")
-	if err = rp.config.PrepareDirectories(); err != nil {
-		err = fmt.Errorf("error preparing directories: %v", err)
-		return
+	rp.LogInfoF("starting fix-fs process")
+	if _, ee := pkgRun.EnjenvBg(rp.config.LogFile, rp.config.LogFile, "niseroku", "fix-fs"); ee != nil {
+		rp.LogErrorF("error fixing filesystem: %v", ee)
 	}
-	rp.LogInfoF("directories prepared")
 
 	rp.Lock()
 	defer rp.Unlock()

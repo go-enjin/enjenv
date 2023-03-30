@@ -23,6 +23,44 @@ import (
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
+func makeCommandConfig(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "config",
+		Usage:     "get, set and test configuration settings",
+		UsageText: app.Name + " niseroku config [key] [value]",
+		Description: `
+With no arguments specified, displays all the settings where each key is output
+in a toml-specific format. For example: "ports.git = 2403".
+
+With just the key argument, displays the value of that key.
+
+When both key and value are given, applies the value to the configuration
+setting. Prints "OK" if no value parsing or config file saving errors occurred.
+`,
+		Action: c.actionConfig,
+		Subcommands: []*cli.Command{
+			{
+				Name:        "test",
+				Usage:       "test the current config file for syntax and other errors",
+				UsageText:   app.Name + " niseroku config test",
+				Description: `Prints "OK" if no parsing errors occurred.`,
+				Action:      c.actionConfigTest,
+			},
+		},
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "reset-comments",
+				Usage: "restore default comments on config save",
+			},
+			&cli.PathFlag{
+				Name:  "init-default",
+				Usage: "write a default niseroku.toml file",
+			},
+		},
+	}
+	return
+}
+
 func (c *Command) actionConfig(ctx *cli.Context) (err error) {
 
 	if path := ctx.Path("init-default"); path != "" {

@@ -9,13 +9,14 @@ require (
 	github.com/fvbommel/sortorder v1.0.2
 	github.com/go-curses/cdk v0.5.14
 	github.com/go-curses/ctk v0.5.6
-	github.com/go-enjin/be v0.0.0-20230320204704-f3f333993b18
+	github.com/go-enjin/be v0.0.0-20230329213325-0f826026eb3c
 	github.com/go-enjin/golang-org-x-text v0.0.0-20230219204830-4f2b7b481f16
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/goccy/go-json v0.10.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/iancoleman/strcase v0.2.0
 	github.com/kataras/requestid v0.0.2
+	github.com/kevinburke/ssh_config v1.2.0
 	github.com/otiai10/copy v1.9.0
 	github.com/pkg/profile v1.6.0
 	github.com/prometheus/procfs v0.9.0
@@ -98,7 +99,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jtolio/gls v4.20.0+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
-	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/leekchan/gtf v0.0.0-20190214083521-5fba33c5b00b // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect

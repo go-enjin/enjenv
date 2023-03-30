@@ -25,6 +25,22 @@ import (
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
+func makeCommandAppStop(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "stop",
+		Usage:     "stop one or more running applications",
+		UsageText: app.Name + " niseroku app stop <name> [name...]",
+		Action:    c.actionAppStop,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "all",
+				Usage: "stop all applications",
+			},
+		},
+	}
+	return
+}
+
 func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

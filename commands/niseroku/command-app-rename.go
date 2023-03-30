@@ -20,13 +20,24 @@ import (
 	"path/filepath"
 	"syscall"
 
-	bePath "github.com/go-enjin/be/pkg/path"
 	"github.com/urfave/cli/v2"
+
+	bePath "github.com/go-enjin/be/pkg/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
+
+func makeCommandAppRename(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "rename",
+		Usage:     "rename an application",
+		UsageText: app.Name + " niseroku app rename <old> <new>",
+		Action:    c.actionAppRename,
+	}
+	return
+}
 
 func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {

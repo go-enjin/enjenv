@@ -22,6 +22,30 @@ import (
 	"github.com/go-enjin/enjenv/pkg/profiling"
 )
 
+func makeCommandGitRepository(c *Command, app *cli.App) (cmd *cli.Command) {
+	cmd = &cli.Command{
+		Name:      "git-repository",
+		Usage:     "niseroku git-repository service",
+		UsageText: app.Name + " niseroku git-repository",
+		Action:    c.actionGitRepository,
+		Subcommands: []*cli.Command{
+			{
+				Name:      "reload",
+				Usage:     "reload git-repository services",
+				UsageText: app.Name + " niseroku git-repository reload",
+				Action:    c.actionGitRepositoryReload,
+			},
+			{
+				Name:      "stop",
+				Usage:     "stop git-repository services",
+				UsageText: app.Name + " niseroku git-repository stop",
+				Action:    c.actionGitRepositoryStop,
+			},
+		},
+	}
+	return
+}
+
 func (c *Command) actionGitRepository(ctx *cli.Context) (err error) {
 	profiling.Start()
 
