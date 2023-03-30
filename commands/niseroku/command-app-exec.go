@@ -72,6 +72,11 @@ func (c *Command) actionAppExec(ctx *cli.Context) (err error) {
 		return
 	}
 
+	if app.IsDeploying() {
+		err = fmt.Errorf("application deployment in progress: %v", appName)
+		return
+	}
+
 	slug := app.GetThisSlug()
 	if slug == nil {
 		err = fmt.Errorf("app has no slugs: %v", appName)
