@@ -68,6 +68,8 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 			io.STDOUT("application in maintenance mode: %v (use --force to override)\n", name)
 		} else if app.ThisSlug == "" && app.NextSlug == "" {
 			io.STDERR("application slugs not found: %v\n", name)
+		} else if numWebWorkers, has := app.Workers["web"]; has && numWebWorkers <= 0 {
+			io.STDERR("application has no web workers: %v\n", name)
 		} else if app.IsDeploying() {
 			io.STDERR("application deployment in progress: %v\n", name)
 		} else if app.IsRunningReady() && !forceOverride {
