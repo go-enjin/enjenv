@@ -19,6 +19,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -41,6 +42,7 @@ import (
 	"github.com/go-enjin/be/pkg/maps"
 	beStrings "github.com/go-enjin/be/pkg/strings"
 
+	"github.com/go-enjin/enjenv/pkg/cpuinfo"
 	"github.com/go-enjin/enjenv/pkg/globals"
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
@@ -64,6 +66,7 @@ var (
 
 var (
 	DefaultStatusWatchTtyPath = "/dev/tty"
+	rxStripFloats             = regexp.MustCompile(`\.\d+`)
 )
 
 func init() {
@@ -605,7 +608,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	}
 
 	writeEntry := func(tw *tabwriter.Writer, appName, commitId string, stat WatchProc, requests, delayed int64, includeHash bool) {
-		pid, ports, nice, cpu, mem, numThreads, reqDelay := dim("-"), dim("-"), dim("-"), dim("-"), dim("-"), dim("-/-"), dim("-")
+		pid, ports, nice, cpu, mem, numThreads, reqDelay, uptime := dim("-"), dim("-"), dim("-"), dim("-"), dim("-"), dim("-/-"), dim("-"), dim("-")
 		if stat.Pid > 0 {
 			pid = strconv.Itoa(stat.Pid)
 			nice = fmt.Sprintf("%+2d", stat.Nice)
@@ -613,6 +616,16 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 			mem = formatMemUsed(stat.Mem, stats.MemTotal)
 			num := fmt.Sprintf("%d", stat.Num)
 			threads := fmt.Sprintf("%d", stat.Threads)
+			// created := (stat.Created / uint64(cpuinfo.ClockTicks())) + cpuinfo.BootEpoch()
+			created := stat.Created / uint64(cpuinfo.ClockTicks())
+			// d := time.Unix(int64(created), 0)
+			if created > 0 {
+				d := cpuinfo.BootTime().Add(time.Duration(int64(time.Second) * int64(created)))
+				uptime = fmt.Sprintf("%v", time.Now().Sub(d))
+			}
+			if rxStripFloats.MatchString(uptime) {
+				uptime = rxStripFloats.ReplaceAllString(uptime, "")
+			}
 			numThreads = num + dim("/") + threads
 			reqDelay = formatReqDelay(requests, delayed)
 		}
@@ -628,7 +641,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		if beStrings.StringInStrings(stat.Name, "reverse-proxy", "git-repository") {
 			commitId = globals.BuildBinHash[:8]
 		}
-		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", stat.Name, commitId, pid, ports, cpu, nice, mem, numThreads, reqDelay)))
+		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", stat.Name, commitId, pid, ports, cpu, nice, mem, numThreads, reqDelay, uptime)))
 	}
 
 	applyHeaderContent := func(input string, top, tgt ctk.Label) {
@@ -677,7 +690,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 
 	buf = bytes.NewBuffer([]byte(""))
 	tw = tabwriter.NewWriter(io.Writer(buf), 6, 0, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte("SERVICE" + pad + "\tVER\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
+	_, _ = tw.Write([]byte("SERVICE" + pad + "\tVER\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\tUPTIME\n"))
 
 	for _, stat := range snapshot.Services {
 		if stat.Name == "reverse-proxy" {
@@ -758,7 +771,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		if v, ok := appSnaps[app.Name]; ok {
 			appStats = v
 		} else {
-			_, _ = tw.Write([]byte(app.Name + "\t" + tDim("-", 6) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
+			_, _ = tw.Write([]byte(app.Name + "\t" + tDim("-", 6) + "\t" + dim("-/-") + "\t" + dim("-") + "\t" + dim("-") + "\n"))
 			continue
 		}
 
@@ -789,16 +802,16 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 				thisCommit := trimCommit(appThisSlug.Commit)
 				nextCommit := trimCommit(appNextSlug.Commit)
 				_, _ = tw.Write([]byte(app.Name + "\t \t \t \t \t \t \t \t" + dim("-") + "\n"))
-				_, _ = tw.Write([]byte(" " + dim("|-") + " web:" + "-this-" + "\t" + thisCommit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
-				_, _ = tw.Write([]byte(" " + dim("`-") + " web:" + "-next-" + "\t" + nextCommit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
+				_, _ = tw.Write([]byte(" " + dim("|-") + " web:" + "-this-" + "\t" + thisCommit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\t" + dim("-") + "\n"))
+				_, _ = tw.Write([]byte(" " + dim("`-") + " web:" + "-next-" + "\t" + nextCommit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\t" + dim("-") + "\n"))
 			} else if appThisSlug != nil {
 				commit := trimCommit(appThisSlug.Commit)
-				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
+				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\t" + dim("-") + "\n"))
 			} else if appNextSlug != nil {
 				commit := trimCommit(appNextSlug.Commit)
-				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
+				_, _ = tw.Write([]byte(app.Name + "\t" + commit + "\t" + tDim("-", 5) + "\t" + dim("-/-") + "\t" + dim("-") + "\t" + dim("-") + "\n"))
 			} else {
-				_, _ = tw.Write([]byte(app.Name + "\t" + tDim("-", 6) + "\t" + dim("-/-") + "\t" + dim("-") + "\n"))
+				_, _ = tw.Write([]byte(app.Name + "\t" + tDim("-", 6) + "\t" + dim("-/-") + "\t" + dim("-") + "\t" + dim("-") + "\n"))
 			}
 			continue
 		}
@@ -816,7 +829,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 			continue
 		}
 
-		_, _ = tw.Write([]byte(app.Name + "\t \t \t \t \t \t \t \t" + formatReqDelay(current, delayed) + "\n"))
+		_, _ = tw.Write([]byte(app.Name + "\t \t \t \t \t \t \t \t" + formatReqDelay(current, delayed) + "\t \n"))
 		numInstances := len(slugInstances)
 		var count int
 		for pid, si := range slugInstances {
