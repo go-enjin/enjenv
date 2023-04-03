@@ -36,6 +36,7 @@ type WatchProc struct {
 	Ports   []int
 	Num     int
 	Threads int
+	Created uint64
 }
 
 type WatchSnapshot struct {
@@ -153,6 +154,7 @@ func (w *Watching) updateSnapshot() {
 			Nice:    0,
 			Num:     0,
 			Threads: 0,
+			Created: 0,
 		},
 		{
 			Name:    "git-repository",
@@ -163,6 +165,7 @@ func (w *Watching) updateSnapshot() {
 			Nice:    0,
 			Num:     0,
 			Threads: 0,
+			Created: 0,
 		},
 	}
 
@@ -241,6 +244,7 @@ func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports [
 		var nice int
 		var usage float32 = -1.0
 		var mem uint64 = 0
+		var created uint64 = 0
 
 		if v, ee := common.GetIntFromFile(pidfile); ee == nil {
 			pid = v
@@ -249,6 +253,7 @@ func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports [
 					usage, num, threads = w.getProcUsage(pid)
 					nice = proc.Nice
 					mem = w.getProcMemUsed(pid)
+					created = proc.Created
 					break
 				}
 			}
@@ -267,6 +272,7 @@ func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports [
 		entry.Ports = portsReady
 		entry.Num = num
 		entry.Threads = threads
+		entry.Created = created
 	}
 }
 
