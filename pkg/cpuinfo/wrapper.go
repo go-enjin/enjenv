@@ -24,10 +24,37 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
+
+	gopsutil_host "github.com/shirou/gopsutil/v3/host"
+	"github.com/tklauser/go-sysconf"
 )
 
 // #include "wrapper.h"
 import "C"
+
+var (
+	gSystemBootTime   uint64 = 0
+	gSystemClockTicks int64  = 0
+)
+
+func BootEpoch() (epoch uint64) {
+	if gSystemBootTime == 0 {
+		gSystemBootTime, _ = gopsutil_host.BootTime()
+	}
+	return gSystemBootTime
+}
+
+func BootTime() time.Time {
+	return time.Unix(int64(BootEpoch()), 0)
+}
+
+func ClockTicks() (ticksPerSecond int64) {
+	if gSystemClockTicks == 0 {
+		gSystemClockTicks, _ = sysconf.Sysconf(sysconf.SC_CLK_TCK)
+	}
+	return gSystemClockTicks
+}
 
 func CpuTick() (t int64) {
 	return int64(C.read_cpu_tick())
