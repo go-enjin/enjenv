@@ -31,6 +31,7 @@ type CProcess struct {
 	Threads  int
 	TimePrev int64
 	TimeThis int64
+	Created  uint64
 	Dirty    bool
 	Active   bool
 	Usage    float32
@@ -44,6 +45,7 @@ type Process struct {
 	Threads int
 	Usage   float32
 	MemUsed uint64
+	Created uint64
 }
 
 type Stats struct {

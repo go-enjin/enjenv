@@ -149,6 +149,7 @@ func (t *CpuInfo) GetProcesses(sortByUsage bool) (list []Process, err error) {
 				Threads: v.Threads,
 				Usage:   usage,
 				MemUsed: GetMemStats(v.Pid),
+				Created: v.Created,
 			})
 		}
 	}
@@ -210,13 +211,14 @@ func (t *CpuInfo) updateTableData() (err error) {
 				Threads:  0,
 				TimePrev: 0,
 				TimeThis: 0,
+				Created:  0,
 				Dirty:    true,
 				Active:   true,
 				Usage:    0.0,
 			}
 		}
 
-		p.TimeThis, p.Ppid, p.Pgrp, p.Nice, p.Threads = GetPidStats(pid)
+		p.TimeThis, p.Created, p.Ppid, p.Pgrp, p.Nice, p.Threads = GetPidStats(pid)
 		t.data[pid] = p
 	}
 

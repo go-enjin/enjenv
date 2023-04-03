@@ -21,7 +21,7 @@
 
 unsigned long long int read_cpu_tick();
 unsigned long read_time_from_pid(int pid);
-int read_stat_from_pid(int pid, int *ppid, int *pgrp, unsigned long *time, int *nice, int *threads);
+int read_stat_from_pid(int pid, int *ppid, int *pgrp, unsigned long *time, int *nice, int *threads, unsigned long *starttime);
 unsigned int num_cores();
 
 #endif // GOCODE_WRAPPER_H
