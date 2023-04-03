@@ -611,7 +611,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		pid, ports, nice, cpu, mem, numThreads, reqDelay, uptime := dim("-"), dim("-"), dim("-"), dim("-"), dim("-"), dim("-/-"), dim("-"), dim("-")
 		if stat.Pid > 0 {
 			pid = strconv.Itoa(stat.Pid)
-			nice = fmt.Sprintf("%+2d", stat.Nice)
+			nice = fmt.Sprintf("%+2d", stat.Nice-20)
 			cpu = formatPercFloat(stat.Cpu, "%.2f")
 			mem = formatMemUsed(stat.Mem, stats.MemTotal)
 			num := fmt.Sprintf("%d", stat.Num)
