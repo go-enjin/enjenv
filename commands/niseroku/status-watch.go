@@ -706,8 +706,9 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 	/* APPLICATIONS SECTION */
 
 	buf = bytes.NewBuffer([]byte(""))
+	pad = strings.Repeat(" ", biggest-11)
 	tw = tabwriter.NewWriter(io.Writer(buf), 6, 0, 2, ' ', tabwriter.FilterHTML)
-	_, _ = tw.Write([]byte("APPLICATION\tGIT\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\n"))
+	_, _ = tw.Write([]byte("APPLICATION" + pad + "\tGIT\tPID\tPORT\tCPU\tPRI\tMEM\tP/T\tREQ\tUPTIME\n"))
 
 	appSnaps := make(map[string][]WatchProc)
 	for _, stat := range snapshot.Applications {
