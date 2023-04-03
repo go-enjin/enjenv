@@ -348,10 +348,10 @@ func (s *SlugWorker) Start(port int) (err error) {
 func (s *SlugWorker) Stop() (stopped bool) {
 	if bePath.IsFile(s.PidFile) {
 		if proc, err := s.GetBinProcess(); err == nil && proc != nil {
-			if err = proc.SendSignal(syscall.SIGTERM); err != nil {
-				s.Slug.App.LogErrorF("error sending SIGTERM to process: %d\n", proc.Pid)
+			if se := common.SendSignalToPidTree(int(proc.Pid), syscall.SIGTERM); se != nil {
+				s.Slug.App.LogErrorF("error sending SIGTERM to process tree: %d - %+v\n", proc.Pid, se.Errors())
 			} else if stopped = err == nil; stopped {
-				s.Slug.App.LogInfoF("sent SIGTERM to process %d: %v\n", proc.Pid, s.Slug.Name)
+				s.Slug.App.LogInfoF("sent SIGTERM to process tree %d: %v\n", proc.Pid, s.Slug.Name)
 			}
 		} else if err != nil {
 			s.Slug.App.LogErrorF("error getting process from pid file: %v - %v\n", s.PidFile, err)
