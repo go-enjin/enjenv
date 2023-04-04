@@ -1,3 +1,25 @@
+enjenv (0.1.9) unstable; urgency=medium
+
+  * tagged v0.1.9 release build - 79399c488953e2492a01c803d7de1639b9eb83c3
+  * enjenv changes:
+   * 79399c4 Makefile: setting UNTAGGED_VERSION to v0.1.9
+   * 2fa3581 go.mod: added github.com/tklauser/go-sysconf; tidy
+   * af74f9d commands/niseroku (app restart): error check for at least one web worker before attempting to start application
+   * bb0bf8d commands/niseroku (app run): error check for at least one web worker before attempting to start application
+   * 9d0bb13 commands/niseroku (app start): error check for at least one web worker before attempting to start application
+   * 2eb9bde commands/niseroku (slug): bugfix for confused enjenv run --slug-process when child is terminated
+   * e436bb0 commands/niseroku (slug worker): SendSignalToPidTree on Stop instead of just the specific pid (which is usually a 'make run' and doesn't actually terminate the actual enjin process)
+   * 5a7420a commands/niseroku (status watch): adjust application column width using same padding as services section
+   * 215bc05 commands/niseroku (status watch): bugfix for stat.Nice needing -20 offset
+   * 9fe78c6 commands/niseroku (status watch): new UPTIME column added
+   * 6e2f7a6 commands/niseroku (watching): include proc.Created info
+   * adf0a6f pkg/cpuinfo: new BootEpoch()uint64, BootTime()time.Time and ClockTicks()int64 helpers
+   * cc0dc0b pkg/cpuinfo: include process starttime data (clock ticks since system boot)
+   * 6380d6c pkg/service/common: new SendSignalToPidTree which sends given sig to all child processes and then the given pid
+   * 7e63c4f _templates/niseroku-tail: only include apps with slug archives present
+
+ -- The Go-Enjin Team <go.enjin.org@gmail.com>  Mon, 03 Apr 2023 21:22:04 -0400
+
 enjenv (0.1.8) unstable; urgency=medium
 
   * tagged v0.1.8 release build - 7f6ffffdd824bbbaefac9b5d63d3b2b80d536adc
