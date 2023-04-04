@@ -65,6 +65,11 @@ func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
 		return
 	}
 
+	if numWebWorkers, hasWebWorkers := app.Workers["web"]; hasWebWorkers && numWebWorkers <= 0 {
+		err = fmt.Errorf("application has no web workers: %v", appName)
+		return
+	}
+
 	if app.IsDeploying() {
 		err = fmt.Errorf("application deployment in progress: %v", appName)
 		return

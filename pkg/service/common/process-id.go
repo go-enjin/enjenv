@@ -22,14 +22,6 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 )
 
-func SendSignalToPidFromFile(pidFile string, sig process.Signal) (err error) {
-	var proc *process.Process
-	if proc, err = GetProcessFromPidFile(pidFile); err == nil {
-		err = proc.SendSignal(sig)
-	}
-	return
-}
-
 func GetProcessFromPid(pid int) (proc *process.Process, err error) {
 	var running bool
 	if proc, err = process.NewProcess(int32(pid)); err != nil {

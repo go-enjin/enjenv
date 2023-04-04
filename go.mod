@@ -23,6 +23,7 @@ require (
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/shirou/gopsutil/v3 v3.23.1
 	github.com/sosedoff/gitkit v0.3.0
+	github.com/tklauser/go-sysconf v0.3.11
 	github.com/urfave/cli/v2 v2.14.1
 	golang.org/x/crypto v0.6.0
 	golang.org/x/sys v0.6.0
@@ -128,7 +129,6 @@ require (
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/tdewolff/parse/v2 v2.6.4 // indirect
 	github.com/tg123/go-htpasswd v1.2.0 // indirect
-	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect

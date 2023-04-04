@@ -407,6 +407,7 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 						s.liveHashLock.Unlock()
 						if workersReady != nil {
 							workersReady <- true
+							workersReady = nil
 						}
 					}
 					s.App.LogInfoF("slug %d of %d ready: %v [%v] on port %d (%v)\n", numReady, s.App.GetWebWorkers(), s.Name, si.Hash, reservedPort, time.Now().Sub(start))
@@ -421,6 +422,7 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 			workerWG.Done()
 			if workersReady != nil {
 				workersReady <- true
+				workersReady = nil
 			}
 		}()
 
@@ -435,6 +437,7 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 	wg.Wait()
 	if err != nil && workersReady != nil {
 		workersReady <- true
+		workersReady = nil
 	}
 	return
 }

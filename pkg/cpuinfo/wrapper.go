@@ -24,10 +24,37 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
+
+	gopsutil_host "github.com/shirou/gopsutil/v3/host"
+	"github.com/tklauser/go-sysconf"
 )
 
 // #include "wrapper.h"
 import "C"
+
+var (
+	gSystemBootTime   uint64 = 0
+	gSystemClockTicks int64  = 0
+)
+
+func BootEpoch() (epoch uint64) {
+	if gSystemBootTime == 0 {
+		gSystemBootTime, _ = gopsutil_host.BootTime()
+	}
+	return gSystemBootTime
+}
+
+func BootTime() time.Time {
+	return time.Unix(int64(BootEpoch()), 0)
+}
+
+func ClockTicks() (ticksPerSecond int64) {
+	if gSystemClockTicks == 0 {
+		gSystemClockTicks, _ = sysconf.Sysconf(sysconf.SC_CLK_TCK)
+	}
+	return gSystemClockTicks
+}
 
 func CpuTick() (t int64) {
 	return int64(C.read_cpu_tick())
@@ -41,18 +68,20 @@ func NumCores() (n int) {
 	return int(C.num_cores())
 }
 
-func GetPidStats(pid int) (t int64, ppid, pgrp, nice, threads int) {
+func GetPidStats(pid int) (t int64, st uint64, ppid, pgrp, nice, threads int) {
 	cppid := C.int(0)
 	cpgrp := C.int(0)
 	ctime := C.ulong(0)
 	cnice := C.int(0)
 	cthreads := C.int(0)
-	if ok := C.read_stat_from_pid(C.int(pid), &cppid, &cpgrp, &ctime, &cnice, &cthreads); ok > 0 {
+	cstarttime := C.ulong(0)
+	if ok := C.read_stat_from_pid(C.int(pid), &cppid, &cpgrp, &ctime, &cnice, &cthreads, &cstarttime); ok > 0 {
 		t = int64(ctime)
 		ppid = int(cppid)
 		pgrp = int(cpgrp)
 		nice = int(cnice)
 		threads = int(cthreads)
+		st = uint64(cstarttime) // / uint64(CpuTick())
 	}
 	return
 }

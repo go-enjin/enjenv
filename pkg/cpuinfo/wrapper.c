@@ -73,12 +73,13 @@ unsigned long read_time_from_pid(int pid) {
 }
 
 // read cpu tick for a specific process
-int read_stat_from_pid(int pid, int *ppid, int *pgrp, unsigned long *time, int *nice, int *threads) {
+int read_stat_from_pid(int pid, int *ppid, int *pgrp, unsigned long *time, int *nice, int *threads, unsigned long *starttime) {
   char pidStatFile[MAX_NAME + 1];
   snprintf(pidStatFile, sizeof pidStatFile, "/proc/%i/stat", pid);
 
-  unsigned long utime = 0;
-  unsigned long stime = 0;
+  unsigned long _utime = 0;
+  unsigned long _stime = 0;
+  unsigned long _starttime = 0;
   int _ppid = 0;
   int _pgrp = 0;
   int _nice = 0;
@@ -87,9 +88,32 @@ int read_stat_from_pid(int pid, int *ppid, int *pgrp, unsigned long *time, int *
   FILE *fp;
   fp = fopen(pidStatFile, "r");
   if (fp != NULL) {
-    bool ans = fscanf(fp, "%*d %*s %*c %d %*d %*d %d %*d %*u %*u %*u %*u %*u %lu"
-                      "%lu %*ld %*ld %*d %d %d %*d %*u %*lu %*ld",
-                      &_ppid, &_pgrp, &utime, &stime, &_nice, &_threads) != EOF;
+    bool ans = fscanf(fp,
+                      "%*d "  //pid
+                      "%*s "  //comm
+                      "%*c "  //state
+                      "%d "   //ppid
+                      "%d "   //pgrp
+                      "%*d "  //session
+                      "%*d "  //tty_nr
+                      "%*d "  //tpgid
+                      "%*u "  //flags
+                      "%*u "  //minflt
+                      "%*u "  //cminflt
+                      "%*u "  //majflt
+                      "%*u "  //cmajflt
+                      "%lu "  //utime
+                      "%lu "  //stime
+                      "%*ld " //cutime
+                      "%*ld " //cstime
+                      "%*d "  //priority
+                      "%ld "  //nice
+                      "%ld "  //num_threads
+                      "%*d "  //itrealvalue
+                      "%llu " //starttime
+                      "%*lu " //vsize
+                      "%*ld", //rss
+                      &_ppid, &_pgrp, &_utime, &_stime, &_nice, &_threads, &_starttime) != EOF;
     fclose(fp);
     if (!ans) {
       return false;
@@ -97,9 +121,10 @@ int read_stat_from_pid(int pid, int *ppid, int *pgrp, unsigned long *time, int *
 
     *ppid = _ppid;
     *pgrp = _pgrp;
-    *time = utime + stime;
+    *time = _utime + _stime;
     *nice = _nice;
     *threads = _threads;
+    *starttime = _starttime;
     return true;
   }
 
