@@ -1,3 +1,15 @@
+enjenv (0.1.10) unstable; urgency=medium
+
+  * tagged v0.1.10 release build - b8e21ff619f8f461467414acce70120f053d3267
+  * enjenv changes:
+   * b8e21ff Makefile: setting UNTAGGED_VERSION to v0.1.10
+   * 41964b5 commands/niseroku (slug): StartCommand wraps requested command with 'bash -l -c <cmd>', fixes exec make console issues
+   * fd57842 commands/niseroku (slug/slug-worker): remove worker.RunShell, make slug.StartShell call .RunCommand(bash,-l) instead
+   * 369eb91 commands/niseroku (app exec): remove redundant syscall.Getuid()==0 check
+   * d52cd0b commands/niseroku (status watch): if cdk.Build.LogFile set better cdk log.DefaultLogPath, else set log.DefaultLogPath to /dev/null to prevent unexpected logging
+
+ -- The Go-Enjin Team <go.enjin.org@gmail.com>  Sat, 08 Apr 2023 13:30:43 -0400
+
 enjenv (0.1.9) unstable; urgency=medium
 
   * tagged v0.1.9 release build - 79399c488953e2492a01c803d7de1639b9eb83c3
