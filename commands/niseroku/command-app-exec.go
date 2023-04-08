@@ -16,7 +16,6 @@ package niseroku
 
 import (
 	"fmt"
-	"syscall"
 
 	"github.com/urfave/cli/v2"
 
@@ -44,11 +43,9 @@ func (c *Command) actionAppExec(ctx *cli.Context) (err error) {
 	}
 
 	// drop privileges
-	if syscall.Getuid() == 0 {
-		if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
-			err = fmt.Errorf("error dropping root privileges: %v", err)
-			return
-		}
+	if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
+		err = fmt.Errorf("error dropping root privileges: %v", err)
+		return
 	}
 
 	cliArgv := ctx.Args().Slice()

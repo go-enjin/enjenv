@@ -260,11 +260,6 @@ func (s *SlugWorker) PrepareStart(port int) (webCmd string, webArgv, environ []s
 	return
 }
 
-func (s *SlugWorker) RunShell() (err error) {
-	err = s.RunCommand("/bin/bash", "-l")
-	return
-}
-
 func (s *SlugWorker) RunCommand(name string, argv ...string) (err error) {
 	var _, environ []string
 	port := s.ReserveUnusedPort()

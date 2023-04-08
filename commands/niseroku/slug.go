@@ -341,7 +341,7 @@ func (s *Slug) StartShell() (err error) {
 	if si, err = NewSlugWorker(s); err != nil {
 		return
 	}
-	err = si.RunShell()
+	err = si.RunCommand("/bin/bash", "-l")
 	return
 }
 
@@ -350,7 +350,8 @@ func (s *Slug) StartCommand(name string, argv ...string) (err error) {
 	if si, err = NewSlugWorker(s); err != nil {
 		return
 	}
-	err = si.RunCommand(name, argv...)
+	bashCommandString := strings.Join(append([]string{name}, argv...), " ")
+	err = si.RunCommand("/bin/bash", "-l", "-c", bashCommandString)
 	return
 }
 
