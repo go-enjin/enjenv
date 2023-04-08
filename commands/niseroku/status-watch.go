@@ -19,6 +19,8 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -35,6 +37,7 @@ import (
 	"github.com/go-curses/cdk/lib/math"
 	"github.com/go-curses/cdk/lib/paint"
 	cstrings "github.com/go-curses/cdk/lib/strings"
+	"github.com/go-curses/cdk/log"
 
 	"github.com/go-curses/ctk"
 	"github.com/go-curses/ctk/lib/enums"
@@ -78,6 +81,11 @@ func init() {
 	cdk.Build.LogLevels = cstrings.IsTrue(CdkIncludeLogLevels)
 	cdk.Build.LogTimestamps = cstrings.IsTrue(CdkIncludeLogTimestamps)
 	cdk.Build.LogOutput = cstrings.IsTrue(CdkIncludeLogOutput)
+	if cdk.Build.LogFile {
+		log.DefaultLogPath = filepath.Join(os.TempDir(), "niseroku-status-watch.cdk.log")
+	} else {
+		log.DefaultLogPath = "/dev/null"
+	}
 }
 
 type StatusWatch struct {
