@@ -341,7 +341,7 @@ func (s *Slug) StartShell() (err error) {
 	if si, err = NewSlugWorker(s); err != nil {
 		return
 	}
-	err = si.RunShell()
+	err = si.RunCommand("/bin/bash", "-l")
 	return
 }
 
