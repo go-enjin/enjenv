@@ -30,10 +30,6 @@ import (
 	"github.com/go-enjin/be/pkg/net/serve"
 )
 
-var (
-	DefaultProxyLimitsStatLifetime = time.Second
-)
-
 func (rp *ReverseProxy) initRateLimiter() {
 	if rp.limiter != nil {
 		return
