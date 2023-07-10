@@ -17,6 +17,7 @@ require (
 	github.com/iancoleman/strcase v0.2.0
 	github.com/kataras/requestid v0.0.2
 	github.com/kevinburke/ssh_config v1.2.0
+	github.com/knqyf263/go-deb-version v0.0.0-20230223133812-3ed183d23422
 	github.com/otiai10/copy v1.9.0
 	github.com/pkg/profile v1.6.0
 	github.com/prometheus/procfs v0.9.0
