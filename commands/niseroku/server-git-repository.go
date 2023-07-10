@@ -22,9 +22,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/knqyf263/go-deb-version"
 	"github.com/sosedoff/gitkit"
 
 	"github.com/go-enjin/be/pkg/cli/run"
+	"github.com/go-enjin/be/pkg/log"
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
 
@@ -323,17 +325,20 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 
 	listInfos := gr.repreproList(flavourPath, codename, appOsEnviron)
 
+	var processDSC []*ParsedDebianFile
+	var processDEB []*ParsedDebianFile
+
 	for _, file := range found {
 		filename := filepath.Base(file)
 
 		if strings.HasSuffix(filename, "dsc") {
 
-			if thisName, thisVersion, ok := ParseDebianDscFilename(filename); ok {
+			if parsed, ok := ParseDebianDscFilename(filename); ok {
 				var proceed bool = true
-				if entries, ok := listInfos[thisName]; ok {
+				if entries, ok := listInfos[parsed.Name]; ok {
 					for _, entry := range entries {
 						if entry.Architecture == "source" {
-							if entry.Version == thisVersion {
+							if entry.Version.GreaterThan(parsed.Version) || entry.Version.Equal(parsed.Version) {
 								proceed = false
 								break
 							}
@@ -341,9 +346,7 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 					}
 				}
 				if proceed {
-					gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, file)
-					gr.reprepro("includedsc", flavourPath, codename, file, gr.LogFile, appOsEnviron)
-					changed = true
+					processDSC = append(processDSC, parsed)
 				}
 			} else {
 				gr.LogErrorF("error parsing debian dsc filename: %v", filename)
@@ -351,29 +354,27 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 
 		} else if strings.HasSuffix(file, ".deb") {
 
-			if thisName, thisVersion, thisArch, ok := ParseDebianDebFilename(filename); ok {
+			if parsed, ok := ParseDebianDebFilename(filename); ok {
 				var proceed bool = true
-				if entries, ok := listInfos[thisName]; ok {
+				if entries, ok := listInfos[parsed.Name]; ok {
 					for _, entry := range entries {
-						if thisArch == "all" {
+						if parsed.Arch == "all" {
 							if entry.Architecture == "source" {
 								continue
 							} else {
 								proceed = false
 								break
 							}
-						} else if entry.Architecture != thisArch {
+						} else if entry.Architecture != parsed.Arch {
 							continue
-						} else if entry.Version == thisVersion {
+						} else if entry.Version.GreaterThan(parsed.Version) || entry.Version.Equal(parsed.Version) {
 							proceed = false
 							break
 						}
 					}
 				}
 				if proceed {
-					gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, file)
-					gr.reprepro("includedeb", flavourPath, codename, file, gr.LogFile, appOsEnviron)
-					changed = true
+					processDEB = append(processDEB, parsed)
 				}
 			} else {
 				gr.LogErrorF("error parsing debian dsc filename: %v", filename)
@@ -381,28 +382,88 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 
 		}
 	}
+
+	processParsedList := func(list []*ParsedDebianFile) (unique map[string]*ParsedDebianFile) {
+		unique = make(map[string]*ParsedDebianFile)
+		for _, parsed := range list {
+			if _, exists := unique[parsed.Name]; !exists {
+				unique[parsed.Name] = parsed
+			} else {
+				if unique[parsed.Name].Version.LessThan(parsed.Version) {
+					unique[parsed.Name] = parsed
+				}
+			}
+		}
+		return
+	}
+
+	uniqueDSC := processParsedList(processDSC)
+	for _, name := range maps.SortedKeys(uniqueDSC) {
+		dsc := uniqueDSC[name]
+		gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, dsc.Input)
+		gr.reprepro("includedsc", flavourPath, codename, dsc.Input, gr.LogFile, appOsEnviron)
+	}
+
+	uniqueDEB := processParsedList(processDEB)
+	for _, name := range maps.SortedKeys(uniqueDEB) {
+		deb := uniqueDEB[name]
+		gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, deb.Input)
+		gr.reprepro("includedeb", flavourPath, codename, deb.Input, gr.LogFile, appOsEnviron)
+	}
+
+	// this is not fun, always changed if any packages present
+	changed = len(uniqueDSC) > 0 || len(uniqueDEB) > 0
 	return
 }
 
 var RxDscFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)\.dsc\s*$`)
 
-func ParseDebianDscFilename(input string) (name, version string, ok bool) {
+type ParsedDebianFile struct {
+	Type    string
+	Input   string
+	Name    string
+	Arch    string
+	RawVer  string
+	Version version.Version
+}
+
+func ParseDebianDscFilename(input string) (parsed *ParsedDebianFile, ok bool) {
 	if ok = RxDscFileName.MatchString(input); ok {
 		m := RxDscFileName.FindAllStringSubmatch(input, 1)
-		name = m[0][1]
-		version = m[0][2]
+		if v, err := version.NewVersion(m[0][2]); err != nil {
+			ok = false
+			log.ErrorF("error parsing dsc version: %v - %v", input, err)
+		} else {
+			parsed = &ParsedDebianFile{
+				Type:    "dsc",
+				Input:   input,
+				Name:    m[0][1],
+				RawVer:  m[0][2],
+				Version: v,
+			}
+		}
 	}
 	return
 }
 
 var RxDebFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)_(.+?)\.u?deb\s*$`)
 
-func ParseDebianDebFilename(input string) (name, version, arch string, ok bool) {
+func ParseDebianDebFilename(input string) (parsed *ParsedDebianFile, ok bool) {
 	if ok = RxDebFileName.MatchString(input); ok {
 		m := RxDebFileName.FindAllStringSubmatch(input, 1)
-		name = m[0][1]
-		version = m[0][2]
-		arch = m[0][3]
+		if v, err := version.NewVersion(m[0][2]); err != nil {
+			ok = false
+			log.ErrorF("error parsing deb version: %v - %v", input, err)
+		} else {
+			parsed = &ParsedDebianFile{
+				Type:    "deb",
+				Input:   input,
+				Name:    m[0][1],
+				Arch:    m[0][3],
+				RawVer:  m[0][2],
+				Version: v,
+			}
+		}
 	}
 	return
 }
@@ -414,7 +475,8 @@ type RepreproListEntry struct {
 	Component    string
 	Architecture string
 	Name         string
-	Version      string
+	RawVer       string
+	Version      version.Version
 }
 
 func (gr *GitRepository) repreproList(flavourPath, codename string, appOsEnviron []string) (info map[string][]RepreproListEntry) {
@@ -431,14 +493,19 @@ func (gr *GitRepository) repreproList(flavourPath, codename string, appOsEnviron
 		for _, line := range strings.Split(o, "\n") {
 			if RxRepreproList.MatchString(line) {
 				m := RxRepreproList.FindAllStringSubmatch(line, 1)
-				codeName, component, arch, name, version := m[0][1], m[0][2], m[0][3], m[0][4], m[0][5]
-				info[name] = append(info[name], RepreproListEntry{
-					Codename:     codeName,
-					Component:    component,
-					Architecture: arch,
-					Name:         name,
-					Version:      version,
-				})
+				codeName, component, arch, name, ver := m[0][1], m[0][2], m[0][3], m[0][4], m[0][5]
+				if v, ee := version.NewVersion(ver); ee != nil {
+					log.ErrorF("error parsing deb version: %v - %v", line, ee)
+				} else {
+					info[name] = append(info[name], RepreproListEntry{
+						Codename:     codeName,
+						Component:    component,
+						Architecture: arch,
+						Name:         name,
+						RawVer:       ver,
+						Version:      v,
+					})
+				}
 			}
 		}
 	}
