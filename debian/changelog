@@ -1,3 +1,24 @@
+enjenv (0.1.11) unstable; urgency=medium
+
+  * tagged v0.1.11 release build - be74eaa65e816ced3589fdf180abc045debc168a
+  * upstream changes:
+   * be74eaa Makefile: setting UNTAGGED_VERSION to v0.1.11
+   * 868ef56 go.mod: added knqyf263/go-deb-version; tidy
+   * c6a3c3f commands/niseroku (git-repository): refactor processAptRepository to avoid re-adding already added debs to the apt repository (latest versions only)
+   * 8333086 _templates/niseroku-tail: include main app log in specific-app mode
+   * af9bff2 _templates/niseroku-tail: accept an app name argument for focused view
+   * 30935a9 pkg/globals: updated default versions - golang v1.20.5, nodejs v18.16.1
+   * a842bec go.mod: be-update (v0.2.8, cdk v0.5.15, ctk v0.5.7); tidy
+   * 75ccb83 commands/niseroku (reverse-proxy serve): use a new clone for each proxyClientRequest call to guarantee not re-using request objects
+   * f967566 commands/niseroku (reverse-proxy serve): refactor origin request handling to manage status codes without body better
+   * 9e14dd8 commands/niseroku (reverse-proxy limiter): include req obj in origin req error messaging
+   * 7d21a89 commands/niseroku (reverse-proxy limiter): remove unused global var
+   * f9f8a01 commands/niseroku (status-watch): updates for latest go-enjin/be changes
+   * 08e6072 pkg/cpuinfo: updates for latest go-enjin/be changes
+   * 79d8223 Golang.cmd.mk: updated to v0.1.2
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Mon, 10 Jul 2023 17:21:50 -0400
+
 enjenv (0.1.10) unstable; urgency=medium
 
   * tagged v0.1.10 release build - b8e21ff619f8f461467414acce70120f053d3267
