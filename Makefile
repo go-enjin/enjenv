@@ -43,7 +43,7 @@ CTK_GO_PACKAGE ?= github.com/go-curses/ctk
 CTK_LOCAL_PATH ?= ../../go-curses/ctk
 
 BIN_NAME ?= enjenv
-UNTAGGED_VERSION ?= v0.1.10
+UNTAGGED_VERSION ?= v0.1.11
 UNTAGGED_COMMIT ?= 0000000000
 
 CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
