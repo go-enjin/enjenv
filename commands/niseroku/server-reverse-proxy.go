@@ -315,7 +315,7 @@ func (rp *ReverseProxy) proxyClientRequest(req *http.Request, app *Application, 
 	client := http.Client{
 		Transport: transport,
 	}
-	response, err = client.Do(req)
+	response, err = client.Do(req.Clone(req.Context()))
 	return
 }
 

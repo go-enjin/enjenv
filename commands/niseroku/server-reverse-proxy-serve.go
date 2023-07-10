@@ -96,18 +96,20 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, forwardFor string, w h
 		}
 	}
 
-	var body []byte
-	if body, err = io.ReadAll(response.Body); err != nil {
-		rp.LogErrorF("error reading response.Body: %v -- %v", err, req)
-		status = http.StatusInternalServerError
-		serve.Serve500(w, r)
-		err = nil
-		return
-	}
-
 	status = response.StatusCode
-	w.WriteHeader(response.StatusCode)
-	_, err = w.Write(body)
+	w.WriteHeader(status)
+	// prevent 204 responses from having any body
+	if serve.StatusHasBody(status) {
+		var body []byte
+		if body, err = io.ReadAll(response.Body); err != nil {
+			rp.LogErrorF("error reading response.Body: %v -- %v", err, req)
+			status = http.StatusInternalServerError
+			serve.Serve500(w, r)
+			err = nil
+			return
+		}
+		_, err = w.Write(body)
+	}
 	if flusher, ok := w.(http.Flusher); ok {
 		flusher.Flush()
 	}

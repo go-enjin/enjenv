@@ -29,6 +29,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/go-enjin/be/pkg/maths"
+
 	"github.com/dustin/go-humanize"
 	"github.com/urfave/cli/v2"
 
@@ -38,7 +40,6 @@ import (
 	"github.com/go-curses/cdk/lib/paint"
 	cstrings "github.com/go-curses/cdk/lib/strings"
 	"github.com/go-curses/cdk/log"
-
 	"github.com/go-curses/ctk"
 	"github.com/go-curses/ctk/lib/enums"
 
@@ -509,7 +510,7 @@ func formatMemUsed(kbUsed uint64, max uint64) (text string) {
 	return
 }
 
-func formatPercNumber[T maps.Number](stat T, max float64) (text string) {
+func formatPercNumber[T maths.Number](stat T, max float64) (text string) {
 	switch {
 	case float64(stat) >= max:
 		text = fmt.Sprintf(`<span foreground="white" background="red">%d</span>`, int64(stat))

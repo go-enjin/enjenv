@@ -18,6 +18,11 @@
 #:
 #: CHANGELOG
 #:
+#: v0.1.2 - go-curses/coreutils updates
+#:        * allow non-enjin things, set GO_ENJIN_PKG and BE_LOCAL_PATH to 'nil'
+#:        * updates to how be-update derives PKG_LIST
+#:        * provide BUILD_NAME based on BIN_NAME BUILD_OS and BUILD_ARCH
+#:        * git command handling cleanups
 #: v0.1.1 - enjenv go binary updates
 #:        * abstract GO_BIN variable into a defined __go_bin make function
 #:        * __go_bin prefers enjenv's activate script over existing env PATH
@@ -30,7 +35,7 @@
 #:
 ###############################################################################
 
-ENJENV_MK_VERSION := v0.1.1
+ENJENV_MK_VERSION := v0.1.2
 
 .PHONY: __golang __tidy __local __unlocal __be_update
 
@@ -42,8 +47,9 @@ UNTAGGED_COMMIT ?= 0000000000
 
 BUILD_OS   := $(shell uname -s | awk '{print $$1}' | perl -pe '$$_=lc($$_)')
 BUILD_ARCH := $(shell uname -m | perl -pe 's!aarch64!arm64!;s!x86_64!amd64!;')
+BUILD_NAME := ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}
 
-GIT_STATUS := $([ -d .git ] && git status 2> /dev/null)
+GIT_STATUS := $(git status 2> /dev/null)
 
 UPX_BIN := $(shell which upx)
 
@@ -94,17 +100,17 @@ fi)
 endef
 
 define __tag_ver
-$(shell ([ -d .git ] && git describe 2> /dev/null) || echo "${UNTAGGED_VERSION}")
+$(shell (git describe 2>/dev/null) || echo "${UNTAGGED_VERSION}")
 endef
 
 define __rel_ver
 $(shell \
 	if [ -d .git ]; then \
 		if [ -z "${GIT_STATUS}" ]; then \
-			git rev-parse --short=10 HEAD; \
+			(git rev-parse --short=10 HEAD 2>/dev/null) || echo "${UNTAGGED_COMMIT}"; \
 		else \
-			[ -d .git ] && git diff 2> /dev/null \
-				| ${SHASUM_CMD} - 2> /dev/null \
+			[ -d .git ] && ( git diff 2>/dev/null || true ) \
+				| ${SHASUM_CMD} - 2>/dev/null \
 				| perl -pe 's!^\s*([a-f0-9]{10}).*!\1!'; \
 		fi; \
 	else \
@@ -204,6 +210,18 @@ define __upx_build
 	fi
 endef
 
+define __pkg_list_latest
+$(ifneq ${GO_ENJIN_PKG},nil,"${GO_ENJIN_PKG}@latest ")\
+$(if ${GOPKG_KEYS},$(foreach key,${GOPKG_KEYS},$(shell \
+		if [ \
+			-n "$($(key)_GO_PACKAGE)" \
+			-a "$($(key)_GO_PACKAGE)" != "nil" \
+		]; then \
+			echo "$($(key)_GO_PACKAGE)@latest"; \
+		fi \
+)))
+endef
+
 define __validate_extra_pkgs
 $(if ${GOPKG_KEYS},$(foreach key,${GOPKG_KEYS},$(shell \
 		if [ \
@@ -218,14 +236,18 @@ endef
 
 define __make_go_local
 echo "__make_go_local $(1) $(2)" >> ${_INTERNAL_BUILD_LOG_}; \
-echo "# go.mod local: $(1)"; \
-${CMD} $(call __go_bin) mod edit -replace "$(1)=$(2)"
+if [ -n "$(2)" -a "$(2)" != "nil" ]; then \
+	echo "# go.mod local: $(1)"; \
+	${CMD} $(call __go_bin) mod edit -replace "$(1)=$(2)"; \
+fi
 endef
 
 define __make_go_unlocal
 echo "__make_go_unlocal $(1)" >> ${_INTERNAL_BUILD_LOG_}; \
-echo "# go.mod unlocal $(1)"; \
-${CMD} $(call __go_bin) mod edit -dropreplace "$(1)"
+if [ -n "$(1)" -a "$(1)" != "nil" ]; then \
+	echo "# go.mod unlocal $(1)"; \
+	${CMD} $(call __go_bin) mod edit -dropreplace "$(1)"; \
+fi
 endef
 
 define _make_extra_pkgs
@@ -259,8 +281,8 @@ __unlocal: __golang
 	@$(if ${GOPKG_KEYS},$(foreach key,${GOPKG_KEYS},$(call __make_go_unlocal,$($(key)_GO_PACKAGE));))
 	@$(call __make_go_unlocal,${GO_ENJIN_PKG})
 
-__be_update: PKG_LIST = ${GO_ENJIN_PKG}@latest $(call _make_extra_pkgs)
+__be_update: PKG_LIST=$(call __pkg_list_latest)
 __be_update: __golang
 	@$(call __validate_extra_pkgs)
-	@echo "# go get ${PKG_LIST}"
+	@echo "# go getting: ${PKG_LIST}"
 	@GOPROXY=direct $(call __go_bin) get ${_BUILD_TAGS} ${PKG_LIST}

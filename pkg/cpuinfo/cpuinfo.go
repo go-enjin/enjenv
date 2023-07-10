@@ -25,9 +25,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/procfs"
+	"github.com/go-enjin/be/pkg/maths"
 
-	"github.com/go-enjin/be/pkg/maps"
+	"github.com/prometheus/procfs"
 )
 
 type CpuInfo struct {
@@ -97,7 +97,7 @@ func (t *CpuInfo) GetStats() (stats Stats, err error) {
 	uptime := time.Now().Sub(bootTime)
 
 	var usages []float32
-	for _, idx := range maps.SortedNumbers(ps.CPU) {
+	for _, idx := range maths.SortedNumbers(ps.CPU) {
 		prev := t.cpusPrev[idx]
 		this := ps.CPU[idx]
 

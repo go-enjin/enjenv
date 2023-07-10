@@ -30,10 +30,6 @@ import (
 	"github.com/go-enjin/be/pkg/net/serve"
 )
 
-var (
-	DefaultProxyLimitsStatLifetime = time.Second
-)
-
 func (rp *ReverseProxy) initRateLimiter() {
 	if rp.limiter != nil {
 		return
@@ -186,7 +182,7 @@ func (rp *ReverseProxy) ProxyHttpHandler() (h http.Handler) {
 				serve.Serve502(w, r)
 				return
 			}
-			rp.LogErrorF("origin request error: %v - %v\n", app.Name, err)
+			rp.LogErrorF("origin request error: %v - %v - %#+v\n", app.Name, err, r)
 			status = http.StatusInternalServerError
 			serve.Serve500(w, r)
 		}
