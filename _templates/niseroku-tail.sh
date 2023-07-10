@@ -27,11 +27,13 @@ then
 
     TITLE="niseroku-tail [${ONLY_APP}] (%h)"
 
+    MAIN_LOG="/var/lib/niseroku/logs.d/${ONLY_APP}.log"
     INFO_LOG="/var/lib/niseroku/logs.d/${ONLY_APP}.info.log"
     ERROR_LOG="/var/lib/niseroku/logs.d/${ONLY_APP}.error.log"
     ACCESS_LOG="/var/lib/niseroku/logs.d/${ONLY_APP}.access.log"
-    [ -f "${ERROR_LOG}" ]  && APP_ARGS="${APP_ARGS} -t ${ONLY_APP}-[FAIL] -iw ${ERROR_LOG} 1s"
+    [ -f "${MAIN_LOG}" ]   && APP_ARGS="${APP_ARGS} -t ${ONLY_APP}-[MAIN] -iw ${MAIN_LOG} 1s"
     [ -f "${INFO_LOG}" ]   && APP_ARGS="${APP_ARGS} -t ${ONLY_APP}-[INFO] -iw ${INFO_LOG} 1s"
+    [ -f "${ERROR_LOG}" ]  && APP_ARGS="${APP_ARGS} -t ${ONLY_APP}-[FAIL] -iw ${ERROR_LOG} 1s"
     [ -f "${ACCESS_LOG}" ] && APP_ARGS="${APP_ARGS} -t ${ONLY_APP}-[HTTP] -iw ${ACCESS_LOG} 1s"
 
 else
