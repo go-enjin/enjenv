@@ -1,3 +1,13 @@
+enjenv (0.1.12) unstable; urgency=medium
+
+  * tagged v0.1.12 release build - ed149228e9880b4a0c1cfd5008d26e55a2f3ebbd
+  * upstream changes:
+   * ed14922 Makefile: setting UNTAGGED_VERSION to v0.1.12
+   * d794265 commands/niseroku (git-repository): bugfixes for incorrect path passed to reprepro sub-commands
+   * 07eaa84 go.mod: upgrade github.com/go-git/go-git/v5 to v5.7.0 for CVE-2023-1732
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Tue, 11 Jul 2023 14:34:05 -0400
+
 enjenv (0.1.11) unstable; urgency=medium
 
   * tagged v0.1.11 release build - be74eaa65e816ced3589fdf180abc045debc168a
