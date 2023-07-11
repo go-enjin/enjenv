@@ -329,11 +329,9 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 	var processDEB []*ParsedDebianFile
 
 	for _, file := range found {
-		filename := filepath.Base(file)
+		if strings.HasSuffix(file, ".dsc") {
 
-		if strings.HasSuffix(filename, "dsc") {
-
-			if parsed, ok := ParseDebianDscFilename(filename); ok {
+			if parsed, ok := ParseDebianDscFilename(file); ok {
 				var proceed bool = true
 				if entries, ok := listInfos[parsed.Name]; ok {
 					for _, entry := range entries {
@@ -349,12 +347,12 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 					processDSC = append(processDSC, parsed)
 				}
 			} else {
-				gr.LogErrorF("error parsing debian dsc filename: %v", filename)
+				gr.LogErrorF("error parsing debian dsc filename: %v", file)
 			}
 
 		} else if strings.HasSuffix(file, ".deb") {
 
-			if parsed, ok := ParseDebianDebFilename(filename); ok {
+			if parsed, ok := ParseDebianDebFilename(file); ok {
 				var proceed bool = true
 				if entries, ok := listInfos[parsed.Name]; ok {
 					for _, entry := range entries {
@@ -377,7 +375,7 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 					processDEB = append(processDEB, parsed)
 				}
 			} else {
-				gr.LogErrorF("error parsing debian dsc filename: %v", filename)
+				gr.LogErrorF("error parsing debian dsc filename: %v", file)
 			}
 
 		}
@@ -400,15 +398,15 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 	uniqueDSC := processParsedList(processDSC)
 	for _, name := range maps.SortedKeys(uniqueDSC) {
 		dsc := uniqueDSC[name]
-		gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, dsc.Input)
-		gr.reprepro("includedsc", flavourPath, codename, dsc.Input, gr.LogFile, appOsEnviron)
+		gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, dsc.File)
+		gr.reprepro("includedsc", flavourPath, codename, dsc.File, gr.LogFile, appOsEnviron)
 	}
 
 	uniqueDEB := processParsedList(processDEB)
 	for _, name := range maps.SortedKeys(uniqueDEB) {
 		deb := uniqueDEB[name]
-		gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, deb.Input)
-		gr.reprepro("includedeb", flavourPath, codename, deb.Input, gr.LogFile, appOsEnviron)
+		gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, deb.File)
+		gr.reprepro("includedeb", flavourPath, codename, deb.File, gr.LogFile, appOsEnviron)
 	}
 
 	// this is not fun, always changed if any packages present
@@ -420,23 +418,24 @@ var RxDscFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)\.dsc\s*$`)
 
 type ParsedDebianFile struct {
 	Type    string
-	Input   string
+	File    string
 	Name    string
 	Arch    string
 	RawVer  string
 	Version version.Version
 }
 
-func ParseDebianDscFilename(input string) (parsed *ParsedDebianFile, ok bool) {
-	if ok = RxDscFileName.MatchString(input); ok {
-		m := RxDscFileName.FindAllStringSubmatch(input, 1)
+func ParseDebianDscFilename(file string) (parsed *ParsedDebianFile, ok bool) {
+	filename := filepath.Base(file)
+	if ok = RxDscFileName.MatchString(filename); ok {
+		m := RxDscFileName.FindAllStringSubmatch(filename, 1)
 		if v, err := version.NewVersion(m[0][2]); err != nil {
 			ok = false
-			log.ErrorF("error parsing dsc version: %v - %v", input, err)
+			log.ErrorF("error parsing dsc version: %v - %v", filename, err)
 		} else {
 			parsed = &ParsedDebianFile{
 				Type:    "dsc",
-				Input:   input,
+				File:    file,
 				Name:    m[0][1],
 				RawVer:  m[0][2],
 				Version: v,
@@ -448,16 +447,17 @@ func ParseDebianDscFilename(input string) (parsed *ParsedDebianFile, ok bool) {
 
 var RxDebFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)_(.+?)\.u?deb\s*$`)
 
-func ParseDebianDebFilename(input string) (parsed *ParsedDebianFile, ok bool) {
-	if ok = RxDebFileName.MatchString(input); ok {
-		m := RxDebFileName.FindAllStringSubmatch(input, 1)
+func ParseDebianDebFilename(file string) (parsed *ParsedDebianFile, ok bool) {
+	filename := filepath.Base(file)
+	if ok = RxDebFileName.MatchString(filename); ok {
+		m := RxDebFileName.FindAllStringSubmatch(filename, 1)
 		if v, err := version.NewVersion(m[0][2]); err != nil {
 			ok = false
-			log.ErrorF("error parsing deb version: %v - %v", input, err)
+			log.ErrorF("error parsing deb version: %v - %v", filename, err)
 		} else {
 			parsed = &ParsedDebianFile{
 				Type:    "deb",
-				Input:   input,
+				File:    file,
 				Name:    m[0][1],
 				Arch:    m[0][3],
 				RawVer:  m[0][2],
