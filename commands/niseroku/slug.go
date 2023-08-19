@@ -26,6 +26,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-enjin/be/pkg/slices"
 	beStrings "github.com/go-enjin/be/pkg/strings"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -290,7 +291,7 @@ func (s *Slug) StopWorker(hash string) (stopped bool) {
 		stopped = worker.SendStopSignal()
 		delete(s.Workers, hash)
 		if idx := beStrings.StringIndexInSlice(hash, s.Settings.Live); idx >= 0 {
-			s.Settings.Live = beStrings.RemoveIndexFromStrings(idx, s.Settings.Live)
+			s.Settings.Live = slices.Remove(s.Settings.Live, idx)
 		}
 		_ = s.Settings.Save()
 	}

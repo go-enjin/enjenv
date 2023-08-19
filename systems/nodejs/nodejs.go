@@ -24,13 +24,12 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	beStrings "github.com/go-enjin/be/pkg/strings"
-
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/net"
 	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-enjin/be/pkg/slices"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/globals"
@@ -397,7 +396,7 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 			dir, _ = bePath.Abs(pkg)
 			dir = bePath.Base(bePath.Dir(dir))
 		}
-		if beStrings.StringInStrings(dir, iniPaths...) {
+		if slices.Present(dir, iniPaths...) {
 			continue
 		}
 		if contentBytes, err := bePath.ReadFile(pkg); err == nil {

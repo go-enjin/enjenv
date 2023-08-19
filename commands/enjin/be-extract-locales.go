@@ -28,8 +28,7 @@ import (
 	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
-	beStrings "github.com/go-enjin/be/pkg/strings"
-
+	"github.com/go-enjin/be/pkg/slices"
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -142,7 +141,7 @@ func (c *Command) _extractLocales(path string) (extracted map[string][]string) {
 		modified = []byte(mod)
 		for k, v := range foundMsgs {
 			for _, vv := range v {
-				if !beStrings.StringInStrings(vv, extracted[k]...) {
+				if !slices.Present(vv, extracted[k]...) {
 					extracted[k] = append(extracted[k], vv)
 				}
 			}
@@ -150,7 +149,7 @@ func (c *Command) _extractLocales(path string) (extracted map[string][]string) {
 		}
 		for k, v := range foundVars {
 			for _, vv := range v {
-				if !beStrings.StringInStrings(vv, variableKeys[k]...) {
+				if !slices.Present(vv, variableKeys[k]...) {
 					variableKeys[k] = append(variableKeys[k], vv)
 				}
 			}
@@ -244,7 +243,7 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 	for _, arg := range argv {
 		for key, hints := range c._extractLocales(arg) {
 			for _, hint := range hints {
-				if !beStrings.StringInStrings(hint, found[key]...) {
+				if !slices.Present(hint, found[key]...) {
 					found[key] = append(found[key], hint)
 				}
 			}
