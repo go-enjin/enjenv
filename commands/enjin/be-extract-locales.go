@@ -61,10 +61,11 @@ produces a basic out.gotext.json file.
 var (
 	rxpQuotedText = `".+?"`
 	rxpContextKey = `\.[a-zA-Z0-9][_.a-zA-Z0-9]+`
+	rxpVariable   = `\$[a-zA-Z][_.a-zA-Z0-9]+`
 	rxpPipeline   = `\(.+?\)`
 
-	rxpExtractFn   = `_\s+(` + rxpQuotedText + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*`
-	rxpExtractArgs = `_\s+(` + rxpQuotedText + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*([^}]*)`
+	rxpExtractFn   = `_\s+(` + rxpQuotedText + `|` + rxpVariable + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*`
+	rxpExtractArgs = `_\s+(` + rxpQuotedText + `|` + rxpVariable + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*([^}]*)`
 	rxpExtractNote = `/\*\s+?([^*}]+)\s+?\*/`
 
 	rxExtractFnNope         = regexp.MustCompile(`\(\s*([^_][^"\s]+)\s*(.*)\s*\)`)
