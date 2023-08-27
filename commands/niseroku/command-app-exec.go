@@ -39,7 +39,7 @@ func (c *Command) actionAppExec(ctx *cli.Context) (err error) {
 	}
 	io.LogFile = ""
 	if argc := ctx.NArg(); argc < 1 {
-		cli.ShowCommandHelpAndExit(ctx, "exec", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	// drop privileges

@@ -55,7 +55,7 @@ are present in this or any parent directory.
 			}
 			argv := ctx.Args().Slice()
 			if len(argv) == 0 {
-				cli.ShowCommandHelpAndExit(ctx, "write-slugfile", 1)
+				cli.ShowSubcommandHelpAndExit(ctx, 1)
 				return
 			}
 			sort.Sort(sortorder.Natural(argv))

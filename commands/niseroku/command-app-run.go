@@ -53,7 +53,7 @@ func (c *Command) actionAppRun(ctx *cli.Context) (err error) {
 		err = fmt.Errorf("too many arguments")
 		return
 	} else if argc < 1 {
-		cli.ShowCommandHelpAndExit(ctx, "run", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 	appName := ctx.Args().Get(0)
 

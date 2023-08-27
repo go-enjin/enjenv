@@ -98,7 +98,7 @@ func (c *Command) actionConfig(ctx *cli.Context) (err error) {
 		return
 	}
 
-	cli.ShowCommandHelpAndExit(ctx, "config", 1)
+	cli.ShowSubcommandHelpAndExit(ctx, 1)
 	return
 }
 

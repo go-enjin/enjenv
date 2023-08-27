@@ -207,7 +207,7 @@ func (c *Command) _extractLocalesAction(ctx *cli.Context) (err error) {
 	argc := len(argv)
 	switch argc {
 	case 0:
-		cli.ShowCommandHelpAndExit(ctx, "be-extract-locales", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	var outDir string

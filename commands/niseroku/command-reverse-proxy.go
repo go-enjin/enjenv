@@ -75,7 +75,7 @@ func (c *Command) actionProxyControlCommand(ctx *cli.Context) (err error) {
 	}
 	argv := ctx.Args().Slice()
 	if len(argv) < 1 {
-		cli.ShowCommandHelpAndExit(ctx, "cmd", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 	name := argv[0]
 	argv = argv[1:]

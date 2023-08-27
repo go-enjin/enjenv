@@ -36,7 +36,7 @@ basic-auth feature's environment variable users setting.
 				return
 			}
 			if ctx.NArg() != 1 {
-				cli.ShowAppHelpAndExit(ctx, 1)
+				cli.ShowSubcommandHelpAndExit(ctx, 1)
 			}
 			arg := ctx.Args().Slice()[0]
 			var hashed []byte

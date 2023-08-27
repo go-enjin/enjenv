@@ -54,7 +54,7 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 	}
 
 	if ctx.NArg() == 0 {
-		cli.ShowCommandHelpAndExit(ctx, "deploy-slug", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	var needsRestart []string

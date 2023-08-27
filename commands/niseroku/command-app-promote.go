@@ -52,7 +52,7 @@ func (c *Command) actionAppPromote(ctx *cli.Context) (err error) {
 	io.LogFile = ""
 
 	if argc := ctx.NArg(); argc < 2 {
-		cli.ShowCommandHelpAndExit(ctx, "promote", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	cliArgv := ctx.Args().Slice()

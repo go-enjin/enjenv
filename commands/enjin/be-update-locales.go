@@ -54,7 +54,7 @@ func (c *Command) _updateLocalesAction(ctx *cli.Context) (err error) {
 	argc := len(argv)
 	switch argc {
 	case 0:
-		cli.ShowCommandHelpAndExit(ctx, "be-update-locales", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	var outDir string

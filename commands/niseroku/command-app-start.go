@@ -56,7 +56,7 @@ func (c *Command) actionAppStart(ctx *cli.Context) (err error) {
 	} else if !all && ctx.NArg() >= 1 {
 		appNames = ctx.Args().Slice()
 	} else {
-		cli.ShowCommandHelpAndExit(ctx, "start", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	forceOverride := ctx.Bool("force")

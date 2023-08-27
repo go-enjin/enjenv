@@ -98,7 +98,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	}
 	argv := ctx.Args().Slice()
 	if len(argv) < 2 {
-		cli.ShowCommandHelpAndExit(ctx, "deploy-slug", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 		return
 	}
 	src := argv[0]

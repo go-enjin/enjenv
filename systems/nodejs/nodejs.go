@@ -638,7 +638,7 @@ func (s *System) runPackageSystem(ctx *cli.Context, pm, dir string, scripts map[
 	var targets []string
 	argv := ctx.Args().Slice()
 	if len(argv) == 0 {
-		cli.ShowCommandHelpAndExit(ctx, dir, 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 	for _, arg := range argv {
 		if _, ok := scripts[arg]; !ok {
