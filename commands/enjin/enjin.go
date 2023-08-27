@@ -49,6 +49,7 @@ func (c *Command) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 		c.makeBeMergeLocalesCommand(app.Name),
 		c.makeBeUpdateLocalesCommand(app.Name),
 		c.makeBeExtractLocalesCommand(app.Name),
+		c.makeMakeFeatureCommand(app.Name),
 	)
 	if sc := c.makeBeEnjinMkCommand(app.Name); sc != nil {
 		commands = append(commands, sc)
