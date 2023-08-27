@@ -129,7 +129,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 				return
 			},
 			Subcommands: []*cli.Command{
-				&cli.Command{
+				{
 					HideHelpCommand: true,
 					Name:            "init",
 					Category:        SystemCategory,
