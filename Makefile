@@ -53,6 +53,8 @@ REALCLEAN_FILES ?=
 BUILD_VERSION_VAR := github.com/go-enjin/enjenv/pkg/globals.BuildVersion
 BUILD_RELEASE_VAR := github.com/go-enjin/enjenv/pkg/globals.BuildRelease
 
+_BUILD_TAGS += page_funcmaps exclude_pages_formats _templates
+
 include Golang.cmd.mk
 
 define _profile_run

@@ -163,6 +163,7 @@ $(shell \
     -ldflags=\"-buildid='' $(4)\" \
     -gcflags=\"$(5)\" \
     -asmflags=\"$(6)\" \
+    -tags \"${_BUILD_TAGS}\" \
     $(7) \
     $(8)"; \
 	else \
