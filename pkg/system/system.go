@@ -27,6 +27,7 @@ import (
 	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/net"
 	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-enjin/be/pkg/slices"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -207,6 +208,11 @@ func (s *CSystem) PostInitSystem(ctx *cli.Context) (err error) {
 }
 
 func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
+	if slices.Within("--generate-shell-completion", ctx.Args().Slice()) {
+		// TODO: figure out auto-complete support for managed systems
+		return
+	}
+
 	var useFile string
 	name := s.Self().Name()
 	if ver := ctx.String(name); ver != "" {
