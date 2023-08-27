@@ -336,7 +336,7 @@ var rxPackageScriptsLines = regexp.MustCompile(`(?ms)"([^"]+?)"\s*:\s*"\s*([^"]+
 func (s *System) ListPackageDirs(path string) (dirs []string, err error) {
 	if paths, err := bePath.ListDirs("."); err == nil {
 		for _, dir := range paths {
-			if dir[0:2] == "./" {
+			if len(dir) >= 2 && dir[0:2] == "./" {
 				dir = dir[2:]
 			}
 			switch dir {
