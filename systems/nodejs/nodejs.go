@@ -242,14 +242,15 @@ func (s *System) PostInitSystem(ctx *cli.Context) (err error) {
 	return
 }
 
-func (s *System) NodeBin(name string, argv ...string) (status int, err error) {
+func (s *System) NodeBin(argv ...string) (err error) {
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "node")
 	if !bePath.IsFile(bin) {
 		err = fmt.Errorf("node not present")
 		return
 	}
-	return run.Exe(bin, argv...)
+	err = run.Interactive(os.Environ(), bePath.Pwd(), bin, argv...)
+	return
 }
 
 func (s *System) NpmBin(name string, argv ...string) (status int, err error) {

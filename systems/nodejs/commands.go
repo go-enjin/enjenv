@@ -77,12 +77,10 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 				}
 				argv := ctx.Args().Slice()
 				if len(argv) > 0 {
-					name := argv[0]
-					args := argv[1:]
-					_, err = s.NodeBin(name, args...)
+					err = s.NodeBin(argv...)
 					return
 				}
-				_, err = s.NodeBin("--help")
+				err = s.NodeBin("--help")
 				return
 			},
 		},
