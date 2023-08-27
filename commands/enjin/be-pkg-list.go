@@ -17,8 +17,9 @@ package enjin
 import (
 	"strings"
 
-	"github.com/go-enjin/be"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/be"
 
 	"github.com/go-enjin/enjenv/pkg/io"
 )
