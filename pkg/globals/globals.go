@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	DefaultGolangVersion = "1.20.5"
+	DefaultGolangVersion = "1.21.0"
 	DefaultNodejsVersion = "18.16.1"
 )
 
