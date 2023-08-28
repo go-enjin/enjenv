@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/go-enjin/be/pkg/maths"
+	"github.com/go-enjin/be/pkg/slices"
 
 	"github.com/dustin/go-humanize"
 	"github.com/urfave/cli/v2"
@@ -647,7 +648,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 				ports += strconv.Itoa(port)
 			}
 		}
-		if beStrings.StringInStrings(stat.Name, "reverse-proxy", "git-repository") {
+		if slices.Present(stat.Name, "reverse-proxy", "git-repository") {
 			commitId = globals.BuildBinHash[:8]
 		}
 		_, _ = tw.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", stat.Name, commitId, pid, ports, cpu, nice, mem, numThreads, reqDelay, uptime)))

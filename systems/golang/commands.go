@@ -32,7 +32,7 @@ import (
 func (s *System) IncludeCommands(app *cli.App) (commands []*cli.Command) {
 	appNamePrefix := app.Name + " " + Name
 	commands = []*cli.Command{
-		&cli.Command{
+		{
 			HideHelpCommand: true,
 			Name:            "build",
 			Category:        system.SystemCategory,

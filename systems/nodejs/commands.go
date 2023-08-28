@@ -66,7 +66,7 @@ func (s *System) installHeroku() (err error) {
 
 func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 	commands = []*cli.Command{
-		&cli.Command{
+		{
 			HideHelpCommand: true,
 			Name:            "node",
 			Usage:           "wrapper for local bin/node",
@@ -77,16 +77,14 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 				}
 				argv := ctx.Args().Slice()
 				if len(argv) > 0 {
-					name := argv[0]
-					args := argv[1:]
-					_, err = s.NodeBin(name, args...)
+					err = s.NodeBin(argv...)
 					return
 				}
-				_, err = s.NodeBin("--help")
+				err = s.NodeBin("--help")
 				return
 			},
 		},
-		&cli.Command{
+		{
 			HideHelpCommand: true,
 			Name:            "npm",
 			Usage:           "wrapper for local bin/npm",
@@ -106,7 +104,7 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 				return
 			},
 		},
-		&cli.Command{
+		{
 			HideHelpCommand: true,
 			Name:            "npx",
 			Usage:           "wrapper for local bin/npx",
@@ -126,7 +124,7 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 				return
 			},
 		},
-		&cli.Command{
+		{
 			HideHelpCommand: true,
 			Name:            "yarn",
 			Usage:           "wrapper for local yarn",

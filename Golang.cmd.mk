@@ -163,6 +163,7 @@ $(shell \
     -ldflags=\"-buildid='' $(4)\" \
     -gcflags=\"$(5)\" \
     -asmflags=\"$(6)\" \
+    -tags \"${_BUILD_TAGS}\" \
     $(7) \
     $(8)"; \
 	else \
@@ -285,4 +286,4 @@ __be_update: PKG_LIST=$(call __pkg_list_latest)
 __be_update: __golang
 	@$(call __validate_extra_pkgs)
 	@echo "# go getting: ${PKG_LIST}"
-	@GOPROXY=direct $(call __go_bin) get ${_BUILD_TAGS} ${PKG_LIST}
+	@GOPROXY=direct $(call __go_bin) get ${PKG_LIST}

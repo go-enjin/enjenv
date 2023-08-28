@@ -58,11 +58,9 @@ func main() {
 			io.StdoutF("%v\n", basepath.EnjenvPath)
 			return
 		},
-		Flags: []cli.Flag{
-			cli.BashCompletionFlag,
-		},
+		EnableBashCompletion:   true,
+		UseShortOptionHandling: true,
 	}
-	app.EnableBashCompletion = true
 	cli.VersionPrinter = func(c *cli.Context) {
 		fmt.Printf("%s %s\n", BinName, c.App.Version)
 	}

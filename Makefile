@@ -43,7 +43,7 @@ CTK_GO_PACKAGE ?= github.com/go-curses/ctk
 CTK_LOCAL_PATH ?= ../../go-curses/ctk
 
 BIN_NAME ?= enjenv
-UNTAGGED_VERSION ?= v0.1.12
+UNTAGGED_VERSION ?= v0.1.13
 UNTAGGED_COMMIT ?= 0000000000
 
 CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
@@ -52,6 +52,8 @@ REALCLEAN_FILES ?=
 
 BUILD_VERSION_VAR := github.com/go-enjin/enjenv/pkg/globals.BuildVersion
 BUILD_RELEASE_VAR := github.com/go-enjin/enjenv/pkg/globals.BuildRelease
+
+_BUILD_TAGS += page_funcmaps exclude_pages_formats _templates
 
 include Golang.cmd.mk
 

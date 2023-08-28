@@ -28,11 +28,10 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-enjin/be/pkg/slices"
 
 	"github.com/go-enjin/be/pkg/cli/run"
 	bePath "github.com/go-enjin/be/pkg/path"
-	beStrings "github.com/go-enjin/be/pkg/strings"
-
 	"github.com/go-enjin/enjenv/pkg/globals"
 	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
@@ -406,7 +405,7 @@ func (c *Command) enjinRepoBuildAptPackage(bpi buildPackInfo) (err error) {
 
 	var signWith string
 	for _, fingerprints := range gpgInfo {
-		if beStrings.StringInSlices(distribution.SignWith, fingerprints) {
+		if slices.Within(distribution.SignWith, fingerprints) {
 			signWith = distribution.SignWith
 			break
 		}

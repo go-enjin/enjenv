@@ -18,7 +18,7 @@ import (
 	"sort"
 
 	"github.com/fvbommel/sortorder"
-	beStrings "github.com/go-enjin/be/pkg/strings"
+	"github.com/go-enjin/be/pkg/slices"
 	"github.com/urfave/cli/v2"
 )
 
@@ -34,6 +34,6 @@ func ListFeatures(commands []*cli.Command) (names []string) {
 }
 
 func HasFeature(name string, commands []*cli.Command) (present bool) {
-	present = beStrings.StringInStrings(name, ListFeatures(commands)...)
+	present = slices.Present(name, ListFeatures(commands)...)
 	return
 }

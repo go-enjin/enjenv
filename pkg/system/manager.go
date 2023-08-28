@@ -125,11 +125,11 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 			Category:        GeneralCategory + " environments",
 			Usage:           "work with a local " + name + " environment",
 			Action: func(ctx *cli.Context) (err error) {
-				cli.ShowAppHelpAndExit(ctx, 1)
+				cli.ShowSubcommandHelpAndExit(ctx, 1)
 				return
 			},
 			Subcommands: []*cli.Command{
-				&cli.Command{
+				{
 					HideHelpCommand: true,
 					Name:            "init",
 					Category:        SystemCategory,

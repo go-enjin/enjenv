@@ -1,4 +1,4 @@
-// Copyright (c) 2022  The Go-Enjin Authors
+// Copyright (c) 2023  The Go-Enjin Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,35 +15,37 @@
 package enjin
 
 import (
-	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/bcrypt"
+	"fmt"
+	"regexp"
 
-	"github.com/go-enjin/enjenv/pkg/io"
+	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/be/_templates"
 )
 
-func (c *Command) makeBeHtpasswdCommand(appNamePrefix string) *cli.Command {
+var (
+	rxEnjinMkVersion = regexp.MustCompile(`(?m)^ENJIN_MK_VERSION := (v[0-9]+\.[0-9]+(\.[0-9]+)??)\s*$`)
+)
+
+func (c *Command) makeBeEnjinMkCommand(appNamePrefix string) *cli.Command {
+	if !rxEnjinMkVersion.MatchString(_templates.EnjinMk) {
+		return nil
+	}
+	m := rxEnjinMkVersion.FindAllStringSubmatch(_templates.EnjinMk, 1)
 	return &cli.Command{
-		Name:      "be-bcrypt",
+		Name:      "be-enjin-mk",
 		Category:  c.TagName,
-		Usage:     "generate a bcrypt hash",
-		UsageText: appNamePrefix + " be-bcrypt <passwd>",
+		Usage:     "Print Enjin.mk (" + m[0][1] + ") to STDOUT",
+		UsageText: appNamePrefix + " be-enjin-mk",
 		Description: `
-Generate a bcrypt password hash from password given, used with the Go-Enjin
-basic-auth feature's environment variable users setting.
+Prints a new feature.CFeature implementation.
 `,
 		Action: func(ctx *cli.Context) (err error) {
 			if err = c.Prepare(ctx); err != nil {
 				return
 			}
-			if ctx.NArg() != 1 {
-				cli.ShowSubcommandHelpAndExit(ctx, 1)
-			}
-			arg := ctx.Args().Slice()[0]
-			var hashed []byte
-			if hashed, err = bcrypt.GenerateFromPassword([]byte(arg), bcrypt.DefaultCost); err != nil {
-				return
-			}
-			io.StdoutF("%v\n", string(hashed))
+
+			fmt.Println(_templates.EnjinMk)
 			return
 		},
 	}

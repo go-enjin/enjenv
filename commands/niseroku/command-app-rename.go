@@ -48,7 +48,7 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 	argv := ctx.Args().Slice()
 	argc := len(argv)
 	if argc != 2 {
-		cli.ShowCommandHelpAndExit(ctx, "rename", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	if syscall.Getuid() != 0 {

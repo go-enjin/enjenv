@@ -22,8 +22,7 @@ import (
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/context"
 	bePath "github.com/go-enjin/be/pkg/path"
-	beStrings "github.com/go-enjin/be/pkg/strings"
-
+	"github.com/go-enjin/be/pkg/slices"
 	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -71,7 +70,7 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 		if u.HasKey(envSshId) {
 			tracking.Set("userName", u.Name)
 			tracking.Set("repoName", repoName)
-			if beStrings.StringInSlices(repoName, u.Applications) || beStrings.StringInSlices("*", u.Applications) {
+			if slices.Within(repoName, u.Applications) || slices.Within("*", u.Applications) {
 				break
 			}
 			app = nil
@@ -93,7 +92,7 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 	tracking.Set("forced", forced)
 
 	tracking.Set("action", info.Action)
-	if !beStrings.StringInStrings(info.Action, gitkit.BranchCreateAction, gitkit.BranchPushAction, gitkit.TagCreateAction) {
+	if !slices.Present(info.Action, gitkit.BranchCreateAction, gitkit.BranchPushAction, gitkit.TagCreateAction) {
 		err = fmt.Errorf("unsupported git action")
 		return
 	}
@@ -133,7 +132,7 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 		var codenameValid bool
 		for _, dist := range dists {
 			if codenameValid = dist.Codename == ap.Codename; codenameValid {
-				if !beStrings.StringInSlices(ap.Component, dist.Components) {
+				if !slices.Within(ap.Component, dist.Components) {
 					err = fmt.Errorf("apt-package.component is not provided by configured apt-enjin")
 					return
 				}

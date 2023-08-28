@@ -28,8 +28,7 @@ import (
 	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
-	beStrings "github.com/go-enjin/be/pkg/strings"
-
+	"github.com/go-enjin/be/pkg/slices"
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -62,10 +61,11 @@ produces a basic out.gotext.json file.
 var (
 	rxpQuotedText = `".+?"`
 	rxpContextKey = `\.[a-zA-Z0-9][_.a-zA-Z0-9]+`
+	rxpVariable   = `\$[a-zA-Z][_.a-zA-Z0-9]+`
 	rxpPipeline   = `\(.+?\)`
 
-	rxpExtractFn   = `_\s+(` + rxpQuotedText + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*`
-	rxpExtractArgs = `_\s+(` + rxpQuotedText + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*([^}]*)`
+	rxpExtractFn   = `_\s+(` + rxpQuotedText + `|` + rxpVariable + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*`
+	rxpExtractArgs = `_\s+(` + rxpQuotedText + `|` + rxpVariable + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*([^}]*)`
 	rxpExtractNote = `/\*\s+?([^*}]+)\s+?\*/`
 
 	rxExtractFnNope         = regexp.MustCompile(`\(\s*([^_][^"\s]+)\s*(.*)\s*\)`)
@@ -142,7 +142,7 @@ func (c *Command) _extractLocales(path string) (extracted map[string][]string) {
 		modified = []byte(mod)
 		for k, v := range foundMsgs {
 			for _, vv := range v {
-				if !beStrings.StringInStrings(vv, extracted[k]...) {
+				if !slices.Present(vv, extracted[k]...) {
 					extracted[k] = append(extracted[k], vv)
 				}
 			}
@@ -150,7 +150,7 @@ func (c *Command) _extractLocales(path string) (extracted map[string][]string) {
 		}
 		for k, v := range foundVars {
 			for _, vv := range v {
-				if !beStrings.StringInStrings(vv, variableKeys[k]...) {
+				if !slices.Present(vv, variableKeys[k]...) {
 					variableKeys[k] = append(variableKeys[k], vv)
 				}
 			}
@@ -207,7 +207,7 @@ func (c *Command) _extractLocalesAction(ctx *cli.Context) (err error) {
 	argc := len(argv)
 	switch argc {
 	case 0:
-		cli.ShowCommandHelpAndExit(ctx, "be-extract-locales", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	var outDir string
@@ -244,7 +244,7 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 	for _, arg := range argv {
 		for key, hints := range c._extractLocales(arg) {
 			for _, hint := range hints {
-				if !beStrings.StringInStrings(hint, found[key]...) {
+				if !slices.Present(hint, found[key]...) {
 					found[key] = append(found[key], hint)
 				}
 			}

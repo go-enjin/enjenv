@@ -24,13 +24,12 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	beStrings "github.com/go-enjin/be/pkg/strings"
-
 	"github.com/go-enjin/be/pkg/cli/env"
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/net"
 	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-enjin/be/pkg/slices"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/globals"
@@ -243,14 +242,15 @@ func (s *System) PostInitSystem(ctx *cli.Context) (err error) {
 	return
 }
 
-func (s *System) NodeBin(name string, argv ...string) (status int, err error) {
+func (s *System) NodeBin(argv ...string) (err error) {
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "node")
 	if !bePath.IsFile(bin) {
 		err = fmt.Errorf("node not present")
 		return
 	}
-	return run.Exe(bin, argv...)
+	err = run.Interactive(os.Environ(), bePath.Pwd(), bin, argv...)
+	return
 }
 
 func (s *System) NpmBin(name string, argv ...string) (status int, err error) {
@@ -337,7 +337,7 @@ var rxPackageScriptsLines = regexp.MustCompile(`(?ms)"([^"]+?)"\s*:\s*"\s*([^"]+
 func (s *System) ListPackageDirs(path string) (dirs []string, err error) {
 	if paths, err := bePath.ListDirs("."); err == nil {
 		for _, dir := range paths {
-			if dir[0:2] == "./" {
+			if len(dir) >= 2 && dir[0:2] == "./" {
 				dir = dir[2:]
 			}
 			switch dir {
@@ -397,7 +397,7 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 			dir, _ = bePath.Abs(pkg)
 			dir = bePath.Base(bePath.Dir(dir))
 		}
-		if beStrings.StringInStrings(dir, iniPaths...) {
+		if slices.Present(dir, iniPaths...) {
 			continue
 		}
 		if contentBytes, err := bePath.ReadFile(pkg); err == nil {
@@ -639,7 +639,7 @@ func (s *System) runPackageSystem(ctx *cli.Context, pm, dir string, scripts map[
 	var targets []string
 	argv := ctx.Args().Slice()
 	if len(argv) == 0 {
-		cli.ShowCommandHelpAndExit(ctx, dir, 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 	for _, arg := range argv {
 		if _, ok := scripts[arg]; !ok {

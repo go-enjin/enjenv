@@ -53,7 +53,7 @@ func (c *Command) actionAppStop(ctx *cli.Context) (err error) {
 	} else if !all && ctx.NArg() >= 1 {
 		appNames = ctx.Args().Slice()
 	} else {
-		cli.ShowCommandHelpAndExit(ctx, "stop", 1)
+		cli.ShowSubcommandHelpAndExit(ctx, 1)
 	}
 
 	if err = common.DropPrivilegesTo(c.config.RunAs.User, c.config.RunAs.Group); err != nil {
