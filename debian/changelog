@@ -1,3 +1,26 @@
+enjenv (0.1.13) unstable; urgency=medium
+
+  * tagged 0.1.13 release build - c27c062296594223a307bb75e44f28494a807bb5
+  * upstream changes:
+   * c27c062 Makefile: setting UNTAGGED_VERSION to v0.1.13
+   * f9f1a8e go.mod: be-update (v0.4.0); tidy
+   * 108698e Golang.cmd.mk: bugfix for be-update target
+   * 3bd4efa commands/enjin: new be-make-feature command
+   * 9992b78 commands/enjin: new be-enjin-mk command
+   * 3496cde systems/nodejs: refactor node sub-command to use interactive run, simplify call signature
+   * ce180e5 systems/nodejs: bugfix for index out of range panics in ListPackageDirs method
+   * e928035 pkg/system: disable cli completion for managed system init sub-command
+   * cdbeed8 pkg,systems: code cosmetic changes (remove redundant type specifiers)
+   * 45f5de4 _templates (bash_autocomplete): updated to urfave/cli/v2.25.7 version
+   * b10e325 commands/enjin (be-pkg-list): code cosmetic changes
+   * b22aeed cmd/enjenv: cleanup cli app bash completion and short option handling settings
+   * 8e49752 Golang.cmd.mk, Makefile: initial implementation of variable _BUILD_TAGS to allow for specifying go-enjin build tags needed by enjenv
+   * cddf6c8 all cli comands: use ShowSubcommandHelpAndExit for stopping action with help output
+   * 8b34360 commands/enjin (be-extract-locales): include regexp consideration for $variables
+   * 16e048b commands,pkg,systems: updates for latest enjin changes
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Mon, 28 Aug 2023 14:29:39 -0400
+
 enjenv (0.1.12) unstable; urgency=medium
 
   * tagged v0.1.12 release build - ed149228e9880b4a0c1cfd5008d26e55a2f3ebbd
