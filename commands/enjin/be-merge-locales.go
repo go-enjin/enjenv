@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-enjin/golang-org-x-text/language"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/be/pkg/lang/catalog"
+	"github.com/go-enjin/golang-org-x-text/language"
 
 	bePath "github.com/go-enjin/be/pkg/path"
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -96,7 +98,7 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 		return
 	}
 
-	var messagesGotextJson GotextData
+	var messagesGotextJson catalog.GoText
 	var messagesGotextContents []byte
 	if messagesGotextContents, err = bePath.ReadFile(messagesGotextPath); err != nil {
 		err = fmt.Errorf("error reading file: %v - %v", messagesGotextPath, err)
@@ -106,12 +108,12 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 		err = fmt.Errorf("error parsing json: %v - %v", messagesGotextPath, err)
 		return
 	}
-	messagesGotext := make(map[string]Message)
+	messagesGotext := make(map[string]*catalog.Message)
 	for _, data := range messagesGotextJson.Messages {
 		messagesGotext[data.Key] = data
 	}
 
-	var outGotextJson GotextData
+	var outGotextJson catalog.GoText
 	var outGotextContents []byte
 	if outGotextContents, err = bePath.ReadFile(outGotextPath); err != nil {
 		err = fmt.Errorf("error reading file: %v - %v", outGotextPath, err)
@@ -121,17 +123,19 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 		err = fmt.Errorf("error parsing json: %v - %v", outGotextPath, err)
 		return
 	}
-	outGotext := make(map[string]Message)
+	outGotext := make(map[string]*catalog.Message)
 	for _, data := range outGotextJson.Messages {
 		outGotext[data.Key] = data
 	}
 
-	var modified []Message
+	var modified []*catalog.Message
 
 	for _, data := range outGotextJson.Messages {
 		if v, ok := messagesGotext[data.Key]; ok {
-			if v.Translation == "" {
-				io.StderrF("# %v locale translation is empty: \"%v\"\n", outGotextJson.Language, data.Key)
+			if v.Translation.Select == nil && v.Translation.String == "" {
+				io.StderrF("# %v locale string translation is empty: \"%v\"\n", outGotextJson.Language, data.Key)
+			} else if v.Translation.Select != nil && len(v.Translation.Select.Cases) == 0 {
+				io.StderrF("# %v locale select translation has no cases: \"%v\"\n", outGotextJson.Language, data.Key)
 			} else {
 				data.Translation = v.Translation
 			}
