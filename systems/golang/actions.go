@@ -121,7 +121,7 @@ func (s *System) ActionGoBuild(ctx *cli.Context) (err error) {
 		extra = append([]string{"-trimpath"}, extra...)
 	} else {
 		io.StdoutF("# optimizing for debug build\n")
-		gcFlags = append(gcFlags, `-N -l`)
+		gcFlags = append(gcFlags, `all="-l" -N -l`)
 	}
 
 	if len(asmFlags) > 0 {
