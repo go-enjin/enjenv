@@ -18,6 +18,9 @@
 #:
 #: CHANGELOG
 #:
+#: v0.1.3 - GOPKG_KEYS support for (key)_LATEST_VER
+#:        * correct debug build flags
+#:
 #: v0.1.2 - go-curses/coreutils updates
 #:        * allow non-enjin things, set GO_ENJIN_PKG and BE_LOCAL_PATH to 'nil'
 #:        * updates to how be-update derives PKG_LIST
@@ -35,7 +38,7 @@
 #:
 ###############################################################################
 
-ENJENV_MK_VERSION := v0.1.2
+ENJENV_MK_VERSION := v0.1.3
 
 .PHONY: __golang __tidy __local __unlocal __be_update
 
@@ -192,7 +195,7 @@ endef
 # 1: bin-name, 2: goos, 3: goarch, 4: src
 define __go_build_debug
 	echo "# building $(2)-$(3) (debug): ${BIN_NAME} (${BUILD_VERSION}, ${BUILD_RELEASE})"; \
-	echo $(call __cmd_go_build,$(1),$(2),$(3),,-N -l,,,$(4)); \
+	echo $(call __cmd_go_build,$(1),$(2),$(3),,all=-l -N -l,,,$(4)); \
 	$(call __cmd_go_build,$(1),$(2),$(3),,-N -l,,,$(4))
 endef
 
@@ -218,7 +221,7 @@ $(if ${GOPKG_KEYS},$(foreach key,${GOPKG_KEYS},$(shell \
 			-n "$($(key)_GO_PACKAGE)" \
 			-a "$($(key)_GO_PACKAGE)" != "nil" \
 		]; then \
-			echo "$($(key)_GO_PACKAGE)@latest"; \
+			echo "$($(key)_GO_PACKAGE)@$(if $($(key)_LATEST_VER),$($(key)_LATEST_VER),latest)"; \
 		fi \
 )))
 endef
