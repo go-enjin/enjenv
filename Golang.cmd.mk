@@ -38,7 +38,7 @@
 #:
 ###############################################################################
 
-ENJENV_MK_VERSION := v0.1.3
+ENJENV_MK_VERSION := v0.1.4
 
 .PHONY: __golang __tidy __local __unlocal __be_update
 
@@ -215,7 +215,10 @@ define __upx_build
 endef
 
 define __pkg_list_latest
-$(ifneq ${GO_ENJIN_PKG},nil,"${GO_ENJIN_PKG}@latest ")\
+$(shell \
+	if [ "${GO_ENJIN_PKG}" != "nil" ]; then \
+		echo -n "${GO_ENJIN_PKG}@latest "; \
+	fi)\
 $(if ${GOPKG_KEYS},$(foreach key,${GOPKG_KEYS},$(shell \
 		if [ \
 			-n "$($(key)_GO_PACKAGE)" \
