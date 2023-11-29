@@ -140,7 +140,7 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 			Language: tag.String(),
 			Messages: messages,
 		}
-		if output, eee := json.MarshalIndent(outData, "", "\t"); eee == nil {
+		if output, eee := json.MarshalIndent(outData, "", "    "); eee == nil {
 			if eee = os.WriteFile(outPath, []byte(output), 0664); eee != nil {
 				err = fmt.Errorf("error writing file: %v - %v", outPath, eee)
 				return
