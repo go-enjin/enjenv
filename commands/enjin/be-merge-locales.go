@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/go-enjin/golang-org-x-text/language"
 
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -76,6 +78,12 @@ func (c *Command) _mergeLocalesProcess(outDir string, tags []language.Tag) (err 
 		if bePath.IsDir(outDirTag) {
 			if ee := c._mergeLocales(outDirTag); ee == nil {
 				io.StdoutF("# updated: %v\n", outDirTag)
+			} else if ee.Error() == outDirTag+"/messages.gotext.json not found" {
+				if ee = c._initLocales(outDirTag); ee == nil {
+					io.StdoutF("# initialized: %v\n", outDirTag)
+				} else {
+					io.StdoutF("# skipped (init): %v (%v)\n", outDirTag, ee)
+				}
 			} else {
 				io.StdoutF("# skipped: %v (%v)\n", outDirTag, ee)
 			}
@@ -99,33 +107,15 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 	}
 
 	var messagesGotextJson catalog.GoText
-	var messagesGotextContents []byte
-	if messagesGotextContents, err = bePath.ReadFile(messagesGotextPath); err != nil {
-		err = fmt.Errorf("error reading file: %v - %v", messagesGotextPath, err)
+	var messagesGotext map[string]*catalog.Message
+	if messagesGotextJson, messagesGotext, _, err = c._readGoText(messagesGotextPath); err != nil {
 		return
-	}
-	if err = json.Unmarshal(messagesGotextContents, &messagesGotextJson); err != nil {
-		err = fmt.Errorf("error parsing json: %v - %v", messagesGotextPath, err)
-		return
-	}
-	messagesGotext := make(map[string]*catalog.Message)
-	for _, data := range messagesGotextJson.Messages {
-		messagesGotext[data.Key] = data
 	}
 
 	var outGotextJson catalog.GoText
-	var outGotextContents []byte
-	if outGotextContents, err = bePath.ReadFile(outGotextPath); err != nil {
-		err = fmt.Errorf("error reading file: %v - %v", outGotextPath, err)
+	var outGotext map[string]*catalog.Message
+	if outGotextJson, outGotext, _, err = c._readGoText(outGotextPath); err != nil {
 		return
-	}
-	if err = json.Unmarshal(outGotextContents, &outGotextJson); err != nil {
-		err = fmt.Errorf("error parsing json: %v - %v", outGotextPath, err)
-		return
-	}
-	outGotext := make(map[string]*catalog.Message)
-	for _, data := range outGotextJson.Messages {
-		outGotext[data.Key] = data
 	}
 
 	var modified []*catalog.Message
@@ -154,14 +144,95 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 
 	outGotextJson.Messages = modified
 
-	var outJson []byte
-	if outJson, err = json.MarshalIndent(outGotextJson, "", "\t"); err != nil {
-		err = fmt.Errorf("error encoding json: %v - %v", outGotextPath, err)
+	if err = c._writeGoText(outGotextPath, outGotextJson); err != nil {
 		return
 	}
-	if err = os.WriteFile(outGotextPath, outJson, 0664); err != nil {
-		err = fmt.Errorf("error writing file: %v - %v", outGotextPath, err)
+	return
+}
+
+func (c *Command) _initLocales(dir string) (err error) {
+	messagesGotextPath := dir + "/messages.gotext.json"
+	outGotextPath := dir + "/out.gotext.json"
+
+	if bePath.IsFile(messagesGotextPath) {
+		err = fmt.Errorf("%v exists already", messagesGotextPath)
 		return
 	}
+
+	if !bePath.IsFile(outGotextPath) {
+		err = fmt.Errorf("%v not found", outGotextPath)
+		return
+	}
+
+	var messageOrder []string
+	var outGotextJson catalog.GoText
+	var outGotext map[string]*catalog.Message
+	if outGotextJson, outGotext, messageOrder, err = c._readGoText(outGotextPath); err != nil {
+		return
+	}
+
+	messagesGotextJson := catalog.GoText{}
+	messagesGotextJson.Language = outGotextJson.Language
+	outGotextJson.Messages = nil
+
+	for _, key := range messageOrder {
+		message := outGotext[key].Copy()
+		if message.Translation == nil {
+			message.Translation = &catalog.Translation{
+				String: message.Key,
+			}
+		} else if message.Translation.String == "" && message.Translation.Select == nil {
+			message.Translation.String = message.Key
+		}
+		outGotextJson.Messages = append(outGotextJson.Messages, outGotext[key]) // original
+		messagesGotextJson.Messages = append(messagesGotextJson.Messages, message)
+	}
+
+	if err = c._writeGoText(outGotextPath, outGotextJson); err != nil {
+		return
+	}
+	if err = c._writeGoText(messagesGotextPath, messagesGotextJson); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *Command) _readGoText(path string) (gotext catalog.GoText, messages map[string]*catalog.Message, order []string, err error) {
+	gotext = catalog.GoText{}
+	var data []byte
+	if data, err = bePath.ReadFile(path); err != nil {
+		err = fmt.Errorf("error reading file: %v - %v", path, err)
+		return
+	}
+	if err = json.Unmarshal(data, &gotext); err != nil {
+		err = fmt.Errorf("error parsing json: %v - %v", path, err)
+		return
+	}
+	messages = make(map[string]*catalog.Message)
+	for _, message := range gotext.Messages {
+		if previous, present := messages[message.Key]; present {
+			if message.TranslatorComment != "" && !strings.Contains(previous.TranslatorComment, message.TranslatorComment) {
+				messages[message.Key].TranslatorComment += message.TranslatorComment
+			}
+		} else {
+			messages[message.Key] = message
+			order = append(order, message.Key)
+		}
+	}
+	return
+}
+
+func (c *Command) _writeGoText(destination string, gotext catalog.GoText) (err error) {
+	var data []byte
+	if data, err = json.MarshalIndent(gotext, "", "    "); err != nil {
+		err = fmt.Errorf("error encoding json: %v - %v", destination, err)
+		return
+	}
+	if err = os.WriteFile(destination, data, 0664); err != nil {
+		err = fmt.Errorf("error writing file: %v - %v", destination, err)
+		return
+	}
+
 	return
 }
