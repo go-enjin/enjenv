@@ -18,11 +18,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/lang/catalog"
+	"github.com/go-enjin/be/pkg/maps"
 	"github.com/go-enjin/golang-org-x-text/language"
 
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -119,7 +122,9 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 	}
 
 	var modified []*catalog.Message
+	unique := make(map[string]*catalog.Message)
 
+	// populate all found messages
 	for _, data := range outGotextJson.Messages {
 		if v, ok := messagesGotext[data.Key]; ok {
 			if v.Translation.Select == nil && v.Translation.String == "" {
@@ -132,9 +137,16 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 		} else {
 			io.StderrF("# %v locale translation missing from messages: \"%v\"\n", outGotextJson.Language, data.Key)
 		}
-		modified = append(modified, data)
+		if existing, present := unique[data.Key]; present {
+			//io.StderrF("# %v locale translation duplicate skipped: \"%v\"\n", outGotextJson.Language, data.Key)
+			existing.TranslatorComment += data.TranslatorComment
+		} else {
+			unique[data.Key] = data
+			modified = append(modified, data)
+		}
 	}
 
+	// populate custom messages
 	for _, data := range messagesGotextJson.Messages {
 		if _, ok := outGotext[data.Key]; !ok {
 			io.StderrF("# %v locale includes custom message translation: \"%v\": \"%v\"\n", messagesGotextJson.Language, data.Key, data.Translation)
