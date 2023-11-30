@@ -142,6 +142,10 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 		}
 	}
 
+	for idx := range modified {
+		modified[idx].TranslatorComment = c._collapseTranslatorComment(modified[idx].TranslatorComment)
+	}
+
 	outGotextJson.Messages = modified
 
 	if err = c._writeGoText(outGotextPath, outGotextJson); err != nil {
@@ -234,5 +238,34 @@ func (c *Command) _writeGoText(destination string, gotext catalog.GoText) (err e
 		return
 	}
 
+	return
+}
+
+var rxTranslatorCommentFrom = regexp.MustCompile(`\s*\[from\:\s*([^]]+?)\]`)
+
+func (c *Command) _collapseTranslatorComment(comment string) (collapsed string) {
+	unique := make(map[string]int)
+	m := rxTranslatorCommentFrom.FindAllStringSubmatch(comment, -1)
+	for _, mm := range m {
+		from := mm[1]
+		unique[from] += 1
+	}
+	collapsed = rxTranslatorCommentFrom.ReplaceAllString(comment, "")
+	if len(unique) > 0 {
+		if collapsed != "" {
+			collapsed += "\n"
+		}
+		collapsed += "[from: "
+		for idx, filename := range maps.SortedKeys(unique) {
+			if idx > 0 {
+				collapsed += ", "
+			}
+			collapsed += filename
+			if count := unique[filename]; count > 1 {
+				collapsed += "=" + strconv.Itoa(count)
+			}
+		}
+		collapsed += "]"
+	}
 	return
 }
