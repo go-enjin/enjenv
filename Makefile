@@ -34,7 +34,7 @@
 
 BE_LOCAL_PATH ?= ../../go-enjin/be
 
-GOPKG_KEYS ?= CDK CTK
+GOPKG_KEYS ?= CDK CTK GOXT
 
 CDK_GO_PACKAGE ?= github.com/go-curses/cdk
 CDK_LOCAL_PATH ?= ../../go-curses/cdk
@@ -42,8 +42,12 @@ CDK_LOCAL_PATH ?= ../../go-curses/cdk
 CTK_GO_PACKAGE ?= github.com/go-curses/ctk
 CTK_LOCAL_PATH ?= ../../go-curses/ctk
 
+GOXT_GO_PACKAGE ?= github.com/go-enjin/golang-org-x-text
+GOXT_LOCAL_PATH ?= ../golang-org-x-text
+GOXT_LATEST_VER ?= v0.12.1-enjin.2
+
 BIN_NAME ?= enjenv
-UNTAGGED_VERSION ?= v0.1.14
+UNTAGGED_VERSION ?= v0.1.16
 UNTAGGED_COMMIT ?= 0000000000
 
 CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}

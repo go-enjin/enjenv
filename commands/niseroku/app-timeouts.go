@@ -15,9 +15,8 @@
 package niseroku
 
 import (
+	"encoding/json"
 	"time"
-
-	"github.com/goccy/go-json"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )

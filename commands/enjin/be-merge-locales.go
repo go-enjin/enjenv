@@ -18,11 +18,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 
-	"github.com/go-enjin/golang-org-x-text/language"
 	"github.com/urfave/cli/v2"
 
+	"github.com/go-enjin/be/pkg/lang/catalog"
+	"github.com/go-enjin/be/pkg/maps"
+	"github.com/go-enjin/golang-org-x-text/language"
+
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -74,6 +81,12 @@ func (c *Command) _mergeLocalesProcess(outDir string, tags []language.Tag) (err 
 		if bePath.IsDir(outDirTag) {
 			if ee := c._mergeLocales(outDirTag); ee == nil {
 				io.StdoutF("# updated: %v\n", outDirTag)
+			} else if ee.Error() == outDirTag+"/messages.gotext.json not found" {
+				if ee = c._initLocales(outDirTag); ee == nil {
+					io.StdoutF("# initialized: %v\n", outDirTag)
+				} else {
+					io.StdoutF("# skipped (init): %v (%v)\n", outDirTag, ee)
+				}
 			} else {
 				io.StdoutF("# skipped: %v (%v)\n", outDirTag, ee)
 			}
@@ -96,51 +109,44 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 		return
 	}
 
-	var messagesGotextJson GotextData
-	var messagesGotextContents []byte
-	if messagesGotextContents, err = bePath.ReadFile(messagesGotextPath); err != nil {
-		err = fmt.Errorf("error reading file: %v - %v", messagesGotextPath, err)
+	var messagesGotextJson catalog.GoText
+	var messagesGotext map[string]*catalog.Message
+	if messagesGotextJson, messagesGotext, _, err = c._readGoText(messagesGotextPath); err != nil {
 		return
-	}
-	if err = json.Unmarshal(messagesGotextContents, &messagesGotextJson); err != nil {
-		err = fmt.Errorf("error parsing json: %v - %v", messagesGotextPath, err)
-		return
-	}
-	messagesGotext := make(map[string]Message)
-	for _, data := range messagesGotextJson.Messages {
-		messagesGotext[data.Key] = data
 	}
 
-	var outGotextJson GotextData
-	var outGotextContents []byte
-	if outGotextContents, err = bePath.ReadFile(outGotextPath); err != nil {
-		err = fmt.Errorf("error reading file: %v - %v", outGotextPath, err)
+	var outGotextJson catalog.GoText
+	var outGotext map[string]*catalog.Message
+	if outGotextJson, outGotext, _, err = c._readGoText(outGotextPath); err != nil {
 		return
 	}
-	if err = json.Unmarshal(outGotextContents, &outGotextJson); err != nil {
-		err = fmt.Errorf("error parsing json: %v - %v", outGotextPath, err)
-		return
-	}
-	outGotext := make(map[string]Message)
-	for _, data := range outGotextJson.Messages {
-		outGotext[data.Key] = data
-	}
 
-	var modified []Message
+	var modified []*catalog.Message
+	unique := make(map[string]*catalog.Message)
 
+	// populate all found messages
 	for _, data := range outGotextJson.Messages {
 		if v, ok := messagesGotext[data.Key]; ok {
-			if v.Translation == "" {
-				io.StderrF("# %v locale translation is empty: \"%v\"\n", outGotextJson.Language, data.Key)
+			if v.Translation.Select == nil && v.Translation.String == "" {
+				io.StderrF("# %v locale string translation is empty: \"%v\"\n", outGotextJson.Language, data.Key)
+			} else if v.Translation.Select != nil && len(v.Translation.Select.Cases) == 0 {
+				io.StderrF("# %v locale select translation has no cases: \"%v\"\n", outGotextJson.Language, data.Key)
 			} else {
 				data.Translation = v.Translation
 			}
 		} else {
 			io.StderrF("# %v locale translation missing from messages: \"%v\"\n", outGotextJson.Language, data.Key)
 		}
-		modified = append(modified, data)
+		if existing, present := unique[data.Key]; present {
+			//io.StderrF("# %v locale translation duplicate skipped: \"%v\"\n", outGotextJson.Language, data.Key)
+			existing.TranslatorComment += data.TranslatorComment
+		} else {
+			unique[data.Key] = data
+			modified = append(modified, data)
+		}
 	}
 
+	// populate custom messages
 	for _, data := range messagesGotextJson.Messages {
 		if _, ok := outGotext[data.Key]; !ok {
 			io.StderrF("# %v locale includes custom message translation: \"%v\": \"%v\"\n", messagesGotextJson.Language, data.Key, data.Translation)
@@ -148,16 +154,130 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 		}
 	}
 
+	for idx := range modified {
+		modified[idx].TranslatorComment = c._collapseTranslatorComment(modified[idx].TranslatorComment)
+	}
+
 	outGotextJson.Messages = modified
 
-	var outJson []byte
-	if outJson, err = json.MarshalIndent(outGotextJson, "", "\t"); err != nil {
-		err = fmt.Errorf("error encoding json: %v - %v", outGotextPath, err)
+	if err = c._writeGoText(outGotextPath, outGotextJson); err != nil {
 		return
 	}
-	if err = os.WriteFile(outGotextPath, outJson, 0664); err != nil {
-		err = fmt.Errorf("error writing file: %v - %v", outGotextPath, err)
+	return
+}
+
+func (c *Command) _initLocales(dir string) (err error) {
+	messagesGotextPath := dir + "/messages.gotext.json"
+	outGotextPath := dir + "/out.gotext.json"
+
+	if bePath.IsFile(messagesGotextPath) {
+		err = fmt.Errorf("%v exists already", messagesGotextPath)
 		return
+	}
+
+	if !bePath.IsFile(outGotextPath) {
+		err = fmt.Errorf("%v not found", outGotextPath)
+		return
+	}
+
+	var messageOrder []string
+	var outGotextJson catalog.GoText
+	var outGotext map[string]*catalog.Message
+	if outGotextJson, outGotext, messageOrder, err = c._readGoText(outGotextPath); err != nil {
+		return
+	}
+
+	messagesGotextJson := catalog.GoText{}
+	messagesGotextJson.Language = outGotextJson.Language
+	outGotextJson.Messages = nil
+
+	for _, key := range messageOrder {
+		message := outGotext[key].Copy()
+		if message.Translation == nil {
+			message.Translation = &catalog.Translation{
+				String: message.Key,
+			}
+		} else if message.Translation.String == "" && message.Translation.Select == nil {
+			message.Translation.String = message.Key
+		}
+		outGotextJson.Messages = append(outGotextJson.Messages, outGotext[key]) // original
+		messagesGotextJson.Messages = append(messagesGotextJson.Messages, message)
+	}
+
+	if err = c._writeGoText(outGotextPath, outGotextJson); err != nil {
+		return
+	}
+	if err = c._writeGoText(messagesGotextPath, messagesGotextJson); err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *Command) _readGoText(path string) (gotext catalog.GoText, messages map[string]*catalog.Message, order []string, err error) {
+	gotext = catalog.GoText{}
+	var data []byte
+	if data, err = bePath.ReadFile(path); err != nil {
+		err = fmt.Errorf("error reading file: %v - %v", path, err)
+		return
+	}
+	if err = json.Unmarshal(data, &gotext); err != nil {
+		err = fmt.Errorf("error parsing json: %v - %v", path, err)
+		return
+	}
+	messages = make(map[string]*catalog.Message)
+	for _, message := range gotext.Messages {
+		if previous, present := messages[message.Key]; present {
+			if message.TranslatorComment != "" && !strings.Contains(previous.TranslatorComment, message.TranslatorComment) {
+				messages[message.Key].TranslatorComment += message.TranslatorComment
+			}
+		} else {
+			messages[message.Key] = message
+			order = append(order, message.Key)
+		}
+	}
+	return
+}
+
+func (c *Command) _writeGoText(destination string, gotext catalog.GoText) (err error) {
+	var data []byte
+	if data, err = json.MarshalIndent(gotext, "", "    "); err != nil {
+		err = fmt.Errorf("error encoding json: %v - %v", destination, err)
+		return
+	}
+	if err = os.WriteFile(destination, data, 0664); err != nil {
+		err = fmt.Errorf("error writing file: %v - %v", destination, err)
+		return
+	}
+
+	return
+}
+
+var rxTranslatorCommentFrom = regexp.MustCompile(`\s*\[from\:\s*([^]]+?)\]`)
+
+func (c *Command) _collapseTranslatorComment(comment string) (collapsed string) {
+	unique := make(map[string]int)
+	m := rxTranslatorCommentFrom.FindAllStringSubmatch(comment, -1)
+	for _, mm := range m {
+		from := mm[1]
+		unique[from] += 1
+	}
+	collapsed = rxTranslatorCommentFrom.ReplaceAllString(comment, "")
+	if len(unique) > 0 {
+		if collapsed != "" {
+			collapsed += "\n"
+		}
+		collapsed += "[from: "
+		for idx, filename := range maps.SortedKeys(unique) {
+			if idx > 0 {
+				collapsed += ", "
+			}
+			collapsed += filename
+			if count := unique[filename]; count > 1 {
+				collapsed += "=" + strconv.Itoa(count)
+			}
+		}
+		collapsed += "]"
 	}
 	return
 }

@@ -15,20 +15,17 @@
 package enjin
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 
-	"github.com/go-enjin/golang-org-x-text/language"
-	"github.com/goccy/go-json"
 	"github.com/urfave/cli/v2"
 
+	"github.com/go-enjin/be/pkg/lang/catalog"
+	"github.com/go-enjin/golang-org-x-text/language"
+
 	"github.com/go-enjin/be/pkg/hash/sha"
-	"github.com/go-enjin/be/pkg/maps"
 	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/be/pkg/slices"
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -58,147 +55,6 @@ produces a basic out.gotext.json file.
 	}
 }
 
-var (
-	rxpQuotedText = `".+?"`
-	rxpContextKey = `\.[a-zA-Z0-9][_.a-zA-Z0-9]+`
-	rxpVariable   = `\$[a-zA-Z][_.a-zA-Z0-9]+`
-	rxpPipeline   = `\(.+?\)`
-
-	rxpExtractFn   = `_\s+(` + rxpQuotedText + `|` + rxpVariable + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*`
-	rxpExtractArgs = `_\s+(` + rxpQuotedText + `|` + rxpVariable + `|` + rxpContextKey + `|` + rxpPipeline + `)\s*([^}]*)`
-	rxpExtractNote = `/\*\s+?([^*}]+)\s+?\*/`
-
-	rxExtractFnNope         = regexp.MustCompile(`\(\s*([^_][^"\s]+)\s*(.*)\s*\)`)
-	rxExtractFnCallArgsNote = regexp.MustCompile(`\(\s*` + rxpExtractArgs + `\s*` + rxpExtractNote + `\s*\)`)
-	rxExtractFnCallNote     = regexp.MustCompile(`\(\s*` + rxpExtractFn + `\s*` + rxpExtractNote + `\s*\)`)
-	rxExtractFnCallArgs     = regexp.MustCompile(`\(\s*` + rxpExtractArgs + `\s*\)`)
-	rxExtractFnCall         = regexp.MustCompile(`\(\s*` + rxpExtractFn + `\s*\)`)
-
-	rxExtractFnPipeArgsNote = regexp.MustCompile(`\{\{-??\s*` + rxpExtractArgs + `\s*` + rxpExtractNote + `\s*-??}}`)
-	rxExtractFnPipeNote     = regexp.MustCompile(`\{\{-??\s*` + rxpExtractFn + `\s*` + rxpExtractNote + `\s*-??}}`)
-	rxExtractFnPipeArgs     = regexp.MustCompile(`\{\{-??\s*` + rxpExtractArgs + `\s*-??}}`)
-	rxExtractFnPipe         = regexp.MustCompile(`\{\{-??\s*` + rxpExtractFn + `\s*-??}}`)
-)
-
-func (c *Command) _extractLocalesParseMessages(path, content string, rx *regexp.Regexp) (modified string, extracted, variables map[string][]string) {
-	name := filepath.Base(path)
-	extracted = make(map[string][]string)
-	variables = make(map[string][]string)
-	if rx.MatchString(content) {
-		m := rx.FindAllStringSubmatch(content, -1)
-		for _, mm := range m {
-			var hint string
-			switch len(mm) {
-			case 2: // no hints (matched and key)
-			case 3: // args are hints (matched, key, hint)
-				hint = mm[2]
-			case 4: // hints are hints (matched, key, vars, hint)
-				hint = mm[3]
-			}
-			if hint != "" {
-				hint = strings.TrimSpace(hint) + " [from: " + name + "]"
-			} else {
-				hint = "[from: " + name + "]"
-			}
-			if key := mm[1]; key != "" && key[0] == '"' {
-				key = strings.ReplaceAll(key, "\"", "")
-				extracted[key] = append(extracted[key], hint)
-			} else {
-				variables[key] = append(variables[key], hint)
-			}
-		}
-		modified = rx.ReplaceAllString(content, "($1)")
-	}
-	return
-}
-
-func (c *Command) _extractLocales(path string) (extracted map[string][]string) {
-	extracted = make(map[string][]string)
-
-	if bePath.IsDir(path) {
-		// recurse
-		if files, err := bePath.ListAllFiles(path); err == nil {
-			for _, file := range files {
-				for k, v := range c._extractLocales(file) {
-					extracted[k] = append(extracted[k], v...)
-				}
-			}
-		}
-		return
-	}
-
-	var err error
-	var contents []byte
-	if contents, err = bePath.ReadFile(path); err != nil {
-		io.StderrF("error reading file: %v - %v\n", path, err)
-		return
-	}
-
-	variableKeys := make(map[string][]string)
-	modified := contents
-	modified = []byte(rxExtractFnNope.ReplaceAllString(string(modified), "($1)"))
-
-	update := func(label, mod string, foundMsgs, foundVars map[string][]string) {
-		modified = []byte(mod)
-		for k, v := range foundMsgs {
-			for _, vv := range v {
-				if !slices.Present(vv, extracted[k]...) {
-					extracted[k] = append(extracted[k], vv)
-				}
-			}
-			// io.StderrF("[%v] message: %v - %v\n", label, k, strings.Join(v, ", "))
-		}
-		for k, v := range foundVars {
-			for _, vv := range v {
-				if !slices.Present(vv, variableKeys[k]...) {
-					variableKeys[k] = append(variableKeys[k], vv)
-				}
-			}
-			// io.StderrF("[%v] variable: %v - %v\n", label, k, strings.Join(v, ", "))
-		}
-	}
-
-	if mod, foundMsgs, foundVars := c._extractLocalesParseMessages(path, string(modified), rxExtractFnCallArgsNote); mod != "" {
-		update("call-args-note", mod, foundMsgs, foundVars)
-	}
-
-	if mod, foundMsgs, foundVars := c._extractLocalesParseMessages(path, string(modified), rxExtractFnCallNote); mod != "" {
-		update("call-note", mod, foundMsgs, foundVars)
-	}
-
-	if mod, foundMsgs, foundVars := c._extractLocalesParseMessages(path, string(modified), rxExtractFnCallArgs); mod != "" {
-		update("call-args", mod, foundMsgs, foundVars)
-	}
-
-	if mod, foundMsgs, foundVars := c._extractLocalesParseMessages(path, string(modified), rxExtractFnCall); mod != "" {
-		update("call", mod, foundMsgs, foundVars)
-	}
-
-	if mod, foundMsgs, foundVars := c._extractLocalesParseMessages(path, string(modified), rxExtractFnPipeArgsNote); mod != "" {
-		update("pipe-args-note", mod, foundMsgs, foundVars)
-	}
-
-	if mod, foundMsgs, foundVars := c._extractLocalesParseMessages(path, string(modified), rxExtractFnPipeNote); mod != "" {
-		update("pipe-note", mod, foundMsgs, foundVars)
-	}
-
-	if mod, foundMsgs, foundVars := c._extractLocalesParseMessages(path, string(modified), rxExtractFnPipeArgs); mod != "" {
-		update("pipe-args", mod, foundMsgs, foundVars)
-	}
-
-	if mod, foundMsgs, foundVars := c._extractLocalesParseMessages(path, string(modified), rxExtractFnPipe); mod != "" {
-		update("pipe", mod, foundMsgs, foundVars)
-	}
-
-	for _, vk := range maps.SortedKeys(variableKeys) {
-		if vk != "" {
-			io.StderrF("# skipping variable translation: %v - %v\n", vk, strings.Join(variableKeys[vk], ", "))
-		}
-	}
-
-	return
-}
-
 func (c *Command) _extractLocalesAction(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return
@@ -217,6 +73,40 @@ func (c *Command) _extractLocalesAction(ctx *cli.Context) (err error) {
 	}
 
 	err = c._extractLocalesProcess(outDir, tags, argv)
+	return
+}
+
+func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, err error) {
+	if bePath.IsDir(path) {
+		// recurse
+		if files, e := bePath.ListAllFiles(path); e == nil {
+			for _, file := range files {
+				if found, ee := c._extractLocalesRecurse(file); ee == nil {
+					msgs = append(msgs, found...)
+				}
+			}
+		}
+		return
+	}
+
+	var contents string
+	if data, e := bePath.ReadFile(path); e != nil {
+		err = e
+		return
+	} else {
+		contents = string(data)
+	}
+
+	msgs, err = catalog.ParseTemplateMessages(contents)
+	for idx, _ := range msgs {
+		if msgs[idx].TranslatorComment != "" {
+			msgs[idx].TranslatorComment += "\n"
+		}
+		msgs[idx].TranslatorComment += "[from: " + path + "]"
+	}
+	for idx, _ := range msgs {
+		msgs[idx].TranslatorComment = c._collapseTranslatorComment(msgs[idx].TranslatorComment)
+	}
 	return
 }
 
@@ -239,50 +129,21 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 		}
 	}
 
-	found := make(map[string][]string)
+	var messages []*catalog.Message
 
 	for _, arg := range argv {
-		for key, hints := range c._extractLocales(arg) {
-			for _, hint := range hints {
-				if !slices.Present(hint, found[key]...) {
-					found[key] = append(found[key], hint)
-				}
-			}
+		if msgs, ee := c._extractLocalesRecurse(arg); ee == nil {
+			messages = append(messages, msgs...)
 		}
 	}
 
-	sorted := maps.SortedKeys(found)
-
-	for idx, tag := range tags {
+	for _, tag := range tags {
 		outPath := outDir + "/" + tag.String() + "/out.gotext.json"
-		outData := GotextData{
+		outData := catalog.GoText{
 			Language: tag.String(),
+			Messages: messages,
 		}
-		for _, key := range sorted {
-			var hints string
-			if len(found[key]) > 0 {
-				if examples := strings.Join(found[key], ", "); examples != "" {
-					hints = examples
-				} else {
-					hints = "Copied from source."
-				}
-			} else {
-				hints = "Copied from source."
-			}
-			datum := Message{
-				Id:                key,
-				Key:               key,
-				Message:           key,
-				TranslatorComment: hints,
-			}
-			if idx > 0 {
-				datum.Translation = key + " (" + tag.String() + ")"
-			} else {
-				datum.Translation = key
-			}
-			outData.Messages = append(outData.Messages, datum)
-		}
-		if output, eee := json.MarshalIndent(outData, "", "\t"); eee == nil {
+		if output, eee := json.MarshalIndent(outData, "", "    "); eee == nil {
 			if eee = os.WriteFile(outPath, []byte(output), 0664); eee != nil {
 				err = fmt.Errorf("error writing file: %v - %v", outPath, eee)
 				return

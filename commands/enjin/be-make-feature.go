@@ -34,11 +34,16 @@ func (c *Command) makeMakeFeatureCommand(appNamePrefix string) *cli.Command {
 		Name:      "be-make-feature",
 		Category:  c.TagName,
 		Usage:     "Generate boilerplate feature package source code",
-		UsageText: appNamePrefix + " make-feature <pkg> <tag>",
+		UsageText: appNamePrefix + " make-feature [options] <pkg> <tag>",
 		Description: `
 Output a new feature.CFeature implementation.
 `,
 		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "site-feature",
+				Aliases: []string{"s"},
+				Usage:   "produce a feature.SiteFeature",
+			},
 			&cli.BoolFlag{
 				Name:    "with-header",
 				Aliases: []string{"w"},
@@ -116,8 +121,15 @@ Output a new feature.CFeature implementation.
 				rpl["Copyright"] = buf.String()
 			}
 
+			var tmplContent string
+			if ctx.Bool("site-feature") {
+				tmplContent = _templates.SiteFeatureGoTmpl
+			} else {
+				tmplContent = _templates.FeatureGoTmpl
+			}
+
 			var tt *template.Template
-			if tt, err = template.New("feature.go").Funcs(fm).Parse(_templates.FeatureGoTmpl); err != nil {
+			if tt, err = template.New("feature.go").Funcs(fm).Parse(tmplContent); err != nil {
 				return
 			}
 

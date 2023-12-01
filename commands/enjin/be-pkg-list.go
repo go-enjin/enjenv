@@ -19,7 +19,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be"
+	"github.com/go-enjin/be/_templates"
 
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -46,7 +46,7 @@ version of gotext (which supports go modules).
 			if err = c.Prepare(ctx); err != nil {
 				return
 			}
-			list := be.GoEnjinPackageList()
+			list := _templates.GoEnjinPackageList()
 			if !ctx.Bool("list") {
 				io.StdoutF("%v\n", strings.Join(list, " "))
 			} else {

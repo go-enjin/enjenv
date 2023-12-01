@@ -15,8 +15,9 @@
 package enjin
 
 import (
-	"github.com/go-enjin/golang-org-x-text/language"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/golang-org-x-text/language"
 )
 
 func (c *Command) makeBeUpdateLocalesCommand(appNamePrefix string) *cli.Command {
