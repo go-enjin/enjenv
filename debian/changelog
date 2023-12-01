@@ -1,3 +1,27 @@
+enjenv (0.1.16) unstable; urgency=medium
+
+  * tagged v0.1.16 release build - 3a2cb1d03af67f4eef6c9ca5372ac1052b7c3603
+  * upstream changes:
+   * 3a2cb1d Makefile: setting UNTAGGED_VERSION to v0.1.16
+   * 7714dd3 go.mod: be-update (v0.5.2); all modules updated; tidy
+   * 10ff72f Makefile: setting UNTAGGED_VERSION to v0.1.15
+   * 2d25cdc commands/enjin (be-extract-locales): cleanup duplicate translation messages
+   * 693e03e commands/enjin (be-{merge,extract}-locales): implement a translator comment collapsing method which cleans up the repeated [from:blah] notes
+   * c926846 commands/enjin (be-update-locales): migrate to four-spaced from tabs for *.gotext.json outputs; tech-debt cleanups - implement an _initLocales phase and abstract read/write gotext file methods
+   * 535f3a4 commands/enjin (be-extract-locales): migrate to four-spaced from tabs for *.gotext.json outputs
+   * 20c4b87 go.mod: be-update (v0.5.0); x/crypto (v0.15.0); x/sys (v0.14.0); golang-org-x-text (v0.12.1-enjin.2); tidy
+   * 6040317 Golang.cmd.mk: update to v0.1.4
+   * f51aaff Makefile: added GOXT to GOPKG_KEYS
+   * a71e7c0 commands/enjin (be-make-feature): add new -s flag to produce a site-feature rather than a generic feature
+   * f8a7fe0 Golang.cmd.mk: updated to v0.1.3
+   * cd38130 systems/golang (ActionGoBuild): correct debug gcflags
+   * 75a0e53 commands/niseroku/app-timeouts: only use one json module (encoding/json)
+   * f230344 commands/enjin (be-{extract,merge,update}-locales): migrate to latest Go-Enjin pkg/lang/catalog functionality; purge all regexp-based locales code; code cosmetic changes
+   * ab29860 commands/enjin: purge old GotextData code
+   * e1ec1f0 commands/enjin (be-pkg-list): updates for latest go-enjin changes (_templates/pkg_list)
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Thu, 30 Nov 2023 19:06:31 -0500
+
 enjenv (0.1.14) unstable; urgency=medium
 
   * tagged 0.1.14 release build - 75dcd60fb7c1a0554c98b91cd113e4192e4e3e02
