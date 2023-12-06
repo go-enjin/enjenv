@@ -1,3 +1,17 @@
+enjenv (0.1.17) unstable; urgency=medium
+
+  * tagged v0.1.17 release build - 9c65c0f77bee56ea89c7f42f8f3cf0ad6a3a0779
+  * upstream changes:
+   * 9c65c0f Makefile: setting UNTAGGED_VERSION to v0.1.17
+   * 24530a2 go.mod: be-update (v0.5.4); all modules updated; tidy
+   * 88aad89 commands/niseroku (server-reverse-proxy): migrate to slug.HttpClientDo; purge proxyClientRequest method; code cosmetic changes
+   * a149b00 commands/niseroku (server-reverse-proxy): use errors.Is for err equivalence checks
+   * 2eb3f88 commands/niseroku (slug): implement slug-specific HttpClientDo function
+   * bdd0ed8 commands/niseroku (watching): stop including pgrp, is not a pid; consolidate releate proc listing with getProcMemUsed and getProcUsage; code cosmetic changes
+   * 378cea8 pkg/cpuinfo: drop regexp and use strings.HasPrefix and strings.Fields instead; code cosmetic changes
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Wed, 06 Dec 2023 15:37:44 -0500
+
 enjenv (0.1.16) unstable; urgency=medium
 
   * tagged v0.1.16 release build - 3a2cb1d03af67f4eef6c9ca5372ac1052b7c3603
