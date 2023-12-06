@@ -42,7 +42,6 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, forwardFor string, w h
 
 	var slug *Slug
 	var slugPort int
-	var originRequestTimeout time.Duration
 	if slug = app.GetThisSlug(); slug == nil {
 		err = fmt.Errorf("origin missing this-slug: %v", app.Name)
 		return
@@ -76,18 +75,17 @@ func (rp *ReverseProxy) ServeOriginHTTP(app *Application, forwardFor string, w h
 		}
 
 		slugPort = slug.ConsumeLivePort()
-		originRequestTimeout = slug.GetOriginRequestTimeout()
 	}
 
 	var response *http.Response
-	if response, err = rp.proxyClientRequest(req, app, slugPort, originRequestTimeout); err != nil {
+
+	if response, err = slug.HttpClientDo(slugPort, req); err != nil {
 		if strings.Contains(err.Error(), "connection reset by peer") {
 			time.Sleep(100 * time.Millisecond)
-			response, err = rp.proxyClientRequest(req, app, slugPort, originRequestTimeout)
+			if response, err = slug.HttpClientDo(slugPort, req); err != nil {
+				return
+			}
 		}
-	}
-	if err != nil {
-		return
 	}
 
 	for k, v := range response.Header {

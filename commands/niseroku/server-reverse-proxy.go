@@ -24,7 +24,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/didip/tollbooth/v7/limiter"
 	"golang.org/x/crypto/acme/autocert"
@@ -298,25 +297,6 @@ func (rp *ReverseProxy) GetAppDomain(r *http.Request) (domain string, app *Appli
 	rp.RLock()
 	defer rp.RUnlock()
 	app, ok = rp.config.DomainLookup[domain]
-	return
-}
-
-func (rp *ReverseProxy) proxyClientRequest(req *http.Request, app *Application, slugPort int, timeout time.Duration) (response *http.Response, err error) {
-	transport := &http.Transport{
-		MaxConnsPerHost:       0,
-		IdleConnTimeout:       timeout,
-		ResponseHeaderTimeout: timeout,
-		ExpectContinueTimeout: timeout,
-		TLSHandshakeTimeout:   timeout,
-		DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
-			conn, err = app.Origin.Dial(slugPort)
-			return
-		},
-	}
-	client := http.Client{
-		Transport: transport,
-	}
-	response, err = client.Do(req.Clone(req.Context()))
 	return
 }
 
