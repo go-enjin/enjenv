@@ -16,6 +16,7 @@ package niseroku
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -320,7 +321,7 @@ func (rp *ReverseProxy) proxyClientRequest(req *http.Request, app *Application, 
 }
 
 func (rp *ReverseProxy) httpServe() (err error) {
-	if err = rp.http.Serve(rp.httpListener); err == http.ErrServerClosed {
+	if err = rp.http.Serve(rp.httpListener); errors.Is(err, http.ErrServerClosed) {
 		err = nil
 	} else if err != nil {
 		err = fmt.Errorf("error serving http: %v", err)
@@ -330,7 +331,7 @@ func (rp *ReverseProxy) httpServe() (err error) {
 
 func (rp *ReverseProxy) httpsServe() (err error) {
 	if rp.config.EnableSSL && rp.httpsListener != nil {
-		if err = rp.https.Serve(rp.httpsListener); err == http.ErrServerClosed {
+		if err = rp.https.Serve(rp.httpsListener); errors.Is(err, http.ErrServerClosed) {
 			err = nil
 		} else if err != nil {
 			err = fmt.Errorf("error serving https: %v", err)
