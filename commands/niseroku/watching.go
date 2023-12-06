@@ -277,32 +277,50 @@ func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports [
 }
 
 func (w *Watching) getProcMemUsed(pid int) (used uint64) {
-	for _, proc := range w.cpulist {
+	for _, proc := range w.getRelatedProcList(pid) {
 		if proc.Pid == pid {
-			// is this
 			used += proc.MemUsed
-		} else if proc.Ppid == pid || proc.Pgrp == pid {
-			// is related
-			u := w.getProcMemUsed(proc.Pid)
-			used += u
+		} else {
+			used += w.getProcMemUsed(proc.Pid)
 		}
 	}
 	return
 }
 
 func (w *Watching) getProcUsage(pid int) (usage float32, num, threads int) {
-	for _, proc := range w.cpulist {
+	for _, proc := range w.getRelatedProcList(pid) {
 		if proc.Pid == pid {
 			// is this
 			usage += proc.Usage
 			num += 1
 			threads += proc.Threads
-		} else if proc.Ppid == pid || proc.Pgrp == pid {
+		} else {
 			// is related
 			u, n, t := w.getProcUsage(proc.Pid)
 			usage += u
 			num += n
 			threads += t
+		}
+	}
+	return
+}
+
+func (w *Watching) getRelatedProcList(pid int) (list []cpuinfo.Process) {
+	var parent *cpuinfo.Process
+	for _, proc := range w.cpulist {
+		if proc.Pid == pid {
+			parent = &proc
+			break
+		}
+	}
+	if parent == nil {
+		return
+	}
+	// parent is always first
+	list = append(list, *parent)
+	for _, proc := range w.cpulist {
+		if proc.Ppid == pid {
+			list = append(list, proc)
 		}
 	}
 	return
