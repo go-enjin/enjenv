@@ -15,7 +15,10 @@
 package niseroku
 
 import (
+	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -441,5 +444,30 @@ func (s *Slug) StartForegroundWorkers(workersReady chan bool) (err error) {
 		workersReady <- true
 		workersReady = nil
 	}
+	return
+}
+
+func (s *Slug) HttpClientDo(port int, req *http.Request) (response *http.Response, err error) {
+	timeout := s.GetOriginRequestTimeout()
+	client := &http.Client{
+		Timeout: timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Transport: &http.Transport{
+			MaxIdleConns:          100,
+			MaxConnsPerHost:       100,
+			MaxIdleConnsPerHost:   100,
+			IdleConnTimeout:       timeout,
+			ResponseHeaderTimeout: timeout,
+			ExpectContinueTimeout: timeout,
+			TLSHandshakeTimeout:   timeout,
+			DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
+				conn, err = s.App.Origin.Dial(port)
+				return
+			},
+		},
+	}
+	response, err = client.Do(req)
 	return
 }
