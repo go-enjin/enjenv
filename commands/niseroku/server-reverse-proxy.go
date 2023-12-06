@@ -16,6 +16,7 @@ package niseroku
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -23,7 +24,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/didip/tollbooth/v7/limiter"
 	"golang.org/x/crypto/acme/autocert"
@@ -300,27 +300,8 @@ func (rp *ReverseProxy) GetAppDomain(r *http.Request) (domain string, app *Appli
 	return
 }
 
-func (rp *ReverseProxy) proxyClientRequest(req *http.Request, app *Application, slugPort int, timeout time.Duration) (response *http.Response, err error) {
-	transport := &http.Transport{
-		MaxConnsPerHost:       0,
-		IdleConnTimeout:       timeout,
-		ResponseHeaderTimeout: timeout,
-		ExpectContinueTimeout: timeout,
-		TLSHandshakeTimeout:   timeout,
-		DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
-			conn, err = app.Origin.Dial(slugPort)
-			return
-		},
-	}
-	client := http.Client{
-		Transport: transport,
-	}
-	response, err = client.Do(req.Clone(req.Context()))
-	return
-}
-
 func (rp *ReverseProxy) httpServe() (err error) {
-	if err = rp.http.Serve(rp.httpListener); err == http.ErrServerClosed {
+	if err = rp.http.Serve(rp.httpListener); errors.Is(err, http.ErrServerClosed) {
 		err = nil
 	} else if err != nil {
 		err = fmt.Errorf("error serving http: %v", err)
@@ -330,7 +311,7 @@ func (rp *ReverseProxy) httpServe() (err error) {
 
 func (rp *ReverseProxy) httpsServe() (err error) {
 	if rp.config.EnableSSL && rp.httpsListener != nil {
-		if err = rp.https.Serve(rp.httpsListener); err == http.ErrServerClosed {
+		if err = rp.https.Serve(rp.httpsListener); errors.Is(err, http.ErrServerClosed) {
 			err = nil
 		} else if err != nil {
 			err = fmt.Errorf("error serving https: %v", err)

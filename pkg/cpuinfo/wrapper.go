@@ -22,8 +22,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	gopsutil_host "github.com/shirou/gopsutil/v3/host"
@@ -86,18 +86,16 @@ func GetPidStats(pid int) (t int64, st uint64, ppid, pgrp, nice, threads int) {
 	return
 }
 
-var RxProcSmapsPssLine = regexp.MustCompile(`^\s*(Pss|SwapPss):\s*(\d+)\s*\S*\s*$`)
-
 func GetMemStats(pid int) (used uint64) {
 	if fh, err := os.OpenFile(fmt.Sprintf("/proc/%d/smaps", pid), os.O_RDONLY, 0); err == nil {
 		s := bufio.NewScanner(fh)
 		s.Split(bufio.ScanLines)
 		for s.Scan() {
-			text := s.Text()
-			if RxProcSmapsPssLine.MatchString(text) {
-				m := RxProcSmapsPssLine.FindAllStringSubmatch(text, 1)
-				v, _ := strconv.ParseUint(m[0][2], 10, 64)
-				used += v
+			if text := s.Text(); strings.HasPrefix(text, "Rss:") || strings.HasPrefix(text, "SwapRss:") {
+				if parts := strings.Fields(text); len(parts) >= 2 {
+					v, _ := strconv.ParseUint(parts[1], 10, 64)
+					used += v
+				}
 			}
 		}
 	}
