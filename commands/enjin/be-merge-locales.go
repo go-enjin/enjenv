@@ -18,14 +18,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-enjin/be/pkg/lang/catalog"
-	"github.com/go-enjin/be/pkg/maps"
 	"github.com/go-enjin/golang-org-x-text/language"
 
 	bePath "github.com/go-enjin/be/pkg/path"
@@ -155,7 +152,7 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 	}
 
 	for idx := range modified {
-		modified[idx].TranslatorComment = c._collapseTranslatorComment(modified[idx].TranslatorComment)
+		modified[idx].TranslatorComment = catalog.CoalesceTranslatorComment(modified[idx].TranslatorComment)
 	}
 
 	outGotextJson.Messages = modified
@@ -250,34 +247,5 @@ func (c *Command) _writeGoText(destination string, gotext catalog.GoText) (err e
 		return
 	}
 
-	return
-}
-
-var rxTranslatorCommentFrom = regexp.MustCompile(`\s*\[from\:\s*([^]]+?)\]`)
-
-func (c *Command) _collapseTranslatorComment(comment string) (collapsed string) {
-	unique := make(map[string]int)
-	m := rxTranslatorCommentFrom.FindAllStringSubmatch(comment, -1)
-	for _, mm := range m {
-		from := mm[1]
-		unique[from] += 1
-	}
-	collapsed = rxTranslatorCommentFrom.ReplaceAllString(comment, "")
-	if len(unique) > 0 {
-		if collapsed != "" {
-			collapsed += "\n"
-		}
-		collapsed += "[from: "
-		for idx, filename := range maps.SortedKeys(unique) {
-			if idx > 0 {
-				collapsed += ", "
-			}
-			collapsed += filename
-			if count := unique[filename]; count > 1 {
-				collapsed += "=" + strconv.Itoa(count)
-			}
-		}
-		collapsed += "]"
-	}
 	return
 }
