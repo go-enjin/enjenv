@@ -26,6 +26,7 @@ import (
 
 	"github.com/go-enjin/be/pkg/hash/sha"
 	bePath "github.com/go-enjin/be/pkg/path"
+
 	"github.com/go-enjin/enjenv/pkg/io"
 )
 
@@ -105,7 +106,7 @@ func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, 
 		msgs[idx].TranslatorComment += "[from: " + path + "]"
 	}
 	for idx, _ := range msgs {
-		msgs[idx].TranslatorComment = c._collapseTranslatorComment(msgs[idx].TranslatorComment)
+		msgs[idx].TranslatorComment = catalog.CoalesceTranslatorComment(msgs[idx].TranslatorComment)
 	}
 	return
 }
