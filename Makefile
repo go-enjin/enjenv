@@ -48,7 +48,7 @@ GOXT_LATEST_VER ?= v0.12.1-enjin.2
 
 BIN_NAME ?= enjenv
 UNTAGGED_VERSION ?= v0.1.18
-UNTAGGED_COMMIT ?= 0000000000
+UNTAGGED_COMMIT ?= 01a66c4b6b
 
 CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
 DISTCLEAN_FILES ?=

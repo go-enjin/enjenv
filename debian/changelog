@@ -1,3 +1,14 @@
+enjenv (0.1.18) unstable; urgency=medium
+
+  * tagged v0.1.18 release build - 01a66c4b6b1dd5ae921a8495fcde80ff535d5362
+  * upstream changes:
+   * 01a66c4 Makefile: setting UNTAGGED_VERSION to v0.1.18
+   * 344e2e2 go.mod: be-update v0.5.6; tidy
+   * a5a02d8 commands/enjin: use catalog.CoalesceTranslatorComment; purge _collapseTranslatorComment code
+   * b49b968 commands/enjin (be-extrac-locales): code cosmetic changes
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Sat, 16 Dec 2023 16:17:54 -0500
+
 enjenv (0.1.17) unstable; urgency=medium
 
   * tagged v0.1.17 release build - 9c65c0f77bee56ea89c7f42f8f3cf0ad6a3a0779
