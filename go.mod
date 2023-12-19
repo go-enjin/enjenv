@@ -27,7 +27,7 @@ require (
 	github.com/sosedoff/gitkit v0.4.0
 	github.com/tklauser/go-sysconf v0.3.13
 	github.com/urfave/cli/v2 v2.26.0
-	golang.org/x/crypto v0.16.0
+	golang.org/x/crypto v0.17.0
 	golang.org/x/sys v0.15.0
 )
 
