@@ -13,7 +13,7 @@ require (
 	github.com/go-curses/ctk v0.5.8
 	github.com/go-enjin/be v0.5.6
 	github.com/go-enjin/golang-org-x-text v0.12.1-enjin.2
-	github.com/go-git/go-git/v5 v5.10.1
+	github.com/go-git/go-git/v5 v5.11.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/iancoleman/strcase v0.3.0
 	github.com/kataras/requestid v0.0.2
