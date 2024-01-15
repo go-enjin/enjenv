@@ -1,3 +1,12 @@
+enjenv (0.1.20) unstable; urgency=medium
+
+  * tagged v0.1.20 release build - 3c875b85132703b010aabca4f855493be38b691b
+  * upstream changes:
+   * 3c875b8 Makefile: setting UNTAGGED_VERSION to v0.1.20
+   * de1abb5 go.mod: set go 1.21 (chicken versus egg problems)
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Mon, 15 Jan 2024 17:22:42 -0500
+
 enjenv (0.1.19) unstable; urgency=medium
 
   * tagged v0.1.19 release build - 0e635912a6855a37f6366d3cdb33c2c92621713b
