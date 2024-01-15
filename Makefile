@@ -47,7 +47,7 @@ GOXT_LOCAL_PATH ?= ../golang-org-x-text
 GOXT_LATEST_VER ?= v0.12.1-enjin.2
 
 BIN_NAME ?= enjenv
-UNTAGGED_VERSION ?= v0.1.18
+UNTAGGED_VERSION ?= v0.1.19
 UNTAGGED_COMMIT ?= 0000000000
 
 CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
