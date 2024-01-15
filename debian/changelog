@@ -1,3 +1,14 @@
+enjenv (0.1.19) unstable; urgency=medium
+
+  * tagged v0.1.19 release build - 0e635912a6855a37f6366d3cdb33c2c92621713b
+  * upstream changes:
+   * 0e63591 go.mod: set go 1.21.5; remove toolchain line; tidy
+   * b061e06 Makefile: setting UNTAGGED_VERSION to v0.1.19
+   * adcfa71 go.mod: all modules updated; tidy
+   * 708f14c pkg/globals: default golang version set to v1.21.5
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Mon, 15 Jan 2024 17:11:58 -0500
+
 enjenv (0.1.18) unstable; urgency=medium
 
   * tagged v0.1.18 release build - 01a66c4b6b1dd5ae921a8495fcde80ff535d5362
