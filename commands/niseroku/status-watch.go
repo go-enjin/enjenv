@@ -168,7 +168,11 @@ func (sw *StatusWatch) Run(ctx *cli.Context) (err error) {
 	sw.ctkApp.Connect(cdk.SignalPrepare, "status-watch-prepare-handler", sw.prepare)
 	sw.ctkApp.Connect(cdk.SignalStartup, "status-watch-startup-handler", sw.startup)
 	sw.ctkApp.Connect(cdk.SignalShutdown, "status-watch-quit-handler", sw.shutdown)
-	err = sw.ctkApp.Run(append([]string{"enjenv--niseroku--status--watch"}, ctx.Args().Slice()...))
+	argv := append([]string{"enjenv--niseroku--status--watch"}, ctx.Args().Slice()...)
+	if ctx.IsSet("tty-path") {
+		argv = append(argv, "--cdk-tty", ctx.String("tty-path"))
+	}
+	err = sw.ctkApp.Run(argv)
 	return
 }
 

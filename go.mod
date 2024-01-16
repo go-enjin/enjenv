@@ -7,8 +7,8 @@ require (
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.1.0
-	github.com/go-curses/cdk v0.5.20
-	github.com/go-curses/ctk v0.5.12
+	github.com/go-curses/cdk v0.5.22
+	github.com/go-curses/ctk v0.5.13
 	github.com/go-enjin/be v0.5.6
 	github.com/go-enjin/golang-org-x-text v0.12.1-enjin.2
 	github.com/go-git/go-git/v5 v5.11.0
