@@ -322,9 +322,9 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 		return
 	}
 
-	appOsEnviron := app.OsEnviron()
+	environ := app.OsEnviron()
 
-	listInfos := gr.repreproList(flavourPath, codename, appOsEnviron)
+	listInfos := gr.repreproList(flavourPath, codename, environ.Environ())
 
 	var processDSC []*ParsedDebianFile
 	var processDEB []*ParsedDebianFile
@@ -400,14 +400,14 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 	for _, name := range maps.SortedKeys(uniqueDSC) {
 		dsc := uniqueDSC[name]
 		gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, dsc.File)
-		gr.reprepro("includedsc", flavourPath, codename, dsc.File, gr.LogFile, appOsEnviron)
+		gr.reprepro("includedsc", flavourPath, codename, dsc.File, gr.LogFile, environ.Environ())
 	}
 
 	uniqueDEB := processParsedList(processDEB)
 	for _, name := range maps.SortedKeys(uniqueDEB) {
 		deb := uniqueDEB[name]
 		gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, deb.File)
-		gr.reprepro("includedeb", flavourPath, codename, deb.File, gr.LogFile, appOsEnviron)
+		gr.reprepro("includedeb", flavourPath, codename, deb.File, gr.LogFile, environ.Environ())
 	}
 
 	// this is not fun, always changed if any packages present

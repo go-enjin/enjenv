@@ -240,9 +240,9 @@ func (c *Command) enjinRepoBuildEnjinSlug(bpi buildPackInfo) (err error) {
 							Path:    bpi.buildDir,
 							Name:    name,
 							Argv:    args,
-							Environ: osEnviron,
+							Environ: environ.Environ(),
 						}); eee != nil {
-							pkgIo.STDERR("error running Procfile %v: %v\nenv: %+v\n", flavour, eee, osEnviron)
+							pkgIo.STDERR("error running Procfile %v: %v\nenv: %+v\n", flavour, eee, environ.Environ())
 						} else {
 							pkgIo.STDOUT("# apt-enjin: Procfile %v process completed\n", flavour)
 						}
@@ -322,30 +322,29 @@ func (c *Command) enjinRepoBuildAptPackage(bpi buildPackInfo) (err error) {
 		return
 	}
 
-	osEnviron := bpi.app.OsEnviron()
+	environ := bpi.app.OsEnviron()
 	enjenvPath := bpi.cacheDir
-	enjInitEnviron := append(osEnviron, "ENJENV_PATH="+enjenvPath)
+	environ.Set("ENJENV_PATH", enjenvPath)
+	golangVersion := environ.String("ENJENV_BUILDPACK_GOLANG", globals.DefaultGolangVersion)
 
-	enjenvInitGolangArgv := []string{"init", "--force", "--golang", env.Get("ENJENV_BUILDPACK_GOLANG", globals.DefaultGolangVersion)}
-	if err = pkgRun.EnjenvExeWith(bpi.buildDir, enjInitEnviron, enjenvInitGolangArgv...); err != nil {
+	if err = pkgRun.EnjenvExeWith(bpi.buildDir, environ.Environ(), "init", "--force", "--golang", golangVersion); err != nil {
 		err = pkgIo.ErrorF("enjenv golang init error: %v", err)
 		return
 	}
 
 	var exportOutput string
-	if exportOutput, _, err = pkgRun.EnjenvCmdWith(bpi.buildDir, enjInitEnviron, "export"); err != nil {
+	if exportOutput, _, err = pkgRun.EnjenvCmdWith(bpi.buildDir, environ.Environ(), "export"); err != nil {
 		err = pkgIo.ErrorF("enjenv export env error: %v", err)
 		return
 	}
 
 	pkgIo.STDOUT("export output:\n%v\n", exportOutput)
 
-	enjEnviron := osEnviron
 	for _, line := range strings.Split(exportOutput, "\n") {
 		if RxExportLine.MatchString(line) {
 			m := RxExportLine.FindAllStringSubmatch(line, 1)
 			k, v := m[0][1], m[0][3]
-			enjEnviron = append(enjEnviron, k+"="+v)
+			environ.Set(k, v)
 		}
 	}
 
@@ -412,18 +411,15 @@ func (c *Command) enjinRepoBuildAptPackage(bpi buildPackInfo) (err error) {
 		}
 	}
 
-	appOsEnviron := append(
-		enjEnviron,
-		"GNUPGHOME="+gpgHome,
-		"AE_GPG_HOME="+gpgHome,
-		"AE_SIGN_KEY="+signWith,
-		"AE_ARCHIVES="+aptApp.AptArchivesPath,
-		"UNTAGGED_COMMIT="+bpi.info.NewRev[:10],
-	)
+	environ.Set("GNUPGHOME", gpgHome)
+	environ.Set("AE_GPG_HOME", gpgHome)
+	environ.Set("AE_SIGN_KEY", signWith)
+	environ.Set("AE_ARCHIVES", aptApp.AptArchivesPath)
+	environ.Set("UNTAGGED_COMMIT", bpi.info.NewRev[:10])
 
 	pkgIo.STDOUT("# starting %v build process: %v - %v\n", bpi.info.RefName, name, makeFlavourArgv)
 
-	if err = run.ExeWith(&run.Options{Path: ".", Name: name, Argv: makeFlavourArgv, Environ: appOsEnviron}); err != nil {
+	if err = run.ExeWith(&run.Options{Path: ".", Name: name, Argv: makeFlavourArgv, Environ: environ.Environ()}); err != nil {
 		return
 	}
 

@@ -235,7 +235,10 @@ func (s *SlugWorker) PrepareStart(port int) (webCmd string, webArgv, environ []s
 
 	s.Slug.App.LogInfoF("preparing slug instance: PORT=%d %v (%v)\n", port, web, s.Slug.Name)
 
-	environ = append(s.Slug.App.OsEnviron(), fmt.Sprintf("PORT=%d", port))
+	env := s.Slug.App.OsEnviron()
+	env.Set("PORT", strconv.Itoa(port))
+	environ = env.Environ()
+
 	var parsedArgs []string
 	if parsedArgs, err = common.ParseControlArgv(web); err != nil {
 		err = fmt.Errorf("error parsing Procfile web entry argv: %v \"%v\"", s.Slug.Name, web)
