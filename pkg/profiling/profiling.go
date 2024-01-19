@@ -25,6 +25,7 @@ import (
 	"github.com/go-corelibs/env"
 	clpath "github.com/go-corelibs/path"
 	clstrings "github.com/go-corelibs/strings"
+	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 var (
@@ -70,7 +71,6 @@ func init() {
 	} else {
 		panic(fmt.Errorf("error getting absolute profile path: %v", err))
 	}
-	// _, _ = fmt.Fprintf(os.Stderr, "pkg/profiling: enabled=%v, type=%v, path=%v\n", Enabled, ProfileType, ProfilePath)
 }
 
 func newProfiler(profileType func(*profile.Profile), profilePath string) (profiler interface{ Stop() }) {
@@ -86,6 +86,7 @@ func newProfiler(profileType func(*profile.Profile), profilePath string) (profil
 var instance interface{ Stop() }
 
 func Start() {
+	pkgIo.STDOUT("pkg/profiling: enabled=%v, type=%v, path=%v\n", Enabled, ProfileType, ProfilePath)
 	if !Enabled {
 		return
 	}
