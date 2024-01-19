@@ -15,7 +15,7 @@
 # limitations under the License.
 
 GOLANG_MAKEFILE_KEYS += CMD
-GOLANG_CMD_MK_VERSION := v0.1.10
+GOLANG_CMD_MK_VERSION := v0.1.11
 
 .PHONY: __golang __tidy __local __unlocal __be_update
 .PHONY: __vet __test __cover __generate
@@ -65,13 +65,17 @@ endif
 
 _INTERNAL_BUILD_LOG_ ?= /dev/null
 
-_BUILD_TAGS := $(shell \
+-include Golang.lib.mk
+
+_BUILD_TAGS ?= $(call __build_tags)
+
+define __build_tags
+$(shell \
 	echo "${BUILD_TAGS}" \
 		| perl -pe 's!\s*\n! !g;s!\s+! !g;' \
 		| perl -pe 's!\s+!,!g;s!^,!!;s!,\s*$$!!;' \
 )
-
--include Golang.lib.mk
+endef
 
 define __clean
 	for FOUND in $(1); do \
