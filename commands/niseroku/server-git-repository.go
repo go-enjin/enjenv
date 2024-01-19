@@ -415,8 +415,6 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 	return
 }
 
-var RxDscFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)\.dsc\s*$`)
-
 type ParsedDebianFile struct {
 	Type    string
 	File    string
@@ -445,8 +443,6 @@ func ParseDebianDscFilename(file string) (parsed *ParsedDebianFile, ok bool) {
 	}
 	return
 }
-
-var RxDebFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)_(.+?)\.u?deb\s*$`)
 
 func ParseDebianDebFilename(file string) (parsed *ParsedDebianFile, ok bool) {
 	filename := filepath.Base(file)
