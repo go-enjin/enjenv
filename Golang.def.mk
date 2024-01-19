@@ -15,7 +15,7 @@
 # limitations under the License.
 
 GOLANG_MAKEFILE_KEYS += DEF
-GOLANG_DEF_MK_VERSION := v0.1.4
+GOLANG_DEF_MK_VERSION := v0.1.5
 
 .PHONY: all help
 .PHONY: clean distclean realclean
@@ -120,6 +120,8 @@ realclean: distclean
 debug: BUILD_VERSION=$(call __tag_ver)
 debug: BUILD_RELEASE=$(call __rel_ver)
 debug: TRIM_PATHS=$(call __go_trim_path)
+debug: BUILD_TAGS += ${DEBUG_BUILD_TAGS}
+debug: _BUILD_TAGS = $(call __build_tags)
 debug: __golang
 	@$(call __go_build_debug,"${BUILD_NAME}",${BUILD_OS},${BUILD_ARCH},${SRC_CMD_PATH})
 	@${SHASUM_CMD} "${BUILD_NAME}"
