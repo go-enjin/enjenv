@@ -21,24 +21,23 @@ import (
 )
 
 var (
-	DefaultGolangVersion = "1.21.5"
+	DefaultGolangVersion = "1.21.6"
 	DefaultNodejsVersion = "18.16.1"
 )
 
 var (
-	BuildVersion   = "v0.0.0"
-	BuildRelease   = "development"
+	BuildVersion   = "v0.2.0"
+	BuildRelease   = "trunk"
 	BuildBinPath   = ""
-	BuildBinHash   = ""
-	DisplayVersion = "v0.0.0 (development) [nil]"
-	OsHostname     = "?"
+	BuildBinHash   = "0000000000"
+	DisplayVersion = "v0.2.0 (trunk) [0000000000]"
+	OsHostname, _  = os.Hostname()
 )
 
 func init() {
 	var err error
-	if BuildBinPath, BuildBinHash, err = basepath.BinCheck(); err != nil {
-		panic(err)
+	if BuildBinPath, BuildBinHash, err = basepath.BinCheck(); err == nil {
+		DisplayVersion = BuildVersion + " (" + BuildRelease + ") [" + BuildBinHash + "]"
+		_ = os.Setenv("ENJENV_BIN", BuildBinPath)
 	}
-	DisplayVersion = BuildVersion + " (" + BuildRelease + ") [" + BuildBinHash + "]"
-	OsHostname, _ = os.Hostname()
 }
