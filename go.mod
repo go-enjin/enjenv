@@ -1,12 +1,19 @@
 module github.com/go-enjin/enjenv
 
-go 1.21
+go 1.21.5
 
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fvbommel/sortorder v1.1.0
+	github.com/go-corelibs/chdirs v1.1.1
+	github.com/go-corelibs/env v1.1.1
+	github.com/go-corelibs/maps v1.1.0
+	github.com/go-corelibs/maths v1.0.1
+	github.com/go-corelibs/path v1.2.0
+	github.com/go-corelibs/slices v1.2.0
+	github.com/go-corelibs/strings v1.1.1
 	github.com/go-curses/cdk v0.5.22
 	github.com/go-curses/ctk v0.5.13
 	github.com/go-enjin/be v0.5.6
@@ -37,6 +44,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230828082145-3c4c8a2d2371 // indirect
 	github.com/RoaringBitmap/roaring v1.2.3 // indirect
 	github.com/Shopify/gomail v0.0.0-20220729171026-0784ece65e69 // indirect
+	github.com/amonsat/fullname_parser v0.0.0-20180221140204-0879740fa92c // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
@@ -60,11 +68,15 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/creack/pty v1.1.21 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
+	github.com/djherbis/times v1.6.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.10 // indirect
+	github.com/go-corelibs/diff v1.0.3 // indirect
+	github.com/go-corelibs/replace v1.2.1 // indirect
+	github.com/go-corelibs/strcases v1.0.0 // indirect
 	github.com/go-curses/term v1.2.2-gocurses.1 // indirect
 	github.com/go-curses/terminfo v1.1.0 // indirect
 	github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a // indirect
@@ -102,6 +114,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mrz1836/go-sanitize v1.3.1 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
+	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/polds/logrus-papertrail-hook v0.0.0-20180214143432-bcfe7b72c1a4 // indirect
@@ -109,13 +122,14 @@ require (
 	github.com/rivo/uniseg v0.4.2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/samber/lo v1.39.0 // indirect
-	github.com/sergi/go-diff v1.2.0 // indirect
+	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/tdewolff/parse/v2 v2.7.9 // indirect
 	github.com/tg123/go-htpasswd v1.2.2 // indirect
 	github.com/tklauser/numcpus v0.7.0 // indirect
+	github.com/weppos/publicsuffix-go v0.30.1 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
