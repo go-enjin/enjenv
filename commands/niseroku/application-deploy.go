@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -39,7 +39,7 @@ func (a *Application) unlockDeploy() {
 }
 
 func (a *Application) IsDeploying() (locked bool) {
-	if bePath.Exists(a.DeployFile) {
+	if clpath.Exists(a.DeployFile) {
 		if proc, err := common.GetProcessFromPidFile(a.DeployFile); err == nil {
 			if locked, err = proc.IsRunning(); locked {
 				return

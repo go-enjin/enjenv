@@ -25,7 +25,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -63,7 +63,7 @@ func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 
 	fixFsPidFile := filepath.Join(c.config.Paths.Tmp, "fix-fs.pid")
 
-	if bePath.IsFile(fixFsPidFile) {
+	if path.IsFile(fixFsPidFile) {
 		var stale bool
 		if proc, ee := common.GetProcessFromPidFile(fixFsPidFile); ee != nil {
 			stale = true
@@ -132,7 +132,7 @@ func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 	}
 
 	if c.config.LogFile != "" {
-		if !bePath.IsFile(c.config.LogFile) {
+		if !path.IsFile(c.config.LogFile) {
 			if err = os.WriteFile(c.config.LogFile, []byte(""), 0660); err != nil {
 				beIo.StderrF("[fix-fs] error preparing log file: %v - %v\n", c.config.LogFile, err)
 			}
@@ -146,7 +146,7 @@ func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 		}
 	}
 
-	if bePath.IsFile(c.config.Paths.ProxyRpcSock) {
+	if path.IsFile(c.config.Paths.ProxyRpcSock) {
 		if err = os.Chmod(c.config.Paths.ProxyRpcSock, 0660); err != nil {
 			beIo.StderrF("[fix-fs] error changing mode of: %v [%v] - %v", c.config.Paths.ProxyRpcSock, fs.FileMode(0660), err)
 		}
@@ -155,7 +155,7 @@ func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 		}
 	}
 
-	if bePath.IsFile(c.config.Paths.ProxyPidFile) {
+	if path.IsFile(c.config.Paths.ProxyPidFile) {
 		if err = os.Chmod(c.config.Paths.ProxyPidFile, 0660); err != nil {
 			beIo.StderrF("[fix-fs] error changing mode of: %v [%v] - %v", c.config.Paths.ProxyPidFile, fs.FileMode(0660), err)
 		}
@@ -164,7 +164,7 @@ func (c *Command) actionFixFs(ctx *cli.Context) (err error) {
 		}
 	}
 
-	if bePath.IsFile(c.config.Paths.RepoPidFile) {
+	if path.IsFile(c.config.Paths.RepoPidFile) {
 		if err = os.Chmod(c.config.Paths.RepoPidFile, 0660); err != nil {
 			beIo.StderrF("[fix-fs] error changing mode of: %v [%v] - %v", c.config.Paths.RepoPidFile, fs.FileMode(0660), err)
 		}

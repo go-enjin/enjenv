@@ -27,10 +27,9 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 
-	"github.com/go-enjin/be/pkg/maps"
-	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/be/pkg/slices"
-	beStrings "github.com/go-enjin/be/pkg/strings"
+	"github.com/go-corelibs/maps"
+	clpath "github.com/go-corelibs/path"
+	"github.com/go-corelibs/slices"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -53,13 +52,13 @@ type Slug struct {
 }
 
 func NewSlugFromZip(app *Application, archive string) (slug *Slug, err error) {
-	if !bePath.IsFile(archive) {
+	if !clpath.IsFile(archive) {
 		err = fmt.Errorf("slug not found: %v", archive)
 		return
 	}
 	slug = &Slug{
 		App:          app,
-		Name:         bePath.Base(archive),
+		Name:         clpath.Base(archive),
 		Archive:      archive,
 		liveHashLock: &sync.RWMutex{},
 	}
@@ -88,7 +87,7 @@ func (s *Slug) RefreshWorkers() {
 
 	s.Workers = make(map[string]*SlugWorker)
 
-	if paths, err := bePath.List(s.App.Config.Paths.TmpRun); err == nil {
+	if paths, err := clpath.List(s.App.Config.Paths.TmpRun, false); err == nil {
 		for _, path := range paths {
 			baseName := filepath.Base(path)
 			if strings.HasPrefix(baseName, s.Name) {
@@ -293,7 +292,7 @@ func (s *Slug) StopWorker(hash string) (stopped bool) {
 	if worker, ok := s.Workers[hash]; ok {
 		stopped = worker.SendStopSignal()
 		delete(s.Workers, hash)
-		if idx := beStrings.StringIndexInSlice(hash, s.Settings.Live); idx >= 0 {
+		if idx := slices.IndexOf(s.Settings.Live, hash); idx >= 0 {
 			s.Settings.Live = slices.Remove(s.Settings.Live, idx)
 		}
 		_ = s.Settings.Save()
@@ -315,7 +314,7 @@ func (s *Slug) StopAll() (stopped int) {
 }
 
 func (s *Slug) Cleanup() {
-	if bePath.IsFile(s.SettingsFile) {
+	if clpath.IsFile(s.SettingsFile) {
 		if err := os.Remove(s.SettingsFile); err != nil {
 			s.App.LogErrorF("error removing application settings file: %v - %v", s.App.Name, err)
 		}
@@ -334,7 +333,7 @@ func (s *Slug) Destroy() (err error) {
 	s.StopAll()
 	s.Lock()
 	defer s.Unlock()
-	if bePath.IsFile(s.Archive) {
+	if clpath.IsFile(s.Archive) {
 		err = os.Remove(s.Archive)
 	}
 	return

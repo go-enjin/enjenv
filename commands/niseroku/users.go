@@ -19,7 +19,8 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	bePath "github.com/go-enjin/be/pkg/path"
+
+	clpath "github.com/go-corelibs/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -44,7 +45,7 @@ type User struct {
 
 func LoadUsers(path string) (users Users, err error) {
 	var files []string
-	if files, err = bePath.ListAllFiles(path); err != nil {
+	if files, err = clpath.ListAllFiles(path, false); err != nil {
 		return
 	}
 	for _, file := range files {

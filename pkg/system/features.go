@@ -18,8 +18,9 @@ import (
 	"sort"
 
 	"github.com/fvbommel/sortorder"
-	"github.com/go-enjin/be/pkg/slices"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-corelibs/slices"
 )
 
 func ListFeatures(commands []*cli.Command) (names []string) {

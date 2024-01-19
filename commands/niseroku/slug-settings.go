@@ -20,7 +20,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -39,7 +39,7 @@ func NewSlugSettings(path string, config RunAsConfig) (sw *SlugSettings, err err
 		Path:  path,
 		RunAs: config,
 	}
-	if bePath.IsFile(path) {
+	if clpath.IsFile(path) {
 		sw.TomlMetaData, err = toml.DecodeFile(path, sw)
 	}
 	return

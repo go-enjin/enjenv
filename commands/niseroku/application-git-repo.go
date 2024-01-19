@@ -15,10 +15,12 @@
 package niseroku
 
 import (
+	"errors"
 	"fmt"
 
-	bePath "github.com/go-enjin/be/pkg/path"
 	"github.com/go-git/go-git/v5"
+
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -29,18 +31,18 @@ func (a *Application) SetupRepo() (err error) {
 	if a.GitRepo != nil {
 		return
 	}
-	if !bePath.IsDir(a.RepoPath) {
-		if err = bePath.Mkdir(a.RepoPath); err != nil {
+	if !clpath.IsDir(a.RepoPath) {
+		if err = clpath.MkdirAll(a.RepoPath); err != nil {
 			err = fmt.Errorf("error making application repo path: %v - %v", a.RepoPath, err)
 			return
 		}
 		repoHooksPath := a.RepoPath + "/hooks"
-		if err = bePath.Mkdir(repoHooksPath); err != nil {
+		if err = clpath.MkdirAll(repoHooksPath); err != nil {
 			err = fmt.Errorf("error making application repo hooks path: %v - %v", repoHooksPath, err)
 			return
 		}
 	}
-	if a.GitRepo, err = git.PlainInit(a.RepoPath, true); err != nil && err == git.ErrRepositoryAlreadyExists {
+	if a.GitRepo, err = git.PlainInit(a.RepoPath, true); err != nil && errors.Is(err, git.ErrRepositoryAlreadyExists) {
 		a.GitRepo, err = git.PlainOpen(a.RepoPath)
 	}
 	if ee := common.RepairOwnership(a.RepoPath, a.Config.RunAs.User, a.Config.RunAs.Group); ee != nil {

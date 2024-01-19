@@ -21,9 +21,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-corelibs/env"
+	"github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/cli/git"
-	"github.com/go-enjin/be/pkg/path"
 	"github.com/go-enjin/be/pkg/slug"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
@@ -106,7 +106,7 @@ func (s *System) ActionGoBuild(ctx *cli.Context) (err error) {
 		var trimPaths []string
 		trimPaths = append(trimPaths, basepath.EnjenvPath)
 
-		if goPath := env.Get("GOPATH", ""); goPath != "" {
+		if goPath := env.String("GOPATH", ""); goPath != "" {
 			trimPaths = append(trimPaths, goPath)
 		}
 		if thisPath := path.Pwd(); thisPath != "" {
@@ -182,10 +182,10 @@ func (s *System) ActionGoModLocal(ctx *cli.Context) (err error) {
 		if path.IsDir(argv[0]) {
 			beLocalPath = argv[0]
 		} else {
-			beLocalPath = env.Get("BE_LOCAL_PATH", "")
+			beLocalPath = env.String("BE_LOCAL_PATH", "")
 		}
 	} else {
-		beLocalPath = env.Get("BE_LOCAL_PATH", "")
+		beLocalPath = env.String("BE_LOCAL_PATH", "")
 	}
 	if beLocalPath != "" {
 		_, err = s.GoBin("mod", "edit", fmt.Sprintf(

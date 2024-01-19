@@ -20,8 +20,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/log"
-	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/commands/enjin"
 	herokuCmd "github.com/go-enjin/enjenv/commands/heroku"
@@ -31,23 +31,17 @@ import (
 	"github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
 	"github.com/go-enjin/enjenv/systems/golang"
-	"github.com/go-enjin/enjenv/systems/ngrok"
 	"github.com/go-enjin/enjenv/systems/nodejs"
 )
 
-var BinName = bePath.Base(os.Args[0])
-
-func init() {
-	_ = os.Setenv("ENJENV_BIN", globals.BuildBinPath)
-}
-
 func main() {
-	log.Config.AppName = BinName
+	basename := clpath.Base(os.Args[0])
+	log.Config.AppName = basename
 	log.Config.DisableTimestamp = true
 	log.Config.LoggingFormat = log.FormatText
 	log.Config.Apply()
 	app := &cli.App{
-		Name:    BinName,
+		Name:    basename,
 		Usage:   "Go-Enjin environment management utility",
 		Version: globals.DisplayVersion,
 		Action: func(ctx *cli.Context) (err error) {
@@ -62,7 +56,7 @@ func main() {
 		UseShortOptionHandling: true,
 	}
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Printf("%s %s\n", BinName, c.App.Version)
+		fmt.Printf("%s %s\n", basename, c.App.Version)
 	}
 	var err error
 	if err = system.Manager().

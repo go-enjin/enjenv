@@ -22,9 +22,9 @@ import (
 
 	"github.com/iancoleman/strcase"
 
-	"github.com/go-enjin/be/pkg/maps"
-	bePath "github.com/go-enjin/be/pkg/path"
-
+	"github.com/go-corelibs/env"
+	"github.com/go-corelibs/maps"
+	"github.com/go-corelibs/path"
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
@@ -45,7 +45,7 @@ func (a *Application) GetThisSlug() (slug *Slug) {
 	a.RLock()
 	defer a.RUnlock()
 	if a.ThisSlug != "" {
-		if name := bePath.Base(a.ThisSlug); bePath.IsFile(a.ThisSlug) {
+		if name := path.Base(a.ThisSlug); path.IsFile(a.ThisSlug) {
 			if found, ok := a.Slugs[name]; ok {
 				slug = found
 				return
@@ -60,7 +60,7 @@ func (a *Application) GetNextSlug() (slug *Slug) {
 	a.RLock()
 	defer a.RUnlock()
 	if a.NextSlug != "" {
-		if name := bePath.Base(a.NextSlug); bePath.IsFile(a.NextSlug) {
+		if name := path.Base(a.NextSlug); path.IsFile(a.NextSlug) {
 			if found, ok := a.Slugs[name]; ok {
 				slug = found
 				return
@@ -151,7 +151,7 @@ func (a *Application) OsEnvironAptEnjinOnly() (aptEnv map[string]string) {
 
 func (a *Application) PurgeGpgSecrets() (err error) {
 	home := a.GetGpgHome()
-	if bePath.IsDir(home) {
+	if path.IsDir(home) {
 		if err = os.RemoveAll(home); err != nil {
 			return
 		}
@@ -178,9 +178,9 @@ func (a *Application) ImportGpgSecrets(other *Application) (info map[string][]st
 
 	otherAptSecrets := filepath.Join(a.Config.Paths.AptSecrets, other.Name)
 
-	found, _ := bePath.ListFiles(otherAptSecrets)
+	found, _ := path.ListFiles(otherAptSecrets, true)
 	for _, file := range found {
-		if bePath.IsFile(file) && strings.HasSuffix(file, ".gpg") {
+		if path.IsFile(file) && strings.HasSuffix(file, ".gpg") {
 			a.LogInfoF("# importing from other gpg key: %v - %v", other.Name, file)
 			if o, e, _, ee := common.Gpg(home, "--import", file); ee != nil {
 				a.LogErrorF("error importing %v gpg key: %v - %v", a.Name, ee)
@@ -225,7 +225,7 @@ func (a *Application) PrepareGpgSecrets() (err error) {
 
 	ae.GpgKeys = make(map[string][]string)
 
-	found, _ := bePath.ListFiles(aptSecrets)
+	found, _ := path.ListFiles(aptSecrets, true)
 	for _, file := range found {
 		if strings.HasSuffix(file, ".gpg") {
 			// a.LogInfoF("# importing gpg key: %v", file)

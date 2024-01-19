@@ -19,7 +19,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 )
 
 func PerformMkdirChownChmod(uid, gid int, fileMode, dirMode os.FileMode, directories ...string) (err error) {
@@ -114,7 +114,7 @@ func PerformChownChmod(uid, gid int, fileMode, dirMode os.FileMode, paths ...str
 			return
 		}
 
-		if found, ee := path.ListAllDirs(target); ee == nil {
+		if found, ee := path.ListAllDirs(target, true); ee == nil {
 			for _, tgt := range found {
 				if canChown {
 					if err = PerformChown(tgt, uid, gid); err != nil {
@@ -129,7 +129,7 @@ func PerformChownChmod(uid, gid int, fileMode, dirMode os.FileMode, paths ...str
 			}
 		}
 
-		if found, ee := path.ListAllFiles(target); ee == nil {
+		if found, ee := path.ListAllFiles(target, true); ee == nil {
 			for _, tgt := range found {
 				if canChown {
 					if err = PerformChown(tgt, uid, gid); err != nil {

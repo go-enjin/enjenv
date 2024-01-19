@@ -18,13 +18,12 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-corelibs/env"
+	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/cli/git"
-	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -284,7 +283,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 	}
 	commands = append(commands, initCommand)
 
-	if bePath.IsDir(basepath.EnjenvPath) {
+	if clpath.IsDir(basepath.EnjenvPath) {
 		commands = append(
 			commands,
 			&cli.Command{
@@ -391,8 +390,8 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 						}
 					}
 					path := basepath.EnjenvPath
-					if bePath.IsDir(path) {
-						bePath.ChmodAll(path)
+					if clpath.IsDir(path) {
+						clpath.ChmodAll(path)
 						err = os.RemoveAll(path)
 						io.StdoutF("# cleaned: %v\n", path)
 					}
@@ -424,7 +423,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 						s.ExportPathVariable(false)
 					}
 					io.StdoutF("export TMPDIR=\"%v\"\n", basepath.MakeEnjenvPath(TmpDirName))
-					io.StdoutF("export PATH=\"%v\"\n", strings.Join(env.GetPaths(), ":"))
+					io.StdoutF("export PATHS=\"%v\"\n", env.String("PATHS", ""))
 					return
 				},
 			},
@@ -447,7 +446,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 						s.UnExportPathVariable(false)
 					}
 					io.StdoutF("unset TMPDIR;\n")
-					io.StdoutF("export PATH=\"%v\"\n", strings.Join(env.GetPaths(), ":"))
+					io.StdoutF("export PATHS=\"%v\"\n", env.String("PATHS", ""))
 					return
 				},
 			},

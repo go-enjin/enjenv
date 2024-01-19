@@ -29,23 +29,20 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/go-enjin/be/pkg/maths"
-	"github.com/go-enjin/be/pkg/slices"
+	"github.com/go-corelibs/maps"
+	"github.com/go-corelibs/maths"
+	"github.com/go-corelibs/slices"
+	clstrings "github.com/go-corelibs/strings"
 
 	"github.com/dustin/go-humanize"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-curses/cdk"
 	cenums "github.com/go-curses/cdk/lib/enums"
-	"github.com/go-curses/cdk/lib/math"
 	"github.com/go-curses/cdk/lib/paint"
-	cstrings "github.com/go-curses/cdk/lib/strings"
 	"github.com/go-curses/cdk/log"
 	"github.com/go-curses/ctk"
 	"github.com/go-curses/ctk/lib/enums"
-
-	"github.com/go-enjin/be/pkg/maps"
-	beStrings "github.com/go-enjin/be/pkg/strings"
 
 	"github.com/go-enjin/enjenv/pkg/cpuinfo"
 	"github.com/go-enjin/enjenv/pkg/globals"
@@ -664,7 +661,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		longestLine := 0
 		if numLines > 2 {
 			// remove trailing empty line
-			if beStrings.Empty(lines[numLines-1]) {
+			if clstrings.Empty(lines[numLines-1]) {
 				lines = lines[:numLines-1]
 				numLines -= 1
 			}
@@ -897,7 +894,7 @@ func (sw *StatusWatch) refreshWatching(snapshot *WatchSnapshot, proxyLimits stri
 		}
 		_ = tw.Flush()
 		applyHeaderContent(buf.String(), sw.plHeader, sw.plLabel)
-		height := math.CeilI(numAddrs+3, 5)
+		height := maths.Ceil(numAddrs+3, 5)
 		sw.plFrame.SetSizeRequest(-1, height)
 		sw.plFrame.Show()
 	} else {

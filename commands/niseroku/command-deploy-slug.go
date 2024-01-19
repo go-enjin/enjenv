@@ -22,7 +22,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
@@ -62,7 +62,7 @@ func (c *Command) actionDeploySlug(ctx *cli.Context) (err error) {
 	hasErr := false
 	argv := ctx.Args().Slice()
 	for _, arg := range argv {
-		if !bePath.IsFile(arg) {
+		if !path.IsFile(arg) {
 			beIo.StderrF("error: not a file - %v\n", arg)
 			continue
 		}

@@ -21,13 +21,13 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-corelibs/env"
+	clpath "github.com/go-corelibs/path"
+	"github.com/go-corelibs/slices"
 	"github.com/go-enjin/be/pkg/cli/tar"
 	"github.com/go-enjin/be/pkg/cli/zip"
 	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/net"
-	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/be/pkg/slices"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -116,8 +116,8 @@ func (s *CSystem) GetDefaultVersion() (version string) {
 func (s *CSystem) MakeDirs() (err error) {
 	for k, p := range s.Ctx.AsMapStrings() {
 		pp := basepath.MakeEnjenvPath(p)
-		if !bePath.Exists(pp) {
-			if err = bePath.Mkdir(pp); err != nil {
+		if !clpath.Exists(pp) {
+			if err = clpath.MkdirAll(pp); err != nil {
 				return
 			}
 			io.StdoutF("# making %v path: %v\n", k, pp)
@@ -159,10 +159,9 @@ func (s *CSystem) CleanAction(ctx *cli.Context) (err error) {
 
 func (s *CSystem) ExportPathVariable(export bool) {
 	binDir := basepath.MakeEnjenvPath(s.Root, "bin")
-	_ = env.SetPathRemoved(binDir)
-	cleaned := env.SetPathPrefixed(binDir)
+	_ = env.PrependPATH(binDir)
 	if export {
-		io.StdoutF("export PATH=\"%v\"\n", cleaned)
+		io.StdoutF("export PATHS=\"%v\"\n", env.PATH())
 	}
 	return
 }
@@ -185,9 +184,9 @@ func (s *CSystem) ExportAction(ctx *cli.Context) (err error) {
 
 func (s *CSystem) UnExportPathVariable(export bool) {
 	binDir := basepath.MakeEnjenvPath(s.Root, "bin")
-	cleaned := env.SetPathRemoved(binDir)
+	_ = env.PrunePATH(binDir)
 	if export {
-		io.StdoutF("export PATH=\"%v\"\n", cleaned)
+		io.StdoutF("export PATHS=\"%v\"\n", env.PATH())
 	}
 	return
 }
@@ -241,7 +240,7 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 	}
 
 	if argv := ctx.Args().Slice(); len(argv) >= 1 {
-		basepath.EnjenvPath, _ = bePath.Abs(argv[0])
+		basepath.EnjenvPath, _ = clpath.Abs(argv[0])
 		basepath.EnjenvPath += "/" + basepath.EnjenvDirName
 	}
 
@@ -249,13 +248,13 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 	sDir := basepath.MakeEnjenvPath(s.TagName)
 	sRootPath := basepath.MakeEnjenvPath(s.Root)
 
-	if bePath.IsDir(sDir) {
+	if clpath.IsDir(sDir) {
 		if !force {
 			err = fmt.Errorf("%v directory exists, use --force to overwrite", s.Name())
 			return
 		}
-		if bePath.IsDir(sRootPath) {
-			bePath.ChmodAll(sRootPath)
+		if clpath.IsDir(sRootPath) {
+			clpath.ChmodAll(sRootPath)
 			if err = os.RemoveAll(sRootPath); err != nil {
 				return
 			}
@@ -282,13 +281,13 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 		}
 	}
 
-	if useFile != "" && bePath.IsFile(useFile) {
-		if _, err = bePath.CopyFile(useFile, s.TarGzPath); err != nil {
+	if useFile != "" && clpath.IsFile(useFile) {
+		if _, err = clpath.CopyFile(useFile, s.TarGzPath); err != nil {
 			return
 		}
 	}
 
-	if bePath.IsFile(s.TarGzPath) {
+	if clpath.IsFile(s.TarGzPath) {
 		io.StdoutF("# using archive: %v\n", s.TarGzPath)
 	} else {
 		io.StdoutF("# downloading: %v\n", s.TarGzUrl)
@@ -304,7 +303,7 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 		}
 	}
 
-	if bePath.IsDir(sRootPath) {
+	if clpath.IsDir(sRootPath) {
 		io.StdoutF("# found installation: %v\n", sRootPath)
 	} else {
 		sRootPath = basepath.MakeEnjenvPath(s.TagName)
@@ -321,8 +320,8 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 	}
 
 	tmpPath := basepath.MakeEnjenvPath(TmpDirName)
-	if !bePath.IsDir(tmpPath) {
-		if err = bePath.Mkdir(tmpPath); err != nil {
+	if !clpath.IsDir(tmpPath) {
+		if err = clpath.MkdirAll(tmpPath); err != nil {
 			return
 		}
 	}
@@ -341,13 +340,13 @@ func (s *CSystem) InitSystem(ctx *cli.Context) (err error) {
 
 func (s *CSystem) Clean(ctx *cli.Context) (err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		if !ctx.Bool("force") {
 			err = fmt.Errorf("not cleaning local %v environment: %v (missing --force)", s.Self().Name(), path)
 			return
 		}
 		io.NotifyF("clean-"+s.Self().Name(), "cleaning local %v environment: %v", s.Self().Name(), path)
-		bePath.ChmodAll(path)
+		clpath.ChmodAll(path)
 		err = os.RemoveAll(path)
 		return
 	}

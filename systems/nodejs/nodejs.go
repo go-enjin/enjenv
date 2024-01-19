@@ -24,12 +24,12 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-corelibs/env"
+	clpath "github.com/go-corelibs/path"
+	"github.com/go-corelibs/slices"
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/net"
-	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/be/pkg/slices"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/globals"
@@ -51,11 +51,11 @@ var (
 )
 
 func init() {
-	Tag = env.Get("ENJENV_NODEJS_TAG", Tag)
+	Tag = env.String("ENJENV_NODEJS_TAG", Tag)
 	tag := strings.ToUpper(Tag)
-	Name = env.Get("ENJENV_"+tag+"_NAME", Name)
-	CacheDirName = env.Get("ENJENV_"+tag+"_CACHE_DIR_NAME", CacheDirName)
-	globals.DefaultNodejsVersion = env.Get("ENJENV_DEFAULT_"+tag+"_VERSION", globals.DefaultNodejsVersion)
+	Name = env.String("ENJENV_"+tag+"_NAME", Name)
+	CacheDirName = env.String("ENJENV_"+tag+"_CACHE_DIR_NAME", CacheDirName)
+	globals.DefaultNodejsVersion = env.String("ENJENV_DEFAULT_"+tag+"_VERSION", globals.DefaultNodejsVersion)
 }
 
 type System struct {
@@ -135,7 +135,7 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 
 func (s *System) ExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		content += fmt.Sprintf("export %v_VERSION=\"%v\"\n", strings.ToUpper(Tag), s.Version)
 		for k, v := range s.Ctx.AsMapStrings() {
 			value := basepath.MakeEnjenvPath(v)
@@ -156,7 +156,7 @@ func (s *System) Export(ctx *cli.Context) (err error) {
 
 func (s *System) UnExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		content += fmt.Sprintf("unset %v_VERSION;\n", strings.ToUpper(Tag))
 		for k, _ := range s.Ctx.AsMapStrings() {
 			env.Set(k, "")
@@ -176,7 +176,7 @@ func (s *System) UnExport(ctx *cli.Context) (err error) {
 
 func (s *System) GetInstalledVersion() (version string, err error) {
 	path := basepath.MakeEnjenvPath(s.Root)
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		version = s.Version
 		return
 	}
@@ -195,7 +195,7 @@ func (s *System) ParseVersionString(ver string) (version string, err error) {
 }
 
 func (s *System) ParseFileName(path string) (version, osName, osArch string, err error) {
-	if !bePath.IsFile(path) {
+	if !clpath.IsFile(path) {
 		err = fmt.Errorf("file not found")
 		return
 	}
@@ -233,7 +233,7 @@ func (s *System) GetKnownSums() (sums map[string]string, err error) {
 func (s *System) PostInitSystem(ctx *cli.Context) (err error) {
 	io.StdoutF("# npm install --global yarn\n")
 	if _, err = s.NpmBin("install", "--global", "yarn"); err == nil {
-		if bin := basepath.MakeEnjenvPath(s.Root, "bin", "yarn"); bePath.IsFile(bin) {
+		if bin := basepath.MakeEnjenvPath(s.Root, "bin", "yarn"); clpath.IsFile(bin) {
 			io.StdoutF("# yarn version: %v, path: %v\n", s.YarnVersion(), bin)
 		} else {
 			io.StderrF("# yarn not found, expected: %v\n", bin)
@@ -245,18 +245,18 @@ func (s *System) PostInitSystem(ctx *cli.Context) (err error) {
 func (s *System) NodeBin(argv ...string) (err error) {
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "node")
-	if !bePath.IsFile(bin) {
+	if !clpath.IsFile(bin) {
 		err = fmt.Errorf("node not present")
 		return
 	}
-	err = run.Interactive(os.Environ(), bePath.Pwd(), bin, argv...)
+	err = run.Interactive(os.Environ(), clpath.Pwd(), bin, argv...)
 	return
 }
 
 func (s *System) NpmBin(name string, argv ...string) (status int, err error) {
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "npm")
-	if !bePath.IsFile(bin) {
+	if !clpath.IsFile(bin) {
 		err = fmt.Errorf("npm not present")
 		return
 	}
@@ -276,7 +276,7 @@ func (s *System) NpmBin(name string, argv ...string) (status int, err error) {
 func (s *System) NpxBin(name string, argv ...string) (status int, err error) {
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "npx")
-	if !bePath.IsFile(bin) {
+	if !clpath.IsFile(bin) {
 		err = fmt.Errorf("npx not present")
 		return
 	}
@@ -296,7 +296,7 @@ func (s *System) NpxBin(name string, argv ...string) (status int, err error) {
 func (s *System) HerokuBin(name string, argv ...string) (status int, err error) {
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "heroku")
-	if !bePath.IsFile(bin) {
+	if !clpath.IsFile(bin) {
 		err = fmt.Errorf("heroku not present")
 		return
 	}
@@ -306,7 +306,7 @@ func (s *System) HerokuBin(name string, argv ...string) (status int, err error) 
 func (s *System) YarnBin(name string, argv ...string) (status int, err error) {
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "yarn")
-	if !bePath.IsFile(bin) {
+	if !clpath.IsFile(bin) {
 		err = fmt.Errorf("yarn not present")
 		return
 	}
@@ -316,7 +316,7 @@ func (s *System) YarnBin(name string, argv ...string) (status int, err error) {
 func (s *System) YarnCmd(name string, argv ...string) (stdout, stderr string, status int, err error) {
 	pkgRun.AddPathToEnv(basepath.MakeEnjenvPath(s.Root, "bin"))
 	bin := basepath.MakeEnjenvPath(s.Root, "bin", "yarn")
-	if !bePath.IsFile(bin) {
+	if !clpath.IsFile(bin) {
 		err = fmt.Errorf("yarn not present")
 		return
 	}
@@ -335,7 +335,7 @@ var rxPackageScripts = regexp.MustCompile(`(?ms)"scripts"\s*:\s*{(.+?)},??`)
 var rxPackageScriptsLines = regexp.MustCompile(`(?ms)"([^"]+?)"\s*:\s*"\s*([^"]+?)\s*"\s*,??`)
 
 func (s *System) ListPackageDirs(path string) (dirs []string, err error) {
-	if paths, err := bePath.ListDirs("."); err == nil {
+	if paths, err := clpath.ListDirs(".", true); err == nil {
 		for _, dir := range paths {
 			if len(dir) >= 2 && dir[0:2] == "./" {
 				dir = dir[2:]
@@ -344,7 +344,7 @@ func (s *System) ListPackageDirs(path string) (dirs []string, err error) {
 			case ".git", ".svn", "CVS":
 				continue
 			}
-			if dirPkg := dir + "/package.json"; bePath.IsFile(dirPkg) {
+			if dirPkg := dir + "/package.json"; clpath.IsFile(dirPkg) {
 				dirs = append(dirs, dir)
 			}
 		}
@@ -353,7 +353,7 @@ func (s *System) ListPackageDirs(path string) (dirs []string, err error) {
 }
 
 func (s *System) PackageJsonsPresent(dirs []string) (packageJsons []string) {
-	if bePath.IsFile("package.json") {
+	if clpath.IsFile("package.json") {
 		packageJsons = append(packageJsons, "package.json")
 	}
 	for _, dir := range dirs {
@@ -363,13 +363,13 @@ func (s *System) PackageJsonsPresent(dirs []string) (packageJsons []string) {
 }
 
 func (s *System) PackagesWithoutModules(dirs []string) (withoutModules []string) {
-	if bePath.IsFile("package.json") {
-		if !bePath.IsDir("node_modules") {
+	if clpath.IsFile("package.json") {
+		if !clpath.IsDir("node_modules") {
 			withoutModules = append(withoutModules, ".")
 		}
 	}
 	for _, dir := range dirs {
-		if !bePath.IsDir(dir + "/node_modules") {
+		if !clpath.IsDir(dir + "/node_modules") {
 			withoutModules = append(withoutModules, dir)
 		}
 	}
@@ -392,15 +392,15 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 	packages := make(map[string]map[string]string)
 
 	for _, pkg := range pkgPaths {
-		dir := bePath.Base(bePath.Dir(pkg))
+		dir := clpath.Base(clpath.Dir(pkg))
 		if dir == "" {
-			dir, _ = bePath.Abs(pkg)
-			dir = bePath.Base(bePath.Dir(dir))
+			dir, _ = clpath.Abs(pkg)
+			dir = clpath.Base(clpath.Dir(dir))
 		}
 		if slices.Present(dir, iniPaths...) {
 			continue
 		}
-		if contentBytes, err := bePath.ReadFile(pkg); err == nil {
+		if contentBytes, err := clpath.ReadFile(pkg); err == nil {
 			content := string(contentBytes)
 			if rxPackageScripts.MatchString(content) {
 				if m := rxPackageScripts.FindAllStringSubmatch(content, 1); len(m) == 1 {
@@ -431,8 +431,8 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 			for _, dir := range iniPaths {
 				dirName := dir
 				if dirName == "." {
-					absDir, _ := bePath.Abs(".")
-					dirName = bePath.Base(absDir)
+					absDir, _ := clpath.Abs(".")
+					dirName = clpath.Base(absDir)
 				}
 				cmdCategory := s.Name() + " " + system.SystemCategory + " " + dirName
 				commands = append(
@@ -546,7 +546,7 @@ func (s *System) makePackageInstallFunc(p, d string) func(ctx *cli.Context) (err
 		if err = s.Prepare(ctx); err != nil {
 			return
 		}
-		wd := bePath.Pwd()
+		wd := clpath.Pwd()
 		if d != "." {
 			_ = os.Chdir(d)
 			io.NotifyF("nodejs", "running %v install (%v)", p, d)
@@ -580,7 +580,7 @@ func (s *System) makePackageScriptFunc(p, d, n string) func(ctx *cli.Context) (e
 }
 
 func (s *System) runPackageCommand(pm, dir, name string, argv ...string) (err error) {
-	wd := bePath.Pwd()
+	wd := clpath.Pwd()
 	switch dir {
 	case "npm", "yarn":
 	default:
@@ -601,7 +601,7 @@ func (s *System) runPackageCommand(pm, dir, name string, argv ...string) (err er
 }
 
 func (s *System) runPackageScript(pm, dir, name string, argv ...string) (err error) {
-	wd := bePath.Pwd()
+	wd := clpath.Pwd()
 	switch dir {
 	case "npm", "yarn":
 	default:

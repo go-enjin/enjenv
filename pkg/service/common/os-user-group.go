@@ -19,9 +19,8 @@ import (
 	"os"
 	"os/user"
 	"strconv"
-	"syscall"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	clpath "github.com/go-corelibs/path"
 )
 
 func GetUidGid(userName, groupName string) (uid, gid int, err error) {
@@ -55,12 +54,12 @@ func RepairOwnership(path, userName, groupName string) (err error) {
 		err = fmt.Errorf("error chown: %v (%d:%d) - %v", path, uid, gid, err)
 		return
 	}
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		var allDirs, allFiles []string
-		if allDirs, err = bePath.ListAllDirs(path); err != nil {
+		if allDirs, err = clpath.ListAllDirs(path, true); err != nil {
 			return
 		}
-		if allFiles, err = bePath.ListAllFiles(path); err != nil {
+		if allFiles, err = clpath.ListAllFiles(path, true); err != nil {
 			return
 		}
 		for _, tgt := range append(allDirs, allFiles...) {
@@ -69,18 +68,5 @@ func RepairOwnership(path, userName, groupName string) (err error) {
 			}
 		}
 	}
-	return
-}
-
-func StatOwnerGroup(path string) (info os.FileInfo, uid, gid int, err error) {
-	if info, err = os.Stat(path); err != nil {
-		return
-	}
-	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
-		uid = int(stat.Uid)
-		gid = int(stat.Gid)
-		return
-	}
-	err = fmt.Errorf("error converting os.FileInfo.Sys() to *syscall.Stat_t")
 	return
 }

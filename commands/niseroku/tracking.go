@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-enjin/be/pkg/maps"
+	"github.com/go-corelibs/maps"
 )
 
 type Tracking struct {

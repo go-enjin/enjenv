@@ -27,7 +27,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/maps"
+	"github.com/go-corelibs/maps"
 
 	"github.com/go-enjin/enjenv/pkg/cpuinfo"
 	"github.com/go-enjin/enjenv/pkg/service/common"

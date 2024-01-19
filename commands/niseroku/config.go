@@ -25,7 +25,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 )
 
 var (
@@ -179,10 +179,10 @@ func LoadConfig(niserokuConfig string) (config *Config, err error) {
 	if niserokuConfig == "" {
 		err = fmt.Errorf("missing --config")
 		return
-	} else if !bePath.IsFile(niserokuConfig) {
+	} else if !path.IsFile(niserokuConfig) {
 		err = fmt.Errorf("not a file: %v", niserokuConfig)
 		return
-	} else if niserokuConfig, err = bePath.Abs(niserokuConfig); err != nil {
+	} else if niserokuConfig, err = path.Abs(niserokuConfig); err != nil {
 		return
 	}
 
@@ -232,11 +232,11 @@ func validateConfig(niserokuConfig string, cfg *Config) (config *Config, err err
 		err = fmt.Errorf("missing one or more of etc-dir, var-dir and/or tmp-dir settings")
 		return
 	}
-	if cfg.Paths.Etc, err = bePath.Abs(cfg.Paths.Etc); err != nil {
+	if cfg.Paths.Etc, err = path.Abs(cfg.Paths.Etc); err != nil {
 		return
-	} else if cfg.Paths.Var, err = bePath.Abs(cfg.Paths.Var); err != nil {
+	} else if cfg.Paths.Var, err = path.Abs(cfg.Paths.Var); err != nil {
 		return
-	} else if cfg.Paths.Tmp, err = bePath.Abs(cfg.Paths.Tmp); err != nil {
+	} else if cfg.Paths.Tmp, err = path.Abs(cfg.Paths.Tmp); err != nil {
 		return
 	}
 

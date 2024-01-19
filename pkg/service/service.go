@@ -23,7 +23,7 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -63,7 +63,7 @@ func (s *Service) IsRunning() (running bool) {
 
 func (s *Service) Start() (err error) {
 
-	if bePath.IsFile(s.PidFile) {
+	if path.IsFile(s.PidFile) {
 		var proc *process.Process
 		if proc, err = common.GetProcessFromPidFile(s.PidFile); err != nil {
 			var stale bool
@@ -99,14 +99,14 @@ func (s *Service) Start() (err error) {
 }
 
 func (s *Service) SendSignal(sig syscall.Signal) (err error) {
-	if bePath.IsFile(s.PidFile) {
+	if path.IsFile(s.PidFile) {
 		err = common.SendSignalToPidFromFile(s.PidFile, sig)
 	}
 	return
 }
 
 func (s *Service) Cleanup() (err error) {
-	if bePath.IsFile(s.PidFile) {
+	if path.IsFile(s.PidFile) {
 		err = os.Remove(s.PidFile)
 	}
 	return
