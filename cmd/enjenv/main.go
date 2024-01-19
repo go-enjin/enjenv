@@ -71,7 +71,6 @@ func main() {
 		AddCommand(herokuCmd.New()).
 		AddSystem(golang.New()).
 		AddSystem(nodejs.New()).
-		AddSystem(ngrok.New()).
 		Setup(app); err == nil {
 		err = app.Run(os.Args)
 		system.Manager().Shutdown()
