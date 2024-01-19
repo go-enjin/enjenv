@@ -52,34 +52,12 @@ import (
 //go:embed status-watch.accelmap
 var statusWatchAccelmap string
 
-// Build Configuration Flags
-// setting these will enable command line flags and their corresponding features
-// use `go build -v -ldflags="-X 'github.com/go-enjin/enjenv/commands/niseroku.CdkIncludeLogFullPaths=false'"`
-var (
-	CdkIncludeProfiling     = "false"
-	CdkIncludeLogFile       = "false"
-	CdkIncludeLogFormat     = "false"
-	CdkIncludeLogFullPaths  = "false"
-	CdkIncludeLogLevel      = "false"
-	CdkIncludeLogLevels     = "false"
-	CdkIncludeLogTimestamps = "false"
-	CdkIncludeLogOutput     = "false"
-)
-
 var (
 	DefaultStatusWatchTtyPath = "/dev/tty"
 	rxStripFloats             = regexp.MustCompile(`\.\d+`)
 )
 
 func init() {
-	cdk.Build.Profiling = cstrings.IsTrue(CdkIncludeProfiling)
-	cdk.Build.LogFile = cstrings.IsTrue(CdkIncludeLogFile)
-	cdk.Build.LogFormat = cstrings.IsTrue(CdkIncludeLogFormat)
-	cdk.Build.LogFullPaths = cstrings.IsTrue(CdkIncludeLogFullPaths)
-	cdk.Build.LogLevel = cstrings.IsTrue(CdkIncludeLogLevel)
-	cdk.Build.LogLevels = cstrings.IsTrue(CdkIncludeLogLevels)
-	cdk.Build.LogTimestamps = cstrings.IsTrue(CdkIncludeLogTimestamps)
-	cdk.Build.LogOutput = cstrings.IsTrue(CdkIncludeLogOutput)
 	if cdk.Build.LogFile {
 		log.DefaultLogPath = filepath.Join(os.TempDir(), "niseroku-status-watch.cdk.log")
 	} else {
