@@ -27,6 +27,10 @@ import (
 )
 
 func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo) (app *Application, err error) {
+	// TODO: investigate how to integrate a git service directly, perhaps as a new go-enjin listener feature
+	// NOTE: it is very difficult to attach a debugger to the git receive
+	// hooks because they're executed by a git subcommand process and are
+	// not invoked directly by enjenv
 
 	tracking := context.New()
 	defer func() {
