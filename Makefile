@@ -1,6 +1,6 @@
 #!/usr/bin/make --no-print-directory --jobs=1 --environment-overrides -f
 
-# Copyright (c) 2023  The Go-Enjin Authors
+# Copyright (c) 2024  The Go-Enjin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,46 +20,54 @@
 -include .env
 #export
 
-.PHONY: all help
-.PHONY: clean distclean realclean
-.PHONY: local unlocal tidy be-update
-.PHONY: debug build build-all build-amd64 build-arm64
-.PHONY: release release-all release-amd64 release-arm64
+.PHONY: install-niseroku install-niseroku-logrotate
+.PHONY: install-niseroku-systemd install-niseroku-sysv-init
 .PHONY: profile.proxy.cpu profile.proxy.mem
 .PHONY: profile.repos.cpu profile.repos.mem
 .PHONY: profile.watch.cpu profile.watch.mem
-.PHONY: install install-autocomplete
-.PHONY: install-niseroku install-niseroku-logrotate install-niseroku-utils
-.PHONY: install-niseroku-systemd install-niseroku-sysv-init
 
-BE_LOCAL_PATH ?= ../../go-enjin/be
+BIN_NAME := enjenv
+UNTAGGED_VERSION := v0.1.21
+UNTAGGED_COMMIT := trunk
 
-GOPKG_KEYS ?= CDK CTK GOXT
+SHELL := /bin/bash
+RUN_ARGS := --help
+LOG_LEVEL := debug
 
-CDK_GO_PACKAGE ?= github.com/go-curses/cdk
+AUTO_CORELIBS := true
+
+GOPKG_KEYS     += CDK
 CDK_LOCAL_PATH ?= ../../go-curses/cdk
 
-CTK_GO_PACKAGE ?= github.com/go-curses/ctk
+GOPKG_KEYS     += CTK
 CTK_LOCAL_PATH ?= ../../go-curses/ctk
 
+GOPKG_KEYS      += GOXT
 GOXT_GO_PACKAGE ?= github.com/go-enjin/golang-org-x-text
 GOXT_LOCAL_PATH ?= ../golang-org-x-text
 GOXT_LATEST_VER ?= v0.12.1-enjin.2
 
-BIN_NAME ?= enjenv
-UNTAGGED_VERSION ?= v0.1.21
-UNTAGGED_COMMIT ?= 0000000000
-
-CLEAN_FILES     ?= "${BIN_NAME}" ${BIN_NAME}.*.* pprof.{proxy,repos,watch}
+CLEAN_FILES     ?= ${BIN_NAME} ${BIN_NAME}.*.* coverage.* pprof.*
 DISTCLEAN_FILES ?=
 REALCLEAN_FILES ?=
 
 BUILD_VERSION_VAR := github.com/go-enjin/enjenv/pkg/globals.BuildVersion
 BUILD_RELEASE_VAR := github.com/go-enjin/enjenv/pkg/globals.BuildRelease
 
-_BUILD_TAGS += page_funcmaps exclude_pages_formats _templates
+BUILD_TAGS += page_funcmaps exclude_pages_formats _templates
+DEBUG_BUILD_TAGS += debug
 
+SRC_CMD_PATH := ./cmd/enjenv
+
+INCLUDE_CDK_LOG_FLAGS := false
+
+SRC_AUTOCOMPLETE_FILE := _templates/bash_autocomplete
+INCLUDE_DEFAULT_AUTOCOMPLETE_FILE := true
+AUTOCOMPLETE_FILES += ${INSTALL_AUTOCOMPLETE_PATH}/niseroku
+
+include Golang.def.mk
 include Golang.cmd.mk
+include Golang.cdk.mk
 
 define _profile_run
 	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
@@ -85,71 +93,6 @@ define _profile_run
 		echo "# ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} not found"; \
 	fi
 endef
-
-help:
-	@echo "usage: make <help|clean|local|unlocal|tidy>"
-	@echo "       make <debug>"
-	@echo "       make <build|build-amd64|build-arm64|build-all>"
-	@echo "       make <release|release-amd64|release-arm64|release-all>"
-	@echo "       make <profile.proxy.cpu|profile.proxy.mem>"
-	@echo "       make <profile.repos.cpu|profile.repos.mem>"
-	@echo "       make <profile.watch.cpu|profile.watch.mem>"
-	@echo "       make <install>"
-	@echo "       make <install-autocomplete>"
-	@echo "       make <install-niseroku>"
-	@echo "       make <install-niseroku-systemd>"
-	@echo "       make <install-niseroku-logrotate>"
-	@echo "       make <install-niseroku-sysv-init>"
-
-clean:
-	@$(call __clean,${CLEAN_FILES})
-
-distclean: clean
-	@$(call __clean,${DISTCLEAN_FILES})
-
-realclean: distclean
-	@$(call __clean,${REALCLEAN_FILES})
-
-debug: BUILD_VERSION=$(call __tag_ver)
-debug: BUILD_RELEASE=$(call __rel_ver)
-debug: TRIM_PATHS=$(call __go_trim_path)
-debug: __golang
-	@$(call __go_build_debug,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH},./cmd/enjenv)
-	@${SHASUM_CMD} "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
-
-build: BUILD_VERSION=$(call __tag_ver)
-build: BUILD_RELEASE=$(call __rel_ver)
-build: TRIM_PATHS=$(call __go_trim_path)
-build: __golang
-	@$(call __go_build_release,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}",${BUILD_OS},${BUILD_ARCH},./cmd/enjenv)
-	@${SHASUM_CMD} "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}"
-
-build-amd64: BUILD_VERSION=$(call __tag_ver)
-build-amd64: BUILD_RELEASE=$(call __rel_ver)
-build-amd64: TRIM_PATHS=$(call __go_trim_path)
-build-amd64: __golang
-	@$(call __go_build_release,"${BIN_NAME}.${BUILD_OS}.amd64",${BUILD_OS},amd64,./cmd/enjenv)
-	@${SHASUM_CMD} "${BIN_NAME}.${BUILD_OS}.amd64"
-
-build-arm64: BUILD_VERSION=$(call __tag_ver)
-build-arm64: BUILD_RELEASE=$(call __rel_ver)
-build-arm64: TRIM_PATHS=$(call __go_trim_path)
-build-arm64: __golang
-	@$(call __go_build_release,"${BIN_NAME}.${BUILD_OS}.arm64",${BUILD_OS},arm64,./cmd/enjenv)
-	@${SHASUM_CMD} "${BIN_NAME}.${BUILD_OS}.arm64"
-
-build-all: build-amd64 build-arm64
-
-release: build
-	@$(call __upx_build,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}")
-
-release-arm64: build-arm64
-	@$(call __upx_build,"${BIN_NAME}.${BUILD_OS}.arm64")
-
-release-amd64: build-amd64
-	@$(call __upx_build,"${BIN_NAME}.${BUILD_OS}.amd64")
-
-release-all: release-amd64 release-arm64
 
 profile.proxy.cpu: export ENJENV_ENABLE_PROFILING=true
 profile.proxy.cpu: export ENJENV_PROFILING_TYPE=cpu
@@ -186,38 +129,6 @@ profile.watch.mem: export ENJENV_PROFILING_TYPE=mem
 profile.watch.mem: export ENJENV_PROFILING_PATH=./pprof.watch
 profile.watch.mem: debug
 	@$(call _profile_run,"watch","mem")
-
-install:
-	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
-		echo "# ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} present"; \
-		$(call __install_exe,"${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}","${INSTALL_BIN_PATH}/${BIN_NAME}"); \
-	else \
-		echo "error: missing ${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH} binary" 1>&2; \
-	fi
-
-install-arm64:
-	@if [ -f "${BIN_NAME}.${BUILD_OS}.arm64" ]; then \
-		echo "# ${BIN_NAME}.${BUILD_OS}.arm64 present"; \
-		$(call __install_exe,"${BIN_NAME}.${BUILD_OS}.arm64","${INSTALL_BIN_PATH}/${BIN_NAME}"); \
-	else \
-		echo "error: missing ${BIN_NAME}.${BUILD_OS}.arm64 binary" 1>&2; \
-	fi
-
-install-amd64:
-	@if [ -f "${BIN_NAME}.${BUILD_OS}.amd64" ]; then \
-		echo "# ${BIN_NAME}.${BUILD_OS}.amd64 present"; \
-		$(call __install_exe,"${BIN_NAME}.${BUILD_OS}.amd64","${INSTALL_BIN_PATH}/${BIN_NAME}"); \
-	else \
-		echo "error: missing ${BIN_NAME}.${BUILD_OS}.amd64 binary" 1>&2; \
-	fi
-
-install-autocomplete: ENJENV_AUTOCOMPLETE_FILE=${INSTALL_AUTOCOMPLETE_PATH}/${BIN_NAME}
-install-autocomplete: NISEROKU_AUTOCOMPLETE_FILE=${INSTALL_AUTOCOMPLETE_PATH}/niseroku
-install-autocomplete:
-	@echo "# installing ${BIN_NAME} bash_autocomplete to: ${ENJENV_AUTOCOMPLETE_FILE}"
-	@$(call __install_exe,_templates/bash_autocomplete,${ENJENV_AUTOCOMPLETE_FILE})
-	@echo "# installing niseroku bash_autocomplete to: ${NISEROKU_AUTOCOMPLETE_FILE}"
-	@$(call __install_exe,_templates/bash_autocomplete,${NISEROKU_AUTOCOMPLETE_FILE})
 
 install-niseroku: NISEROKU_PATH=${INSTALL_ETC_PATH}/niseroku
 install-niseroku: NISEROKU_TOML_FILE=${NISEROKU_PATH}/niseroku.toml
@@ -266,11 +177,3 @@ install-niseroku-utils:
 	else \
 		echo "error: missing niseroku-tail wrapper script" 1>&2; \
 	fi
-
-local: __local
-
-unlocal: __unlocal
-
-tidy: __tidy
-
-be-update: __be_update
