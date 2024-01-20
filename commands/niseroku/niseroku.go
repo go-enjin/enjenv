@@ -21,7 +21,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	clpath "github.com/go-corelibs/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/system"
@@ -132,7 +132,7 @@ func (c *Command) findConfig(ctx *cli.Context) (config *Config, err error) {
 	var path string
 	if path = ctx.String("config"); path == "" {
 		for _, check := range DefaultConfigLocations {
-			if bePath.IsFile(check) {
+			if clpath.IsFile(check) {
 				path = check
 			}
 		}
@@ -141,7 +141,7 @@ func (c *Command) findConfig(ctx *cli.Context) (config *Config, err error) {
 		err = fmt.Errorf("%v not found, please use --config", ConfigFileName)
 		return
 	}
-	if path, err = bePath.Abs(path); err != nil {
+	if path, err = clpath.Abs(path); err != nil {
 		return
 	}
 	config, err = LoadConfig(path)

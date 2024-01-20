@@ -27,7 +27,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/go-git/go-git/v5"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	clpath "github.com/go-corelibs/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
@@ -75,7 +75,7 @@ type Application struct {
 
 func LoadApplications(config *Config) (foundApps map[string]*Application, err error) {
 	var appConfigs []string
-	if appConfigs, err = bePath.ListFiles(config.Paths.EtcApps); err != nil {
+	if appConfigs, err = clpath.ListFiles(config.Paths.EtcApps, false); err != nil {
 		if strings.Contains(err.Error(), "no such file or directory") {
 			err = nil
 		}
@@ -144,7 +144,7 @@ func (a *Application) Load() (err error) {
 		a.tomlComments = MergeApplicationToml(tcs, true)
 	}
 
-	a.Name = bePath.Base(a.Source)
+	a.Name = clpath.Base(a.Source)
 
 	a.RepoPath = fmt.Sprintf("%v/%v.git", a.Config.Paths.VarRepos, a.Name)
 	a.ErrorLog = fmt.Sprintf("%s/%v.error.log", a.Config.Paths.VarLogs, a.Name)
@@ -179,10 +179,10 @@ func (a *Application) Load() (err error) {
 		a.AptRepositoryPath = filepath.Join(a.AptBasePath, "apt-repository")
 	}
 
-	if a.ThisSlug != "" && !bePath.IsFile(a.ThisSlug) {
+	if a.ThisSlug != "" && !clpath.IsFile(a.ThisSlug) {
 		a.ThisSlug = ""
 	}
-	if a.NextSlug != "" && !bePath.IsFile(a.NextSlug) {
+	if a.NextSlug != "" && !clpath.IsFile(a.NextSlug) {
 		a.NextSlug = ""
 	}
 
@@ -217,12 +217,12 @@ func (a *Application) LoadAllSlugs() (err error) {
 	defer a.Unlock()
 
 	var files []string
-	if files, err = bePath.ListFiles(a.Config.Paths.VarSlugs); err != nil {
+	if files, err = clpath.ListFiles(a.Config.Paths.VarSlugs, false); err != nil {
 		return
 	}
 
 	for _, file := range files {
-		name := bePath.Base(file)
+		name := clpath.Base(file)
 		if _, exists := a.Slugs[name]; !exists {
 			if strings.HasPrefix(name, a.Name+"--") {
 				if slug, ee := NewSlugFromZip(a, file); ee != nil {
@@ -264,7 +264,7 @@ func (a *Application) LogErrorF(format string, argv ...interface{}) {
 }
 
 func (a *Application) Cleanup() {
-	if bePath.IsFile(a.DeployFile) {
+	if clpath.IsFile(a.DeployFile) {
 		_ = os.Remove(a.DeployFile)
 	}
 	if slug := a.GetThisSlug(); slug != nil {

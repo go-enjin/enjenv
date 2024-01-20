@@ -17,7 +17,7 @@ package nodejs
 import (
 	"github.com/urfave/cli/v2"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
@@ -55,7 +55,7 @@ func (s *System) IncludeCommands(app *cli.App) (commands []*cli.Command) {
 
 func (s *System) herokuPresent() (ok bool) {
 	heroku := basepath.MakeEnjenvPath(s.Root, "bin", "heroku")
-	ok = bePath.IsFile(heroku)
+	ok = clpath.IsFile(heroku)
 	return
 }
 

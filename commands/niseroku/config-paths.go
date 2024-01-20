@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -55,7 +55,7 @@ func (c *Config) PrepareDirectories() (err error) {
 		return
 	}
 
-	if bePath.IsFile(c.LogFile) {
+	if path.IsFile(c.LogFile) {
 		if err = common.PerformChownChmod(uid, gid, 0660, 0770, c.LogFile); err != nil {
 			return
 		}

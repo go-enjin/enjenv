@@ -18,10 +18,10 @@ import (
 	_ "embed"
 	"os"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 )
 
-var BinName = bePath.Base(os.Args[0])
+var BinName = path.Base(os.Args[0])
 
 //go:embed functions.sh
 var ShellFunctionsSource string

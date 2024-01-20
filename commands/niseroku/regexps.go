@@ -27,3 +27,7 @@ var (
 
 	RxTangoTags = regexp.MustCompile(`<.+?>`)
 )
+
+var RxDscFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)\.dsc\s*$`)
+
+var RxDebFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)_(.+?)\.u?deb\s*$`)

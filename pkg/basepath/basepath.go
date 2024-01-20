@@ -21,9 +21,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-corelibs/env"
+	"github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/hash/sha"
-	"github.com/go-enjin/be/pkg/path"
 )
 
 var (
@@ -65,17 +65,9 @@ func BinCheck() (absPath, buildBinHash string, err error) {
 		}
 	} else if strings.HasPrefix(argv0, "/") {
 		absPath = argv0
-	} else {
-		binPaths := env.GetPaths()
-		for _, binPath := range binPaths {
-			if path.IsFile(binPath + "/" + argv0) {
-				absPath = binPath + "/" + argv0
-			}
-		}
-		if absPath == "" {
-			err = fmt.Errorf("error finding program: %v - not in any of: %v", argv0, binPaths)
-			return
-		}
+	} else if absPath = path.Which(argv0); absPath == "" {
+		err = fmt.Errorf("error program not found: %v", argv0)
+		return
 	}
 
 	if buildBinHash, err = sha.FileHash10(absPath); err != nil {
@@ -93,8 +85,8 @@ func EnjenvPresent() (present bool) {
 }
 
 func EnjenvIsInPwd() (present bool) {
-	pwd := path.Pwd()
-	if envPathValue := os.Getenv("ENJENV_PATH"); envPathValue != "" {
+	pwd, _ := os.Getwd()
+	if envPathValue := env.String("ENJENV_PATH", ""); envPathValue != "" {
 		if len(envPathValue) >= len(pwd) {
 			present = envPathValue[0:len(pwd)] == pwd
 		}
@@ -111,22 +103,23 @@ func FindEnjenvDir() string {
 	if envPathValue := os.Getenv("ENJENV_PATH"); envPathValue != "" {
 		return envPathValue
 	}
-	var name string
-	if name = env.Get("ENJENV_DIR_NAME", ""); name == "" {
-		name = EnjenvDirName
-	}
-	if wd, err := os.Getwd(); err == nil {
+	var err error
+	var pwd, wd string
+	name := env.String("ENJENV_DIR_NAME", EnjenvDirName)
+
+	if pwd, err = os.Getwd(); err == nil {
+		wd = pwd
 		for len(wd) > 1 && wd != "/" {
 			beDir := fmt.Sprintf("%v/%v", wd, name)
 			if path.IsDir(beDir) {
-				if abs, err := path.Abs(beDir); err == nil {
+				if abs, ee := path.Abs(beDir); ee == nil {
 					return abs
 				}
 			}
 			wd = path.Dir(wd)
 		}
 	}
-	return fmt.Sprintf("%v/%v", path.Pwd(), EnjenvDirName)
+	return fmt.Sprintf("%v/%v", pwd, EnjenvDirName)
 }
 
 func MakeEnjenvPath(names ...string) (path string) {

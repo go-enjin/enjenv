@@ -22,9 +22,9 @@ import (
 
 	"github.com/iancoleman/strcase"
 
-	"github.com/go-enjin/be/pkg/maps"
-	bePath "github.com/go-enjin/be/pkg/path"
-
+	"github.com/go-corelibs/env"
+	"github.com/go-corelibs/maps"
+	"github.com/go-corelibs/path"
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
@@ -45,7 +45,7 @@ func (a *Application) GetThisSlug() (slug *Slug) {
 	a.RLock()
 	defer a.RUnlock()
 	if a.ThisSlug != "" {
-		if name := bePath.Base(a.ThisSlug); bePath.IsFile(a.ThisSlug) {
+		if name := path.Base(a.ThisSlug); path.IsFile(a.ThisSlug) {
 			if found, ok := a.Slugs[name]; ok {
 				slug = found
 				return
@@ -60,7 +60,7 @@ func (a *Application) GetNextSlug() (slug *Slug) {
 	a.RLock()
 	defer a.RUnlock()
 	if a.NextSlug != "" {
-		if name := bePath.Base(a.NextSlug); bePath.IsFile(a.NextSlug) {
+		if name := path.Base(a.NextSlug); path.IsFile(a.NextSlug) {
 			if found, ok := a.Slugs[name]; ok {
 				slug = found
 				return
@@ -72,62 +72,45 @@ func (a *Application) GetNextSlug() (slug *Slug) {
 }
 
 func (a *Application) ApplySettings(envDir string) (err error) {
-	// a.LogInfoF("applying settings to: %v\n", envDir)
 	a.RLock()
 	defer a.RUnlock()
-
-	for _, k := range maps.SortedKeys(a.Settings) {
-		key := strcase.ToScreamingSnake(k)
-		value := fmt.Sprintf("%v", a.Settings[k])
-		if err = os.WriteFile(envDir+"/"+key, []byte(value), 0660); err != nil {
-			return
-		}
-	}
-
-	if aptEnv := a.OsEnvironAptEnjinOnly(); len(aptEnv) > 0 {
-		for k, value := range aptEnv {
-			key := strcase.ToScreamingSnake(k)
-			if err = os.WriteFile(envDir+"/"+key, []byte(value), 0660); err != nil {
-				return
-			}
-		}
-	}
-
+	environ := a.OsEnviron()
+	a.LogInfoF("applying settings: %q - %q\n", envDir, environ.Environ())
+	err = environ.WriteEnvDir(envDir)
 	return
 }
 
-func (a *Application) OsEnviron() (environment []string) {
+func (a *Application) OsEnviron() (environment env.Env) {
 	a.RLock()
 	defer a.RUnlock()
-	environment = os.Environ()
+	environment = env.New()
+	environment.Import(os.Environ())
 	for _, k := range maps.SortedKeys(a.Settings) {
 		key := strcase.ToScreamingSnake(k)
-		environment = append(environment, fmt.Sprintf("%v=%v", key, a.Settings[k]))
+		environment.Set(key, fmt.Sprintf("%v", a.Settings[k]))
 	}
 	if ae := a.AptEnjin; ae != nil {
-		aptEnv := a.OsEnvironAptEnjinOnly()
-		for _, key := range maps.SortedKeys(aptEnv) {
-			environment = append(environment, fmt.Sprintf("%v=%v", key, aptEnv[key]))
-		}
+		environment.Include(a.OsEnvironAptEnjinOnly())
 	}
 	return
 }
 
-func (a *Application) OsEnvironAptEnjinOnly() (aptEnv map[string]string) {
-	aptEnv = make(map[string]string)
+func (a *Application) OsEnvironAptEnjinOnly() (aptEnv env.Env) {
+	aptEnv = env.New()
 	var ae *AptEnjinConfig
 	if ae = a.AptEnjin; ae == nil {
 		return
 	}
-	aptEnv["GNUPGHOME"] = filepath.Join(a.Config.Paths.AptSecrets, a.Name, ".gpg")
-	aptEnv["SITEKEY"] = ae.SiteKey
-	aptEnv["SITEURL"] = ae.SiteUrl
-	aptEnv["SITENAME"] = ae.SiteName
-	aptEnv["SITEMAIL"] = ae.SiteMail
-	aptEnv["SITEMAINT"] = ae.SiteMaint
-	aptEnv["AE_ARCHIVES"] = a.AptArchivesPath
-	aptEnv["AE_BASEPATH"] = filepath.Join(a.AptBasePath, "apt-repository")
-	aptEnv["AE_GPG_HOME"] = aptEnv["GNUPGHOME"]
+	gnupgHome := filepath.Join(a.Config.Paths.AptSecrets, a.Name, ".gpg")
+	aptEnv.Set("GNUPGHOME", gnupgHome)
+	aptEnv.Set("SITEKEY", ae.SiteKey)
+	aptEnv.Set("SITEURL", ae.SiteUrl)
+	aptEnv.Set("SITENAME", ae.SiteName)
+	aptEnv.Set("SITEMAIL", ae.SiteMail)
+	aptEnv.Set("SITEMAINT", ae.SiteMaint)
+	aptEnv.Set("AE_ARCHIVES", a.AptArchivesPath)
+	aptEnv.Set("AE_BASEPATH", filepath.Join(a.AptBasePath, "apt-repository"))
+	aptEnv.Set("AE_GPG_HOME", gnupgHome)
 
 	if len(ae.GpgKeys) > 0 {
 		// TODO: better signing key handling
@@ -138,10 +121,9 @@ func (a *Application) OsEnvironAptEnjinOnly() (aptEnv map[string]string) {
 			gpgKeys = ae.GpgKeys[gpgFile]
 			break
 		}
-		if gpgFile != "" && bePath.IsFile(gpgFile) {
-			aptEnv["AE_GPG_FILE"] = gpgFile
-			if len(gpgKeys) > 0 {
-				aptEnv["AE_SIGN_KEY"] = gpgKeys[0]
+		if gpgFile != "" && path.IsFile(gpgFile) {
+			if aptEnv.Set("AE_GPG_FILE", gpgFile); len(gpgKeys) > 0 {
+				aptEnv.Set("AE_SIGN_KEY", gpgKeys[0])
 			}
 		}
 	}
@@ -151,7 +133,7 @@ func (a *Application) OsEnvironAptEnjinOnly() (aptEnv map[string]string) {
 
 func (a *Application) PurgeGpgSecrets() (err error) {
 	home := a.GetGpgHome()
-	if bePath.IsDir(home) {
+	if path.IsDir(home) {
 		if err = os.RemoveAll(home); err != nil {
 			return
 		}
@@ -178,9 +160,9 @@ func (a *Application) ImportGpgSecrets(other *Application) (info map[string][]st
 
 	otherAptSecrets := filepath.Join(a.Config.Paths.AptSecrets, other.Name)
 
-	found, _ := bePath.ListFiles(otherAptSecrets)
+	found, _ := path.ListFiles(otherAptSecrets, true)
 	for _, file := range found {
-		if bePath.IsFile(file) && strings.HasSuffix(file, ".gpg") {
+		if path.IsFile(file) && strings.HasSuffix(file, ".gpg") {
 			a.LogInfoF("# importing from other gpg key: %v - %v", other.Name, file)
 			if o, e, _, ee := common.Gpg(home, "--import", file); ee != nil {
 				a.LogErrorF("error importing %v gpg key: %v - %v", a.Name, ee)
@@ -225,7 +207,7 @@ func (a *Application) PrepareGpgSecrets() (err error) {
 
 	ae.GpgKeys = make(map[string][]string)
 
-	found, _ := bePath.ListFiles(aptSecrets)
+	found, _ := path.ListFiles(aptSecrets, true)
 	for _, file := range found {
 		if strings.HasSuffix(file, ".gpg") {
 			// a.LogInfoF("# importing gpg key: %v", file)

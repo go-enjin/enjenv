@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/cpuinfo"
 	beIo "github.com/go-enjin/enjenv/pkg/io"
@@ -236,7 +236,7 @@ func (w *Watching) updateSnapshotApplication(app *Application) (stats []WatchPro
 }
 
 func (w *Watching) updateSnapshotEntry(entry *WatchProc, pidfile string, ports []int) {
-	if bePath.IsFile(pidfile) {
+	if clpath.IsFile(pidfile) {
 		var portsReady []int
 		var isRunning, isReady bool
 		var pid int = -1

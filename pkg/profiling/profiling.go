@@ -22,9 +22,10 @@ import (
 
 	"github.com/pkg/profile"
 
-	"github.com/go-enjin/be/pkg/cli/env"
-	bePath "github.com/go-enjin/be/pkg/path"
-	beStrings "github.com/go-enjin/be/pkg/strings"
+	"github.com/go-corelibs/env"
+	clpath "github.com/go-corelibs/path"
+	clstrings "github.com/go-corelibs/strings"
+	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 var (
@@ -44,7 +45,7 @@ var (
 
 func init() {
 	if BuildEnabled != "" {
-		Enabled = beStrings.IsTrue(BuildEnabled)
+		Enabled = clstrings.IsTrue(BuildEnabled)
 	}
 	if BuildProfileType != "" {
 		ProfileType = BuildProfileType
@@ -52,25 +53,24 @@ func init() {
 	if BuildProfilePath != "" {
 		ProfilePath = BuildProfilePath
 	}
-	if v := env.Get(EnvNameEnabled, ""); v != "" {
-		Enabled = beStrings.IsTrue(v)
+	if v := env.String(EnvNameEnabled, ""); v != "" {
+		Enabled = clstrings.IsTrue(v)
 	}
-	if v := env.Get(EnvNameProfileType, ""); v != "" {
+	if v := env.String(EnvNameProfileType, ""); v != "" {
 		ProfileType = v
 	}
-	if v := env.Get(EnvNameProfilePath, ""); v != "" {
+	if v := env.String(EnvNameProfilePath, ""); v != "" {
 		ProfilePath = v
 	}
 	switch v := strings.ToLower(ProfileType); v {
 	case "cpu", "mem", "go":
 		ProfileType = v
 	}
-	if v, err := bePath.Abs(ProfilePath); err == nil {
+	if v, err := clpath.Abs(ProfilePath); err == nil {
 		ProfilePath = v
 	} else {
 		panic(fmt.Errorf("error getting absolute profile path: %v", err))
 	}
-	// _, _ = fmt.Fprintf(os.Stderr, "pkg/profiling: enabled=%v, type=%v, path=%v\n", Enabled, ProfileType, ProfilePath)
 }
 
 func newProfiler(profileType func(*profile.Profile), profilePath string) (profiler interface{ Stop() }) {
@@ -86,6 +86,7 @@ func newProfiler(profileType func(*profile.Profile), profilePath string) (profil
 var instance interface{ Stop() }
 
 func Start() {
+	pkgIo.STDOUT("pkg/profiling: enabled=%v, type=%v, path=%v\n", Enabled, ProfileType, ProfilePath)
 	if !Enabled {
 		return
 	}

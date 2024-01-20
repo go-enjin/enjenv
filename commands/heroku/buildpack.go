@@ -19,11 +19,10 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/enjenv/pkg/run"
-
+	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/run"
 )
 
 func (c *Command) makeBuildpackCommand(appNamePrefix string) *cli.Command {
@@ -81,8 +80,8 @@ func (c *Command) ActionBuildpack(ctx *cli.Context) (err error) {
 		return
 	}
 
-	pwd := bePath.Pwd()
-	_ = os.Setenv("_ENJENV_NOTIFY_PREFIX", "buildpack "+bePath.Base(pwd))
+	pwd := clpath.Pwd()
+	_ = os.Setenv("_ENJENV_NOTIFY_PREFIX", "buildpack "+clpath.Base(pwd))
 	io.NotifyF("buildpack", "starting deployment")
 
 	// 	- run enjenv init --golang "--golang" --nodejs "--nodejs"

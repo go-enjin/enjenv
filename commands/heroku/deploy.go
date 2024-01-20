@@ -21,12 +21,11 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/cli/git"
-	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/enjenv/pkg/run"
-
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"
+	"github.com/go-enjin/enjenv/pkg/run"
 )
 
 func (c *Command) makeDeploySlugCommand(appNamePrefix string) *cli.Command {
@@ -104,16 +103,16 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 	src := argv[0]
 	dst := argv[1]
 
-	_ = os.Setenv("_ENJENV_NOTIFY_PREFIX", "deploy-slug "+bePath.Base(src))
+	_ = os.Setenv("_ENJENV_NOTIFY_PREFIX", "deploy-slug "+clpath.Base(src))
 	io.NotifyF("deploy-slug", "starting local deployment")
 	io.StdoutF("# src: %v, dst: %v\n", src, dst)
 
-	if bePath.IsFile(dst) {
+	if clpath.IsFile(dst) {
 		err = fmt.Errorf("<dst> is a file, something must be wrong")
 		return
 	}
 
-	if bePath.IsDir(dst) {
+	if clpath.IsDir(dst) {
 		switch {
 		case ctx.Bool("no-backup"):
 			io.StdoutF("# removing %v, --no-backup\n", dst)
@@ -126,8 +125,8 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 				now := time.Now()
 				backupPath = fmt.Sprintf(
 					"%v/%v--backup--%v",
-					bePath.Dir(dst),
-					bePath.Base(dst),
+					clpath.Dir(dst),
+					clpath.Base(dst),
 					now.Format("20060102-150405-0700"),
 				)
 			}
@@ -143,7 +142,7 @@ func (c *Command) ActionDeploySlug(ctx *cli.Context) (err error) {
 		err = fmt.Errorf("mkdir error: %v", err)
 		return
 	}
-	pwd := bePath.Pwd()
+	pwd := clpath.Pwd()
 	if err = os.Chdir(dst); err != nil {
 		err = fmt.Errorf("chdir %v error: %v", dst, err)
 		return

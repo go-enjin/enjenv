@@ -24,8 +24,8 @@ import (
 	"github.com/go-enjin/be/pkg/lang/catalog"
 	"github.com/go-enjin/golang-org-x-text/language"
 
+	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/hash/sha"
-	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -78,9 +78,9 @@ func (c *Command) _extractLocalesAction(ctx *cli.Context) (err error) {
 }
 
 func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, err error) {
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		// recurse
-		if files, e := bePath.ListAllFiles(path); e == nil {
+		if files, e := clpath.ListAllFiles(path, true); e == nil {
 			for _, file := range files {
 				if found, ee := c._extractLocalesRecurse(file); ee == nil {
 					msgs = append(msgs, found...)
@@ -91,7 +91,7 @@ func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, 
 	}
 
 	var contents string
-	if data, e := bePath.ReadFile(path); e != nil {
+	if data, e := clpath.ReadFile(path); e != nil {
 		err = e
 		return
 	} else {
@@ -113,8 +113,8 @@ func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, 
 
 func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, argv []string) (err error) {
 
-	if !bePath.Exists(outDir) {
-		if err = bePath.Mkdir(outDir); err != nil {
+	if !clpath.Exists(outDir) {
+		if err = clpath.MkdirAll(outDir); err != nil {
 			err = fmt.Errorf("error making directory: %v - %v\n", outDir, err)
 			return
 		}
@@ -122,8 +122,8 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 
 	for _, tag := range tags {
 		outDirTag := outDir + "/" + tag.String()
-		if !bePath.IsDir(outDirTag) {
-			if err = bePath.Mkdir(outDirTag); err != nil {
+		if !clpath.IsDir(outDirTag) {
+			if err = clpath.MkdirAll(outDirTag); err != nil {
 				err = fmt.Errorf("error making directory: %v - %v\n", outDirTag, err)
 				return
 			}

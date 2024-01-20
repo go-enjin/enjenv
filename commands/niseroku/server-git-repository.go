@@ -25,10 +25,11 @@ import (
 	"github.com/knqyf263/go-deb-version"
 	"github.com/sosedoff/gitkit"
 
+	"github.com/go-corelibs/maps"
+	clpath "github.com/go-corelibs/path"
+
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/log"
-	"github.com/go-enjin/be/pkg/maps"
-	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/profiling"
@@ -225,7 +226,7 @@ func (gr *GitRepository) updateGitHookScripts() (err error) {
 			continue
 		}
 		hookDir := app.RepoPath + "/hooks"
-		if !bePath.IsDir(hookDir) {
+		if !clpath.IsDir(hookDir) {
 			if err = os.Mkdir(hookDir, 0770); err != nil {
 				gr.LogErrorF("error making git hooks directory: %v - %v\n", hookDir, err)
 				continue
@@ -266,19 +267,19 @@ func (gr *GitRepository) updateAptEnjins() (err error) {
 			for flavour, dists := range ae.Flavours {
 				flavourPath := filepath.Join(app.AptRepositoryPath, flavour)
 				confDir := filepath.Join(flavourPath, "conf")
-				if err = bePath.Mkdir(confDir); err != nil {
+				if err = clpath.MkdirAll(confDir); err != nil {
 					return
 				}
 
 				distsFile := filepath.Join(confDir, "distributions")
 				distsContent := Distributions(dists).String()
-				if err = os.WriteFile(distsFile, []byte(distsContent), 0660); err != nil {
+				if err = os.WriteFile(distsFile, []byte(distsContent), clpath.DefaultFilePerms); err != nil {
 					return
 				}
 
 				for _, dist := range dists {
 					archivesPath := filepath.Join(app.AptArchivesPath, flavour)
-					if err = bePath.Mkdir(archivesPath); err != nil {
+					if err = clpath.MkdirAll(archivesPath); err != nil {
 						return
 					}
 
@@ -313,7 +314,7 @@ func (gr *GitRepository) updateAptEnjins() (err error) {
 
 func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConfig, codename, flavourPath, archivesPath string) (changed bool, err error) {
 	var found []string
-	if found, err = bePath.ListFiles(archivesPath); err != nil {
+	if found, err = clpath.ListFiles(archivesPath, false); err != nil {
 		return
 	}
 
@@ -321,9 +322,9 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 		return
 	}
 
-	appOsEnviron := app.OsEnviron()
+	environ := app.OsEnviron()
 
-	listInfos := gr.repreproList(flavourPath, codename, appOsEnviron)
+	listInfos := gr.repreproList(flavourPath, codename, environ.Environ())
 
 	var processDSC []*ParsedDebianFile
 	var processDEB []*ParsedDebianFile
@@ -399,22 +400,20 @@ func (gr *GitRepository) processAptRepository(app *Application, ae *AptEnjinConf
 	for _, name := range maps.SortedKeys(uniqueDSC) {
 		dsc := uniqueDSC[name]
 		gr.LogInfoF("apt-repository processing [dsc]:\nrepository=%v\ntarget=%v", flavourPath, dsc.File)
-		gr.reprepro("includedsc", flavourPath, codename, dsc.File, gr.LogFile, appOsEnviron)
+		gr.reprepro("includedsc", flavourPath, codename, dsc.File, gr.LogFile, environ.Environ())
 	}
 
 	uniqueDEB := processParsedList(processDEB)
 	for _, name := range maps.SortedKeys(uniqueDEB) {
 		deb := uniqueDEB[name]
 		gr.LogInfoF("apt-repository processing [deb]:\nrepository=%v\ntarget=%v", flavourPath, deb.File)
-		gr.reprepro("includedeb", flavourPath, codename, deb.File, gr.LogFile, appOsEnviron)
+		gr.reprepro("includedeb", flavourPath, codename, deb.File, gr.LogFile, environ.Environ())
 	}
 
 	// this is not fun, always changed if any packages present
 	changed = len(uniqueDSC) > 0 || len(uniqueDEB) > 0
 	return
 }
-
-var RxDscFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)\.dsc\s*$`)
 
 type ParsedDebianFile struct {
 	Type    string
@@ -444,8 +443,6 @@ func ParseDebianDscFilename(file string) (parsed *ParsedDebianFile, ok bool) {
 	}
 	return
 }
-
-var RxDebFileName = regexp.MustCompile(`^\s*(.+?)_(.+?)_(.+?)\.u?deb\s*$`)
 
 func ParseDebianDebFilename(file string) (parsed *ParsedDebianFile, ok bool) {
 	filename := filepath.Base(file)

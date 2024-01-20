@@ -25,7 +25,7 @@ import (
 	"github.com/go-enjin/be/pkg/lang/catalog"
 	"github.com/go-enjin/golang-org-x-text/language"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -75,7 +75,7 @@ func (c *Command) _mergeLocalesAction(ctx *cli.Context) (err error) {
 func (c *Command) _mergeLocalesProcess(outDir string, tags []language.Tag) (err error) {
 	for _, tag := range tags {
 		outDirTag := outDir + "/" + tag.String()
-		if bePath.IsDir(outDirTag) {
+		if clpath.IsDir(outDirTag) {
 			if ee := c._mergeLocales(outDirTag); ee == nil {
 				io.StdoutF("# updated: %v\n", outDirTag)
 			} else if ee.Error() == outDirTag+"/messages.gotext.json not found" {
@@ -96,12 +96,12 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 	messagesGotextPath := dir + "/messages.gotext.json"
 	outGotextPath := dir + "/out.gotext.json"
 
-	if !bePath.IsFile(messagesGotextPath) {
+	if !clpath.IsFile(messagesGotextPath) {
 		err = fmt.Errorf("%v not found", messagesGotextPath)
 		return
 	}
 
-	if !bePath.IsFile(outGotextPath) {
+	if !clpath.IsFile(outGotextPath) {
 		err = fmt.Errorf("%v not found", outGotextPath)
 		return
 	}
@@ -167,12 +167,12 @@ func (c *Command) _initLocales(dir string) (err error) {
 	messagesGotextPath := dir + "/messages.gotext.json"
 	outGotextPath := dir + "/out.gotext.json"
 
-	if bePath.IsFile(messagesGotextPath) {
+	if clpath.IsFile(messagesGotextPath) {
 		err = fmt.Errorf("%v exists already", messagesGotextPath)
 		return
 	}
 
-	if !bePath.IsFile(outGotextPath) {
+	if !clpath.IsFile(outGotextPath) {
 		err = fmt.Errorf("%v not found", outGotextPath)
 		return
 	}
@@ -214,7 +214,7 @@ func (c *Command) _initLocales(dir string) (err error) {
 func (c *Command) _readGoText(path string) (gotext catalog.GoText, messages map[string]*catalog.Message, order []string, err error) {
 	gotext = catalog.GoText{}
 	var data []byte
-	if data, err = bePath.ReadFile(path); err != nil {
+	if data, err = clpath.ReadFile(path); err != nil {
 		err = fmt.Errorf("error reading file: %v - %v", path, err)
 		return
 	}

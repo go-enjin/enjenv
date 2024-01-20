@@ -25,11 +25,12 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-corelibs/chdirs"
+	"github.com/go-corelibs/env"
+	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/cli/git"
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/net"
-	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/globals"
@@ -41,7 +42,7 @@ import (
 var (
 	Tag               = "go"
 	Name              = "golang"
-	BinName           = bePath.Base(bePath.Pwd())
+	BinName           = clpath.Base(clpath.Pwd())
 	Summary           = "Custom Go-Enjin Service"
 	Version           = "v0.0.0"
 	BeEnvPrefix       = strcase.ToScreamingSnake(BinName)
@@ -58,17 +59,17 @@ var (
 )
 
 func init() {
-	Tag = env.Get("ENJENV_GOLANG_TAG", Tag)
+	Tag = env.String("ENJENV_GOLANG_TAG", Tag)
 	tag := strings.ToUpper(Tag)
-	Name = env.Get("ENJENV_"+tag+"_NAME", Name)
-	BinName = env.Get("ENJENV_"+tag+"_BIN_NAME", BinName)
-	Summary = env.Get("ENJENV_"+tag+"_SUMMARY", Summary)
-	Version = env.Get("ENJENV_"+tag+"_VERSION", Version)
-	BeEnvPrefix = env.Get("ENJENV_"+tag+"_ENV_PREFIX", BeEnvPrefix)
-	GoTmpDirName = env.Get("ENJENV_"+tag+"_TMP_DIR_NAME", GoTmpDirName)
-	GoCacheDirName = env.Get("ENJENV_"+tag+"_CACHE_DIR_NAME", GoCacheDirName)
-	GoModCacheDirName = env.Get("ENJENV_"+tag+"_MOD_CACHE_DIR_NAME", GoModCacheDirName)
-	globals.DefaultGolangVersion = env.Get("ENJENV_DEFAULT_"+tag+"_VERSION", globals.DefaultGolangVersion)
+	Name = env.String("ENJENV_"+tag+"_NAME", Name)
+	BinName = env.String("ENJENV_"+tag+"_BIN_NAME", BinName)
+	Summary = env.String("ENJENV_"+tag+"_SUMMARY", Summary)
+	Version = env.String("ENJENV_"+tag+"_VERSION", Version)
+	BeEnvPrefix = env.String("ENJENV_"+tag+"_ENV_PREFIX", BeEnvPrefix)
+	GoTmpDirName = env.String("ENJENV_"+tag+"_TMP_DIR_NAME", GoTmpDirName)
+	GoCacheDirName = env.String("ENJENV_"+tag+"_CACHE_DIR_NAME", GoCacheDirName)
+	GoModCacheDirName = env.String("ENJENV_"+tag+"_MOD_CACHE_DIR_NAME", GoModCacheDirName)
+	globals.DefaultGolangVersion = env.String("ENJENV_DEFAULT_"+tag+"_VERSION", globals.DefaultGolangVersion)
 }
 
 type System struct {
@@ -112,21 +113,15 @@ func (s *System) makeOsEnvironCtx() (environ []string) {
 }
 
 func (s *System) installNancy() (err error) {
-	tmpdir := env.Get("GOTMPDIR", env.Get("TMPDIR", "./tmp"))
-	if !bePath.IsDir(tmpdir) {
-		if err = bePath.Mkdir(tmpdir); err != nil {
-			return
-		}
-	}
-	var cwd string
-	if cwd, err = os.Getwd(); err != nil {
+	tmpdir := env.String("GOTMPDIR", env.String("TMPDIR", "./tmp"))
+	if err = clpath.MkdirAll(tmpdir); err != nil {
 		return
 	}
-	if err = os.Chdir(tmpdir); err != nil {
+	if err = chdirs.Push(tmpdir); err != nil {
 		return
 	}
-	defer os.Chdir(cwd)
-	if !bePath.IsDir("nancy") {
+	defer chdirs.Pop()
+	if !clpath.IsDir("nancy") {
 		if _, err = git.Exe("clone", "https://github.com/sonatype-nexus-community/nancy.git"); err != nil {
 			return
 		}
@@ -139,7 +134,7 @@ func (s *System) installNancy() (err error) {
 		return
 	}
 	dst := basepath.MakeEnjenvPath(s.Root, "bin", "nancy")
-	if _, err = bePath.CopyFile("./nancy", dst); err != nil {
+	if _, err = clpath.CopyFile("./nancy", dst); err != nil {
 		return
 	}
 	if err = os.Chmod(dst, 0770); err != nil {
@@ -150,7 +145,7 @@ func (s *System) installNancy() (err error) {
 
 func (s *System) nancyPresent() (ok bool) {
 	nancy := basepath.MakeEnjenvPath(s.Root, "bin", "nancy")
-	ok = bePath.IsFile(nancy)
+	ok = clpath.IsFile(nancy)
 	return
 }
 
@@ -187,7 +182,7 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 }
 
 func (s *System) goFlagsWithModCacheRw() (goFlags string) {
-	goFlags = env.Get("GOFLAGS", "")
+	goFlags = env.String("GOFLAGS", "")
 	if !strings.Contains(goFlags, "-modcacherw") {
 		if goFlags != "" {
 			goFlags += " "
@@ -199,7 +194,7 @@ func (s *System) goFlagsWithModCacheRw() (goFlags string) {
 
 func (s *System) ExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		content += fmt.Sprintf("export %v_VERSION=\"%v\"\n", strings.ToUpper(Tag), s.Version)
 		for k, v := range s.Ctx.AsMapStrings() {
 			var value string
@@ -226,7 +221,7 @@ func (s *System) Export(ctx *cli.Context) (err error) {
 
 func (s *System) UnExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		content += fmt.Sprintf("unset %v_VERSION;\n", strings.ToUpper(Tag))
 		for k, _ := range s.Ctx.AsMapStrings() {
 			env.Set(k, "")
@@ -246,9 +241,9 @@ func (s *System) UnExport(ctx *cli.Context) (err error) {
 
 func (s *System) GetInstalledVersion() (version string, err error) {
 	path := basepath.MakeEnjenvPath(s.Root)
-	if bePath.IsDir(path) {
+	if clpath.IsDir(path) {
 		goVerFile := fmt.Sprintf("%v/VERSION", path)
-		if bePath.IsFile(goVerFile) {
+		if clpath.IsFile(goVerFile) {
 			var data []byte
 			if data, err = os.ReadFile(goVerFile); err == nil {
 				content := string(data)
@@ -281,7 +276,7 @@ func (s *System) ParseVersionString(ver string) (version string, err error) {
 }
 
 func (s *System) ParseFileName(path string) (version, osName, osArch string, err error) {
-	if !bePath.IsFile(path) {
+	if !clpath.IsFile(path) {
 		err = fmt.Errorf("file not found")
 		return
 	}
@@ -318,7 +313,7 @@ func (s *System) MakeDirs() (err error) {
 		pp := basepath.MakeEnjenvPath(p)
 		switch k {
 		case "GOENV":
-			if !bePath.Exists(pp) {
+			if !clpath.Exists(pp) {
 				if err = os.WriteFile(pp, []byte(""), 0660); err != nil {
 					return
 				}

@@ -28,7 +28,7 @@ import (
 	"github.com/didip/tollbooth/v7/limiter"
 	"golang.org/x/crypto/acme/autocert"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/profiling"
@@ -141,7 +141,7 @@ func (rp *ReverseProxy) Bind() (err error) {
 
 func (rp *ReverseProxy) Serve() (err error) {
 
-	if bePath.Exists(rp.config.Paths.ProxyRpcSock) {
+	if path.Exists(rp.config.Paths.ProxyRpcSock) {
 		if err = os.Remove(rp.config.Paths.ProxyRpcSock); err != nil {
 			err = fmt.Errorf("error removing enjin-proxy sock: %v\n", err)
 		}
@@ -226,7 +226,7 @@ func (rp *ReverseProxy) Stop() (err error) {
 		if ee := recover(); ee != nil {
 			rp.LogErrorF("panic caught control: %v", ee)
 		}
-		if bePath.IsFile(rp.config.Paths.ProxyRpcSock) {
+		if path.IsFile(rp.config.Paths.ProxyRpcSock) {
 			if ee := os.Remove(rp.config.Paths.ProxyRpcSock); ee != nil {
 				rp.LogErrorF("error removing control socket: %v\n", ee)
 			}

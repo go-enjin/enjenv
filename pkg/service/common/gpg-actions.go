@@ -19,8 +19,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/cli/run"
-	"github.com/go-enjin/be/pkg/path"
 )
 
 func Gpg(home string, argv ...string) (o, e string, status int, err error) {

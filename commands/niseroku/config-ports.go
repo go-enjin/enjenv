@@ -17,7 +17,7 @@ package niseroku
 import (
 	"strings"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 
 	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 	"github.com/go-enjin/enjenv/pkg/service/common"
@@ -25,7 +25,7 @@ import (
 
 func (c *Config) GetAllRunningPorts() (ports map[int]*Application) {
 	ports = make(map[int]*Application)
-	files, _ := bePath.ListFiles(c.Paths.TmpRun)
+	files, _ := path.ListFiles(c.Paths.TmpRun, false)
 	for _, file := range files {
 		if strings.HasSuffix(file, ".port") {
 			if v, err := common.GetIntFromFile(file); err != nil {

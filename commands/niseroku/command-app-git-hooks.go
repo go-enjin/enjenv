@@ -19,14 +19,18 @@ import (
 
 	"github.com/sosedoff/gitkit"
 
-	"github.com/go-enjin/be/pkg/cli/env"
+	"github.com/go-corelibs/env"
+	"github.com/go-corelibs/path"
+	"github.com/go-corelibs/slices"
 	"github.com/go-enjin/be/pkg/context"
-	bePath "github.com/go-enjin/be/pkg/path"
-	"github.com/go-enjin/be/pkg/slices"
 	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo) (app *Application, err error) {
+	// TODO: investigate how to integrate a git service directly, perhaps as a new go-enjin listener feature
+	// NOTE: it is very difficult to attach a debugger to the git receive
+	// hooks because they're executed by a git subcommand process and are
+	// not invoked directly by enjenv
 
 	tracking := context.New()
 	defer func() {
@@ -43,7 +47,7 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 	}()
 
 	var envSshId string
-	if envSshId = env.Get("GITKIT_KEY", ""); envSshId == "" {
+	if envSshId = env.String("GITKIT_KEY", ""); envSshId == "" {
 		err = fmt.Errorf("user credentials not found")
 		return
 	}
@@ -55,7 +59,7 @@ func (c *Command) enjinRepoGitHandlerSetup(config *Config, info *gitkit.HookInfo
 
 	tracking.Set("branch", info.RefName)
 
-	repoName := bePath.Base(info.RepoName)
+	repoName := path.Base(info.RepoName)
 	var ok bool
 	if app, ok = c.config.Applications[repoName]; !ok {
 		err = fmt.Errorf("repository not found")

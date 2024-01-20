@@ -20,11 +20,6 @@ import (
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
-func makeCommandConfigTest(c *Command, app *cli.App) (cmd *cli.Command) {
-	cmd = &cli.Command{}
-	return
-}
-
 func (c *Command) actionConfigTest(ctx *cli.Context) (err error) {
 	if err = c.Prepare(ctx); err != nil {
 		return

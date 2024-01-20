@@ -18,8 +18,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-enjin/golang-org-x-text/language"
 	"github.com/urfave/cli/v2"
+
+	"github.com/go-enjin/golang-org-x-text/language"
 )
 
 func parseLangOutArgv(ctx *cli.Context) (outDir string, tags []language.Tag, err error) {

@@ -20,7 +20,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 )
 
 var RxSlugProcfileEntry = regexp.MustCompile(`^([a-zA-Z0-9]+):\s*(.+?)\s*$`)

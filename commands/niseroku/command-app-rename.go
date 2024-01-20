@@ -22,7 +22,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	bePath "github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 
 	beIo "github.com/go-enjin/enjenv/pkg/io"
 	pkgRun "github.com/go-enjin/enjenv/pkg/run"
@@ -129,7 +129,7 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 
 	// - rename all other slug filenames
 	var filenames []string
-	if filenames, err = bePath.ListFiles(c.config.Paths.VarSlugs); err != nil {
+	if filenames, err = path.ListFiles(c.config.Paths.VarSlugs, false); err != nil {
 		err = fmt.Errorf("error listing var-slug files: %v\n", err)
 		return
 	}
@@ -149,7 +149,7 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 	}
 
 	// - rename git-repository
-	if bePath.IsDir(oldApp.RepoPath) {
+	if path.IsDir(oldApp.RepoPath) {
 		newRepo := filepath.Join(c.config.Paths.VarRepos, newName+".git")
 		if ee := os.Rename(oldApp.RepoPath, newRepo); ee != nil {
 			beIo.STDERR("error renaming repo: %v - %v\n", oldApp.RepoPath, ee)
@@ -161,7 +161,7 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 
 	// - rename caches.d
 	oldCacheD := filepath.Join(oldApp.Config.Paths.VarCache, oldName)
-	if bePath.IsDir(oldCacheD) {
+	if path.IsDir(oldCacheD) {
 		newCacheD := filepath.Join(oldApp.Config.Paths.VarCache, newName)
 		if ee := os.Rename(oldCacheD, newCacheD); ee != nil {
 			beIo.STDERR("error renaming cache.d: %v - %v\n", newCacheD, ee)
@@ -173,7 +173,7 @@ func (c *Command) actionAppRename(ctx *cli.Context) (err error) {
 
 	// - rename log files
 	var logfiles []string
-	if logfiles, err = bePath.ListFiles(c.config.Paths.VarLogs); err != nil {
+	if logfiles, err = path.ListFiles(c.config.Paths.VarLogs, false); err != nil {
 		err = fmt.Errorf("error listing var-log files: %v\n", err)
 		return
 	}

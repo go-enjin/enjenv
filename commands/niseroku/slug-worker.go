@@ -28,8 +28,8 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 
+	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/cli/run"
-	bePath "github.com/go-enjin/be/pkg/path"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )
@@ -68,7 +68,7 @@ func NewSlugWorkerWithHash(slug *Slug, hash string) (si *SlugWorker, err error) 
 	si.PortFile = filepath.Join(slug.App.Config.Paths.TmpRun, si.Name+".port")
 	si.LogFile = filepath.Join(slug.App.Config.Paths.VarLogs, slug.App.Name+".log")
 	_, _ = si.GetPid()
-	if bePath.IsFile(si.PortFile) {
+	if clpath.IsFile(si.PortFile) {
 		if v, ee := common.GetIntFromFile(si.PortFile); ee == nil {
 			si.Port = v
 		}
@@ -100,7 +100,7 @@ func (s *SlugWorker) GetPid() (pid int, err error) {
 	s.Lock()
 	defer s.Unlock()
 	s.Pid = -1
-	if bePath.IsFile(s.PidFile) {
+	if clpath.IsFile(s.PidFile) {
 		if pid, err = common.GetIntFromFile(s.PidFile); err == nil {
 			s.Pid = pid
 		}
@@ -115,11 +115,11 @@ func (s *SlugWorker) String() (text string) {
 }
 
 func (s *SlugWorker) Unpack() (err error) {
-	if bePath.IsDir(s.RunPath) {
+	if clpath.IsDir(s.RunPath) {
 		s.Slug.App.LogInfoF("slug already unpacked: %v\n", s.Slug.Name)
 		return
 	}
-	if err = bePath.Mkdir(s.RunPath); err != nil {
+	if err = clpath.MkdirAll(s.RunPath); err != nil {
 		s.Slug.App.LogErrorF("error making run path: %v - %v\n", s.RunPath, err)
 		return
 	}
@@ -137,7 +137,7 @@ func (s *SlugWorker) Unpack() (err error) {
 }
 
 func (s *SlugWorker) ReadProcfile() (procTypes map[string]string, err error) {
-	if bePath.IsDir(s.RunPath) {
+	if clpath.IsDir(s.RunPath) {
 		procTypes, err = common.ReadProcfile(filepath.Join(s.RunPath, "Procfile"))
 	} else {
 		err = fmt.Errorf("slug is not unpacked yet")
@@ -235,7 +235,10 @@ func (s *SlugWorker) PrepareStart(port int) (webCmd string, webArgv, environ []s
 
 	s.Slug.App.LogInfoF("preparing slug instance: PORT=%d %v (%v)\n", port, web, s.Slug.Name)
 
-	environ = append(s.Slug.App.OsEnviron(), fmt.Sprintf("PORT=%d", port))
+	env := s.Slug.App.OsEnviron()
+	env.Set("PORT", strconv.Itoa(port))
+	environ = env.Environ()
+
 	var parsedArgs []string
 	if parsedArgs, err = common.ParseControlArgv(web); err != nil {
 		err = fmt.Errorf("error parsing Procfile web entry argv: %v \"%v\"", s.Slug.Name, web)
@@ -341,7 +344,7 @@ func (s *SlugWorker) Start(port int) (err error) {
 }
 
 func (s *SlugWorker) Stop() (stopped bool) {
-	if bePath.IsFile(s.PidFile) {
+	if clpath.IsFile(s.PidFile) {
 		if proc, err := s.GetBinProcess(); err == nil && proc != nil {
 			if se := common.SendSignalToPidTree(int(proc.Pid), syscall.SIGTERM); se != nil {
 				s.Slug.App.LogErrorF("error sending SIGTERM to process tree: %d - %+v\n", proc.Pid, se.Errors())
@@ -363,21 +366,21 @@ func (s *SlugWorker) Destroy() (err error) {
 }
 
 func (s *SlugWorker) Cleanup() {
-	if bePath.IsFile(s.PidFile) {
+	if clpath.IsFile(s.PidFile) {
 		if err := os.Remove(s.PidFile); err != nil {
 			s.Slug.App.LogErrorF("error removing slug pid file: %v - %v\n", s.PidFile, err)
 		} else {
 			s.Slug.App.LogInfoF("removed slug pid file: %v\n", s.PidFile)
 		}
 	}
-	if bePath.IsDir(s.RunPath) {
+	if clpath.IsDir(s.RunPath) {
 		if err := os.RemoveAll(s.RunPath); err != nil {
 			s.Slug.App.LogErrorF("error removing slug run path: %v - %v\n", s.RunPath, err)
 		} else {
 			s.Slug.App.LogInfoF("removed slug run path: %v\n", s.RunPath)
 		}
 	}
-	if bePath.IsFile(s.PortFile) {
+	if clpath.IsFile(s.PortFile) {
 		if err := os.Remove(s.PortFile); err != nil {
 			s.Slug.App.LogErrorF("error removing slug port file: %v - %v\n", s.PortFile, err)
 		} else {

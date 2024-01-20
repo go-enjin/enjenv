@@ -19,7 +19,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/path"
+	"github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/slug"
 
 	"github.com/go-enjin/enjenv/pkg/io"
