@@ -1,3 +1,13 @@
+enjenv (0.2.1) unstable; urgency=medium
+
+  * tagged v0.2.1 release build - 38922056c5c37c94af8b68679391c8dcd91723f7
+  * upstream changes:
+   * 3892205 Makefile,pkg/globals: setting versions to v0.2.1
+   * f1c2213 *.go: gofmt -s; goimports
+   * fb32fb6 pkg/system: bugfix broken PATH environment
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Sat, 20 Jan 2024 14:27:58 -0500
+
 enjenv (0.2.0) unstable; urgency=medium
 
   * tagged v0.2.0 release build - 865af75a12c01b16ea75ab90a31a25dc21dc8ed5
