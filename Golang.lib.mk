@@ -14,18 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GOLANG_MAKEFILE_KEYS += LIB
-GOLANG_LIB_MK_VERSION := v0.1.4
-
-#
-#: Go-Curses Packages
-#
-
-CDK_GO_PACKAGE ?= github.com/go-curses/cdk
-CDK_LOCAL_PATH ?= ../cdk
-
-CTK_GO_PACKAGE ?= github.com/go-curses/ctk
-CTK_LOCAL_PATH ?= ../ctk
+MAKEFILE_KEYS += GOLANG_LIB
+GOLANG_LIB_MK_FILE := Golang.lib.mk
+GOLANG_LIB_MK_VERSION := v0.2.0
+GOLANG_LIB_MK_DESCRIPTION := go-corelibs support
 
 #
 #: Core Library Packages

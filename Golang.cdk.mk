@@ -14,9 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GOLANG_MAKEFILE_KEYS += CDK
+MAKEFILE_KEYS += GOLANG_CDK
+GOLANG_CDK_MK_FILE := Golang.cdk.mk
+GOLANG_CDK_MK_VERSION := v0.2.0
+GOLANG_CDK_MK_DESCRIPTION := go-curses support
 
-GOLANG_CDK_MK_VERSION := v0.1.2
+CDK_GO_PACKAGE ?= github.com/go-curses/cdk
+CDK_LOCAL_PATH ?= ../cdk
+
+CTK_GO_PACKAGE ?= github.com/go-curses/ctk
+CTK_LOCAL_PATH ?= ../ctk
 
 CUSTOM_HELP_SECTIONS += CDK_HELP
 

@@ -14,10 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GOLANG_MAKEFILE_KEYS += DEF
-GOLANG_DEF_MK_VERSION := v0.1.5
+MAKEFILE_KEYS += GOLANG_DEF
+GOLANG_DEF_MK_FILE := Golang.def.mk
+GOLANG_DEF_MK_VERSION := v0.2.0
+GOLANG_DEF_MK_DESCRIPTION := make target definitions
 
-.PHONY: all help
+.PHONY: help
 .PHONY: clean distclean realclean
 .PHONY: local unlocal deps tidy fmt be-update generate
 .PHONY: debug build build-all build-amd64 build-arm64
@@ -34,20 +36,20 @@ ifeq (${INCLUDE_DEFAULT_AUTOCOMPLETE_FILE},true)
 AUTOCOMPLETE_FILES += ${INSTALL_AUTOCOMPLETE_PATH}/${BIN_NAME}
 endif
 
-all: help
-
 help:
 	@echo "usage: make [target]"
 	@echo
 	@echo "golang qa targets:"
 	@echo "  test           - perform all available tests"
 	@echo "  coverage       - generate coverage reports"
+	@echo "  goconvey       - start goconvey http://${GOCONVEY_HOST}:${GOCONVEY_PORT}"
 	@echo "  reportcard     - run sanity checks"
 
 	@echo
 	@echo "cleanup targets:"
-	@echo "  clean       - cleans package and built files"
-	@echo "  distclean   - clean and removes extraneous files"
+	@echo "  clean       - removes CLEAN_FILES (${CLEAN_FILES})"
+	@echo "  distclean   - clean and DISTCLEAN_FILES (${DISTCLEAN_FILES})"
+	@echo "  realclean   - distclean REALCLEAN_FILES (${REALCLEAN_FILES})"
 
 	@echo
 	@echo "build targets:"
@@ -69,11 +71,10 @@ help:
 	@echo "  install       - installs ${BUILD_NAME} to ${DESTDIR}${prefix}/bin/${BIN_NAME}"
 	@echo "  install-arm64 - installs ${BIN_NAME}.${BUILD_OS}.arm64 to ${DESTDIR}${prefix}/bin/${BIN_NAME}"
 	@echo "  install-amd64 - installs ${BIN_NAME}.${BUILD_OS}.amd64 to ${DESTDIR}${prefix}/bin/${BIN_NAME}"
-
 ifneq (${AUTOCOMPLETE_FILES},)
-	@echo
-	@echo "extra install targets:"
-	@echo "  install-autocomplete - installs ${SRC_AUTOCOMPLETE_FILE} to ${AUTOCOMPLETE_FILES}"
+	@echo "  install-autocomplete"
+	@echo "                - installs ${SRC_AUTOCOMPLETE_FILE} to:"
+	@$(foreach dst,${AUTOCOMPLETE_FILES},echo "                    $(dst)";)
 endif
 
 ifdef help_custom_targets
@@ -99,13 +100,18 @@ $(foreach key,$($(section)_KEYS),; echo "  $($(section)_$(key)_TARGET)	- $($(sec
 	@echo "  be-update   - get latest GOPKG_KEYS dependencies"
 
 	@echo
-	@echo "Notes:"
-	@echo "  GOPKG_KEYS are go packages managed by this Makefile and the following"
-	@echo "  are the included packages:" \
-		$(if ${GOPKG_KEYS},$(foreach key,${GOPKG_KEYS},; echo "    $(key): $($(key)_GO_PACKAGE) ($($(key)_LOCAL_PATH))"))
-
-	@echo $(foreach key,${GOLANG_MAKEFILE_KEYS},$(shell \
-	echo ";echo \"Golang.$(shell perl -e 'print lc("$(key)");').mk: $(GOLANG_$(key)_MK_VERSION)\"" \
+	@echo "build system details:"
+	@echo
+	@printf "  %-15s %-40s %s\n" GOPKG_KEYS GO_PACKAGE LOCAL_PATH
+	@printf "  %-15s %-40s %s\n" ---------- ---------- ----------
+	@$(foreach key,${GOPKG_KEYS},$(shell \
+		echo "printf \"  %-15s %-40s %s\\n\" \"$(key)\" \"$($(key)_GO_PACKAGE)\" \"$($(key)_LOCAL_PATH)\";" \
+))
+	@echo
+	@printf "  %-20s %-10s %s\n" MAKEFILE VERSION DESCRIPTION
+	@printf "  %-20s %-10s %s\n" -------- ------- -----------
+	@$(foreach key,${MAKEFILE_KEYS},$(shell \
+		echo "printf \"  %-20s %-10s %-10s\\n\" \"$($(key)_MK_FILE)\" \"$($(key)_MK_VERSION)\" \"$($(key)_MK_DESCRIPTION)\";" \
 ))
 
 clean:

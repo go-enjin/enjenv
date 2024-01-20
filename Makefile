@@ -18,7 +18,6 @@
 #CMD=echo
 
 -include .env
-#export
 
 .PHONY: install-niseroku install-niseroku-logrotate
 .PHONY: install-niseroku-systemd install-niseroku-sysv-init
@@ -65,9 +64,9 @@ SRC_AUTOCOMPLETE_FILE := _templates/bash_autocomplete
 INCLUDE_DEFAULT_AUTOCOMPLETE_FILE := true
 AUTOCOMPLETE_FILES += ${INSTALL_AUTOCOMPLETE_PATH}/niseroku
 
-include Golang.def.mk
-include Golang.cmd.mk
-include Golang.cdk.mk
+all: help
+
+include Golang.mk
 
 define _profile_run
 	@if [ -f "${BIN_NAME}.${BUILD_OS}.${BUILD_ARCH}" ]; then \
