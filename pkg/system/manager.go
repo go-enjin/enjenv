@@ -423,7 +423,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 						s.ExportPathVariable(false)
 					}
 					io.StdoutF("export TMPDIR=\"%v\"\n", basepath.MakeEnjenvPath(TmpDirName))
-					io.StdoutF("export PATHS=\"%v\"\n", env.String("PATHS", ""))
+					io.StdoutF("export PATH=\"%v\"\n", env.String("PATH", ""))
 					return
 				},
 			},
@@ -446,7 +446,7 @@ func (m *SystemsManager) Setup(app *cli.App) (err error) {
 						s.UnExportPathVariable(false)
 					}
 					io.StdoutF("unset TMPDIR;\n")
-					io.StdoutF("export PATHS=\"%v\"\n", env.String("PATHS", ""))
+					io.StdoutF("export PATH=\"%v\"\n", env.String("PATH", ""))
 					return
 				},
 			},

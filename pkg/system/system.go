@@ -161,7 +161,7 @@ func (s *CSystem) ExportPathVariable(export bool) {
 	binDir := basepath.MakeEnjenvPath(s.Root, "bin")
 	_ = env.PrependPATH(binDir)
 	if export {
-		io.StdoutF("export PATHS=\"%v\"\n", env.PATH())
+		io.StdoutF("export PATH=\"%v\"\n", env.PATH())
 	}
 	return
 }
@@ -186,7 +186,7 @@ func (s *CSystem) UnExportPathVariable(export bool) {
 	binDir := basepath.MakeEnjenvPath(s.Root, "bin")
 	_ = env.PrunePATH(binDir)
 	if export {
-		io.StdoutF("export PATHS=\"%v\"\n", env.PATH())
+		io.StdoutF("export PATH=\"%v\"\n", env.PATH())
 	}
 	return
 }
