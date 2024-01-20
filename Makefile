@@ -26,8 +26,8 @@
 .PHONY: profile.watch.cpu profile.watch.mem
 
 BIN_NAME := enjenv
-UNTAGGED_VERSION := v0.2.0
-UNTAGGED_COMMIT := 865af75a12
+UNTAGGED_VERSION := v0.2.1
+UNTAGGED_COMMIT := trunk
 
 SHELL := /bin/bash
 RUN_ARGS := --help

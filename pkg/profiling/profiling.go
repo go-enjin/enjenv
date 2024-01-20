@@ -22,10 +22,11 @@ import (
 
 	"github.com/pkg/profile"
 
+	pkgIo "github.com/go-enjin/enjenv/pkg/io"
+
 	"github.com/go-corelibs/env"
 	clpath "github.com/go-corelibs/path"
 	clstrings "github.com/go-corelibs/strings"
-	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 )
 
 var (

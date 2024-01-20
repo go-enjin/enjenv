@@ -24,8 +24,9 @@ import (
 	"github.com/go-enjin/be/pkg/lang/catalog"
 	"github.com/go-enjin/golang-org-x-text/language"
 
-	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/hash/sha"
+
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/io"
 )
@@ -99,13 +100,13 @@ func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, 
 	}
 
 	msgs, err = catalog.ParseTemplateMessages(contents)
-	for idx, _ := range msgs {
+	for idx := range msgs {
 		if msgs[idx].TranslatorComment != "" {
 			msgs[idx].TranslatorComment += "\n"
 		}
 		msgs[idx].TranslatorComment += "[from: " + path + "]"
 	}
-	for idx, _ := range msgs {
+	for idx := range msgs {
 		msgs[idx].TranslatorComment = catalog.CoalesceTranslatorComment(msgs[idx].TranslatorComment)
 	}
 	return

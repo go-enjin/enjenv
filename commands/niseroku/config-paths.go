@@ -74,7 +74,7 @@ func (c *Config) PrepareDirectories() (err error) {
 	for _, app := range c.Applications {
 		if app.AptEnjin != nil && app.AptEnjin.Enable {
 			for _, section := range []string{"apt-archives", "apt-repository"} {
-				for flavour, _ := range app.AptEnjin.Flavours {
+				for flavour := range app.AptEnjin.Flavours {
 					target := filepath.Join(c.Paths.VarAptRoot, app.Name, section, flavour)
 					if err = common.PerformMkdirChownChmod(uid, gid, 0660, 0770, target); err != nil {
 						return

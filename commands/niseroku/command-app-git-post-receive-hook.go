@@ -224,7 +224,7 @@ func (c *Command) enjinRepoBuildEnjinSlug(bpi buildPackInfo) (err error) {
 					pkgIo.STDERR("apt-enjin prepare gpg error: %v\n", eee)
 				}
 				environ := bpi.app.OsEnviron()
-				for flavour, _ := range ae.Flavours {
+				for flavour := range ae.Flavours {
 					if command, ok := procTypes[flavour]; ok {
 						pkgIo.STDOUT("# apt-enjin: detected Procfile target - %v\n", flavour)
 						parts := strings.Split(command, " ")

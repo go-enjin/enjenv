@@ -26,11 +26,11 @@ var (
 )
 
 var (
-	BuildVersion   = "v0.2.0"
+	BuildVersion   = "v0.2.1"
 	BuildRelease   = "trunk"
 	BuildBinPath   = ""
 	BuildBinHash   = "0000000000"
-	DisplayVersion = "v0.2.0 (trunk) [0000000000]"
+	DisplayVersion = BuildVersion + " (trunk) [0000000000]"
 	OsHostname, _  = os.Hostname()
 )
 

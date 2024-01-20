@@ -20,8 +20,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/log"
+
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/commands/enjin"
 	herokuCmd "github.com/go-enjin/enjenv/commands/heroku"
