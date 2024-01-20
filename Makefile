@@ -27,7 +27,7 @@
 
 BIN_NAME := enjenv
 UNTAGGED_VERSION := v0.2.0
-UNTAGGED_COMMIT := trunk
+UNTAGGED_COMMIT := 865af75a12
 
 SHELL := /bin/bash
 RUN_ARGS := --help
@@ -65,6 +65,10 @@ INCLUDE_DEFAULT_AUTOCOMPLETE_FILE := true
 AUTOCOMPLETE_FILES += ${INSTALL_AUTOCOMPLETE_PATH}/niseroku
 
 all: help
+
+#: begin debian packaging branch changes
+-include Debian.mk
+#: end debian packaging branch changes
 
 include Golang.mk
 

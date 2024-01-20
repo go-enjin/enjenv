@@ -1,6 +1,6 @@
 #!/usr/bin/make --no-print-directory --jobs=1 --environment-overrides -f
 
-# Copyright (c) 2023  The Go-Enjin Authors
+# Copyright (c) 2024  The Go-Enjin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DEBIAN_MK_VERSION := v0.1.0
+MAKEFILE_KEYS += DEBIAN
+DEBIAN_MK_FILE := Debian.mk
+DEBIAN_MK_VERSION := v0.2.0
+DEBIAN_MK_DESCRIPTION := debian packaging support
 
 #:: begin changelog
+#
+# v0.2.0:
+#   * support Golang makefile usage (MAKEFILE_KEYS)
+#
+# v0.1.2:
+#   * disable unit tests with DEB_BUILD_OPTIONS="nocheck"
 #
 # v0.1.0:
 #   * initial versioning of Debian.mk
@@ -33,6 +42,8 @@ export AE_ARCHIVES ?= apt-archives
 export AE_GPG_HOME ?= $(shell realpath .gpg)
 export AE_GPG_FILE ?=
 export AE_SIGN_KEY ?=
+
+export PACKAGING_NAME ?= ${BIN_NAME}
 
 #: bin checks
 
@@ -66,12 +77,14 @@ endef
 
 define _move_deb_files =
 	mkdir -vp ${AE_ARCHIVES}/${APT_FLAVOUR}; \
-	mv -v ../${BIN_NAME}[-_]*.{dsc,xz,buildinfo,changes,deb} ${AE_ARCHIVES}/${APT_FLAVOUR}/
+	mv -v ../${PACKAGING_NAME}[-_]*.{dsc,xz,buildinfo,changes,deb} ${AE_ARCHIVES}/${APT_FLAVOUR}/
 endef
 
 define _dpkg_buildpackage =
 	if [ -n "${AE_SIGN_KEY}" ]; then \
-		env GNUPGHOME="${AE_GPG_HOME}" ${DPKG_ARCH_EXPORTS} \
+		env GNUPGHOME="${AE_GPG_HOME}" \
+			${DPKG_ARCH_EXPORTS} \
+			DEB_BUILD_OPTIONS="nocheck" \
 			${WHICH_DPKG_BUILDPACKAGE} \
 			--build=full \
 			--post-clean \
@@ -80,6 +93,7 @@ define _dpkg_buildpackage =
 			--sign-key="${AE_SIGN_KEY}"; \
 	else \
 		env ${DPKG_ARCH_EXPORTS} \
+			DEB_BUILD_OPTIONS="nocheck" \
 			${WHICH_DPKG_BUILDPACKAGE} \
 			--build=full \
 			--post-clean \

@@ -1,3 +1,26 @@
+enjenv (0.2.0) unstable; urgency=medium
+
+  * tagged v0.2.0 release build - 865af75a12c01b16ea75ab90a31a25dc21dc8ed5
+  * upstream changes:
+   * 865af75 Makefile,Golang*mk: migrating to v0.2.0 build system
+   * ca67962 go.mod: be-update; tidy
+   * 107a596 Makefile: setting UNTAGGED_VERSION to v0.2.0
+   * 049f7c5 Makefile: migrating to go-corelibs/_developer/common-makefiles
+   * feee1c8 pkg/profiling: output pkg/profiling details on Start()
+   * b05b8a7 Golang.cmd.mk: updated to v0.1.11
+   * fabef98 Golang.def.mk: updated to v0.1.5
+   * c7b3be8 Golang.{cdk,def,lib}.mk: migrating to go-corelibs/_developer/common-makefiles
+   * 5cebf84 Golang.cmd.mk: update to v0.1.10 (migrating to go-corelibs/_developer/common-makefiles)
+   * c0ec71c pkg/globals: default go 1.21.6; set version to v0.2.0 so the 'go install' builds at least report the current version; change BuildRelease to trunk; cleanups and code cosmetic changes
+   * 03323af commands/niseroku (git hooks): added TODO for integrating a git service directly for more control; added NOTE regarding the difficulties in debugging git push receiver hooks
+   * 925e04e commands/niseroku (status watch): latest cdk handles build flags directly, no need to passthrough anymore
+   * efc7d4b commands/niseroku: move deb file regexps to regexps.go
+   * fa581d2 commands/niseroku: refactor ApplySettings and os.Environ related things in general to use go-corelibs/env; fixes app env settings not propagating during apt-enjin builds
+   * 6d08c0c *.go: massive refactoring, migration to new github.com/go-corelibs/* from github.com/go-enjin/be/pkg/*; minor cleanups and code cosmetic changes; removed unused code
+   * a99a4a7 systems/ngrok: removing ngrok system as Go-Enjin supports ngrok listeners directly now
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Sat, 20 Jan 2024 12:18:36 -0500
+
 enjenv (0.1.21) unstable; urgency=medium
 
   * tagged v0.1.21 release build - 01f29373e1fd9ccc676fdda6f9fb92445dcae9f1
