@@ -24,12 +24,13 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-corelibs/env"
-	clpath "github.com/go-corelibs/path"
-	"github.com/go-corelibs/slices"
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/net"
+
+	"github.com/go-corelibs/env"
+	clpath "github.com/go-corelibs/path"
+	"github.com/go-corelibs/slices"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/globals"
@@ -158,7 +159,7 @@ func (s *System) UnExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
 	if clpath.IsDir(path) {
 		content += fmt.Sprintf("unset %v_VERSION;\n", strings.ToUpper(Tag))
-		for k, _ := range s.Ctx.AsMapStrings() {
+		for k := range s.Ctx.AsMapStrings() {
 			env.Set(k, "")
 			content += fmt.Sprintf("unset %v;\n", k)
 		}
@@ -454,7 +455,7 @@ func (s *System) MakeScriptCommands(app *cli.App) (commands []*cli.Command) {
 
 				usageText := app.Name + " " + dir + " script [scripts...]"
 				var names []string
-				for n, _ := range scripts {
+				for n := range scripts {
 					names = append(names, n)
 				}
 				if len(names) > 0 {

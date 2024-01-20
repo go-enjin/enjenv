@@ -75,7 +75,7 @@ func (s *System) IncludeCommands(app *cli.App) (commands []*cli.Command) {
 
 func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 	commands = []*cli.Command{
-		&cli.Command{
+		{
 			HideHelpCommand: true,
 			Name:            "go",
 			Usage:           "wrapper for local bin/go",
@@ -95,7 +95,7 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 				return
 			},
 		},
-		&cli.Command{
+		{
 			HideHelpCommand: true,
 			Name:            "go-local",
 			Usage:           "go mod edit -replace wrapper",
@@ -108,7 +108,7 @@ func (s *System) ExtraCommands(app *cli.App) (commands []*cli.Command) {
 				"\t" + app.Name + " go-local",
 			Action: s.ActionGoModLocal,
 		},
-		&cli.Command{
+		{
 			HideHelpCommand: true,
 			Name:            "go-unlocal",
 			Usage:           "go mod edit -dropreplace wrapper",

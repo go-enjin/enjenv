@@ -28,8 +28,9 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 
-	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/cli/run"
+
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/service/common"
 )

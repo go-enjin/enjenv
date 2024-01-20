@@ -21,13 +21,14 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-corelibs/env"
-	clpath "github.com/go-corelibs/path"
-	"github.com/go-corelibs/slices"
 	"github.com/go-enjin/be/pkg/cli/tar"
 	"github.com/go-enjin/be/pkg/cli/zip"
 	"github.com/go-enjin/be/pkg/hash/sha"
 	"github.com/go-enjin/be/pkg/net"
+
+	"github.com/go-corelibs/env"
+	clpath "github.com/go-corelibs/path"
+	"github.com/go-corelibs/slices"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/io"

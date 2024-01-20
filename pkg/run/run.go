@@ -17,8 +17,9 @@ package run
 import (
 	"fmt"
 
-	"github.com/go-corelibs/env"
 	"github.com/go-enjin/be/pkg/cli/run"
+
+	"github.com/go-corelibs/env"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 )

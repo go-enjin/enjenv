@@ -21,9 +21,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-enjin/be/pkg/hash/sha"
+
 	"github.com/go-corelibs/env"
 	"github.com/go-corelibs/path"
-	"github.com/go-enjin/be/pkg/hash/sha"
 )
 
 var (

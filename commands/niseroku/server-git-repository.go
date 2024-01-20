@@ -22,7 +22,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/knqyf263/go-deb-version"
+	version "github.com/knqyf263/go-deb-version"
 	"github.com/sosedoff/gitkit"
 
 	"github.com/go-corelibs/maps"

@@ -22,10 +22,11 @@ import (
 
 	"github.com/iancoleman/strcase"
 
+	"github.com/go-enjin/enjenv/pkg/service/common"
+
 	"github.com/go-corelibs/env"
 	"github.com/go-corelibs/maps"
 	"github.com/go-corelibs/path"
-	"github.com/go-enjin/enjenv/pkg/service/common"
 )
 
 func (a *Application) IsRunningReady() (runningReady bool) {

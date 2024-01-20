@@ -25,12 +25,13 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-corelibs/chdirs"
-	"github.com/go-corelibs/env"
-	clpath "github.com/go-corelibs/path"
 	"github.com/go-enjin/be/pkg/cli/git"
 	"github.com/go-enjin/be/pkg/cli/run"
 	"github.com/go-enjin/be/pkg/net"
+
+	"github.com/go-corelibs/chdirs"
+	"github.com/go-corelibs/env"
+	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/basepath"
 	"github.com/go-enjin/enjenv/pkg/globals"
@@ -223,7 +224,7 @@ func (s *System) UnExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
 	if clpath.IsDir(path) {
 		content += fmt.Sprintf("unset %v_VERSION;\n", strings.ToUpper(Tag))
-		for k, _ := range s.Ctx.AsMapStrings() {
+		for k := range s.Ctx.AsMapStrings() {
 			env.Set(k, "")
 			content += fmt.Sprintf("unset %v;\n", k)
 		}
