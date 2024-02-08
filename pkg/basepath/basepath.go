@@ -21,10 +21,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/go-enjin/be/pkg/hash/sha"
-
 	"github.com/go-corelibs/env"
 	"github.com/go-corelibs/path"
+	sha "github.com/go-corelibs/shasum"
 )
 
 var (
@@ -71,7 +70,7 @@ func BinCheck() (absPath, buildBinHash string, err error) {
 		return
 	}
 
-	if buildBinHash, err = sha.FileHash10(absPath); err != nil {
+	if buildBinHash, err = sha.BriefFile(absPath); err != nil {
 		err = fmt.Errorf("enjenv sha256 error %v: %v\n", absPath, err)
 		return
 	}

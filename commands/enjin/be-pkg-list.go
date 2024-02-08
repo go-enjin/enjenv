@@ -32,7 +32,7 @@ func (c *Command) makeBePkgListCommand(appNamePrefix string) *cli.Command {
 		UsageText: appNamePrefix + " be-pkg-list [-l]",
 		Description: `
 Print a space-separated list of all Go-Enjin package names, useful for
-generating translation locales using the github.com/go-enjin/golang-org-x-text
+generating translation locales using the github.com/go-corelibs/x-text
 version of gotext (which supports go modules).
 `,
 		Flags: []cli.Flag{

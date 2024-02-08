@@ -20,7 +20,7 @@ import (
 
 	"github.com/gofrs/uuid"
 
-	"github.com/go-enjin/be/pkg/hash/sha"
+	sha "github.com/go-corelibs/shasum"
 )
 
 func ParseControlArgv(input string) (argv []string, err error) {
@@ -32,6 +32,6 @@ func ParseControlArgv(input string) (argv []string, err error) {
 
 func UniqueHash() (hash string) {
 	unique, _ := uuid.NewV4()
-	hash, _ = sha.DataHash10(unique.Bytes())
+	hash, _ = sha.BriefSum(unique.Bytes())
 	return
 }

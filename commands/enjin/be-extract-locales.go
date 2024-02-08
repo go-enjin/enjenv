@@ -21,10 +21,10 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/lang/catalog"
-	"github.com/go-enjin/golang-org-x-text/language"
+	"github.com/go-corelibs/lang"
+	"github.com/go-corelibs/x-text/language"
 
-	"github.com/go-enjin/be/pkg/hash/sha"
+	sha "github.com/go-corelibs/shasum"
 
 	clpath "github.com/go-corelibs/path"
 
@@ -78,7 +78,7 @@ func (c *Command) _extractLocalesAction(ctx *cli.Context) (err error) {
 	return
 }
 
-func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, err error) {
+func (c *Command) _extractLocalesRecurse(path string) (msgs []*lang.Message, err error) {
 	if clpath.IsDir(path) {
 		// recurse
 		if files, e := clpath.ListAllFiles(path, true); e == nil {
@@ -99,7 +99,7 @@ func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, 
 		contents = string(data)
 	}
 
-	msgs, err = catalog.ParseTemplateMessages(contents)
+	msgs, err = lang.ParseTemplateMessages(contents)
 	for idx := range msgs {
 		if msgs[idx].TranslatorComment != "" {
 			msgs[idx].TranslatorComment += "\n"
@@ -107,7 +107,7 @@ func (c *Command) _extractLocalesRecurse(path string) (msgs []*catalog.Message, 
 		msgs[idx].TranslatorComment += "[from: " + path + "]"
 	}
 	for idx := range msgs {
-		msgs[idx].TranslatorComment = catalog.CoalesceTranslatorComment(msgs[idx].TranslatorComment)
+		msgs[idx].TranslatorComment = lang.CoalesceTranslatorComment(msgs[idx].TranslatorComment)
 	}
 	return
 }
@@ -131,7 +131,7 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 		}
 	}
 
-	var messages []*catalog.Message
+	var messages []*lang.Message
 
 	for _, arg := range argv {
 		if msgs, ee := c._extractLocalesRecurse(arg); ee == nil {
@@ -141,7 +141,7 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 
 	for _, tag := range tags {
 		outPath := outDir + "/" + tag.String() + "/out.gotext.json"
-		outData := catalog.GoText{
+		outData := lang.GoText{
 			Language: tag.String(),
 			Messages: messages,
 		}
@@ -150,7 +150,7 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 				err = fmt.Errorf("error writing file: %v - %v", outPath, eee)
 				return
 			}
-			if sum, ee := sha.FileHash64(outPath); ee != nil {
+			if sum, ee := sha.File(outPath); ee != nil {
 				err = fmt.Errorf("error gettin shasum: %v - %v", outPath, ee)
 				return
 			} else {
