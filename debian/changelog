@@ -1,3 +1,15 @@
+enjenv (0.2.2) unstable; urgency=medium
+
+  * tagged v0.2.2 release build - ff9a3298d7c4e45da03ab15081734354476635ca
+  * upstream changes:
+   * ff9a329 Makefile,pkg/globals: setting versions to v0.2.2
+   * 6c4a44f go.mod: be-update; all modules updated; tidy
+   * 68d99ca Makefile: remove old GOXT from GOPKG_KEYS; add BE_LOCAL_PATH
+   * f4995dc Golang.lib.mk: updated to v0.2.2
+   * 45e3924 *.go: migrate to go-corelibs/{lang,x-text,shasum}
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Thu, 08 Feb 2024 14:17:04 -0500
+
 enjenv (0.2.1) unstable; urgency=medium
 
   * tagged v0.2.1 release build - 38922056c5c37c94af8b68679391c8dcd91723f7

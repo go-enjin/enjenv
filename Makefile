@@ -27,7 +27,7 @@
 
 BIN_NAME := enjenv
 UNTAGGED_VERSION := v0.2.2
-UNTAGGED_COMMIT := trunk
+UNTAGGED_COMMIT := ff9a3298d7
 
 SHELL := /bin/bash
 RUN_ARGS := --help
