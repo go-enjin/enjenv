@@ -22,8 +22,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/be/pkg/lang/catalog"
-	"github.com/go-enjin/golang-org-x-text/language"
+	"github.com/go-corelibs/lang"
+	"github.com/go-corelibs/x-text/language"
 
 	clpath "github.com/go-corelibs/path"
 
@@ -106,20 +106,20 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 		return
 	}
 
-	var messagesGotextJson catalog.GoText
-	var messagesGotext map[string]*catalog.Message
+	var messagesGotextJson lang.GoText
+	var messagesGotext map[string]*lang.Message
 	if messagesGotextJson, messagesGotext, _, err = c._readGoText(messagesGotextPath); err != nil {
 		return
 	}
 
-	var outGotextJson catalog.GoText
-	var outGotext map[string]*catalog.Message
+	var outGotextJson lang.GoText
+	var outGotext map[string]*lang.Message
 	if outGotextJson, outGotext, _, err = c._readGoText(outGotextPath); err != nil {
 		return
 	}
 
-	var modified []*catalog.Message
-	unique := make(map[string]*catalog.Message)
+	var modified []*lang.Message
+	unique := make(map[string]*lang.Message)
 
 	// populate all found messages
 	for _, data := range outGotextJson.Messages {
@@ -152,7 +152,7 @@ func (c *Command) _mergeLocales(dir string) (err error) {
 	}
 
 	for idx := range modified {
-		modified[idx].TranslatorComment = catalog.CoalesceTranslatorComment(modified[idx].TranslatorComment)
+		modified[idx].TranslatorComment = lang.CoalesceTranslatorComment(modified[idx].TranslatorComment)
 	}
 
 	outGotextJson.Messages = modified
@@ -178,20 +178,20 @@ func (c *Command) _initLocales(dir string) (err error) {
 	}
 
 	var messageOrder []string
-	var outGotextJson catalog.GoText
-	var outGotext map[string]*catalog.Message
+	var outGotextJson lang.GoText
+	var outGotext map[string]*lang.Message
 	if outGotextJson, outGotext, messageOrder, err = c._readGoText(outGotextPath); err != nil {
 		return
 	}
 
-	messagesGotextJson := catalog.GoText{}
+	messagesGotextJson := lang.GoText{}
 	messagesGotextJson.Language = outGotextJson.Language
 	outGotextJson.Messages = nil
 
 	for _, key := range messageOrder {
 		message := outGotext[key].Copy()
 		if message.Translation == nil {
-			message.Translation = &catalog.Translation{
+			message.Translation = &lang.Translation{
 				String: message.Key,
 			}
 		} else if message.Translation.String == "" && message.Translation.Select == nil {
@@ -211,8 +211,8 @@ func (c *Command) _initLocales(dir string) (err error) {
 	return
 }
 
-func (c *Command) _readGoText(path string) (gotext catalog.GoText, messages map[string]*catalog.Message, order []string, err error) {
-	gotext = catalog.GoText{}
+func (c *Command) _readGoText(path string) (gotext lang.GoText, messages map[string]*lang.Message, order []string, err error) {
+	gotext = lang.GoText{}
 	var data []byte
 	if data, err = clpath.ReadFile(path); err != nil {
 		err = fmt.Errorf("error reading file: %v - %v", path, err)
@@ -222,7 +222,7 @@ func (c *Command) _readGoText(path string) (gotext catalog.GoText, messages map[
 		err = fmt.Errorf("error parsing json: %v - %v", path, err)
 		return
 	}
-	messages = make(map[string]*catalog.Message)
+	messages = make(map[string]*lang.Message)
 	for _, message := range gotext.Messages {
 		if previous, present := messages[message.Key]; present {
 			if message.TranslatorComment != "" && !strings.Contains(previous.TranslatorComment, message.TranslatorComment) {
@@ -236,7 +236,7 @@ func (c *Command) _readGoText(path string) (gotext catalog.GoText, messages map[
 	return
 }
 
-func (c *Command) _writeGoText(destination string, gotext catalog.GoText) (err error) {
+func (c *Command) _writeGoText(destination string, gotext lang.GoText) (err error) {
 	var data []byte
 	if data, err = json.MarshalIndent(gotext, "", "    "); err != nil {
 		err = fmt.Errorf("error encoding json: %v - %v", destination, err)

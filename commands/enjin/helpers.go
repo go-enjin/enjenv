@@ -20,7 +20,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/go-enjin/golang-org-x-text/language"
+	"github.com/go-corelibs/x-text/language"
 )
 
 func parseLangOutArgv(ctx *cli.Context) (outDir string, tags []language.Tag, err error) {

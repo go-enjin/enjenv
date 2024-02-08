@@ -26,8 +26,8 @@
 .PHONY: profile.watch.cpu profile.watch.mem
 
 BIN_NAME := enjenv
-UNTAGGED_VERSION := v0.2.1
-UNTAGGED_COMMIT := 38922056c5
+UNTAGGED_VERSION := v0.2.2
+UNTAGGED_COMMIT := trunk
 
 SHELL := /bin/bash
 RUN_ARGS := --help
@@ -35,16 +35,13 @@ LOG_LEVEL := debug
 
 AUTO_CORELIBS := true
 
+BE_LOCAL_PATH ?= ../be
+
 GOPKG_KEYS     += CDK
 CDK_LOCAL_PATH ?= ../../go-curses/cdk
 
 GOPKG_KEYS     += CTK
 CTK_LOCAL_PATH ?= ../../go-curses/ctk
-
-GOPKG_KEYS      += GOXT
-GOXT_GO_PACKAGE ?= github.com/go-enjin/golang-org-x-text
-GOXT_LOCAL_PATH ?= ../golang-org-x-text
-GOXT_LATEST_VER ?= v0.12.1-enjin.2
 
 CLEAN_FILES     ?= ${BIN_NAME} ${BIN_NAME}.*.* coverage.* pprof.*
 DISTCLEAN_FILES ?=

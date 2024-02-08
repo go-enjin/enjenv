@@ -1,6 +1,6 @@
 module github.com/go-enjin/enjenv
 
-go 1.21.5
+go 1.21.6
 
 require (
 	github.com/BurntSushi/toml v1.3.2
@@ -9,15 +9,17 @@ require (
 	github.com/fvbommel/sortorder v1.1.0
 	github.com/go-corelibs/chdirs v1.1.1
 	github.com/go-corelibs/env v1.1.1
+	github.com/go-corelibs/lang v0.1.0
 	github.com/go-corelibs/maps v1.1.0
 	github.com/go-corelibs/maths v1.0.1
 	github.com/go-corelibs/path v1.2.0
-	github.com/go-corelibs/slices v1.2.0
+	github.com/go-corelibs/shasum v1.0.0
+	github.com/go-corelibs/slices v1.3.0
 	github.com/go-corelibs/strings v1.1.1
+	github.com/go-corelibs/x-text v0.14.1
 	github.com/go-curses/cdk v0.5.22
 	github.com/go-curses/ctk v0.5.13
-	github.com/go-enjin/be v0.5.6
-	github.com/go-enjin/golang-org-x-text v0.12.1-enjin.2
+	github.com/go-enjin/be v0.5.7
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/iancoleman/strcase v0.3.0
@@ -28,12 +30,12 @@ require (
 	github.com/pkg/profile v1.7.0
 	github.com/prometheus/procfs v0.12.0
 	github.com/sevlyar/go-daemon v0.1.6
-	github.com/shirou/gopsutil/v3 v3.23.12
+	github.com/shirou/gopsutil/v3 v3.24.1
 	github.com/sosedoff/gitkit v0.4.0
 	github.com/tklauser/go-sysconf v0.3.13
 	github.com/urfave/cli/v2 v2.27.1
-	golang.org/x/crypto v0.18.0
-	golang.org/x/sys v0.16.0
+	golang.org/x/crypto v0.19.0
+	golang.org/x/sys v0.17.0
 )
 
 require (
@@ -72,11 +74,16 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
+	github.com/ganbarodigital/go_glob v1.0.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.10 // indirect
-	github.com/go-corelibs/diff v1.0.3 // indirect
-	github.com/go-corelibs/replace v1.2.1 // indirect
+	github.com/go-chi/chi/v5 v5.0.11 // indirect
+	github.com/go-corelibs/diff v1.1.1 // indirect
+	github.com/go-corelibs/fmtstr v1.2.0 // indirect
+	github.com/go-corelibs/globs v1.0.0 // indirect
+	github.com/go-corelibs/mime v1.0.0 // indirect
+	github.com/go-corelibs/replace v1.3.2 // indirect
 	github.com/go-corelibs/strcases v1.0.0 // indirect
+	github.com/go-corelibs/values v1.0.0 // indirect
 	github.com/go-curses/term v1.2.2-gocurses.1 // indirect
 	github.com/go-curses/terminfo v1.1.0 // indirect
 	github.com/go-enjin/github-com-djherbis-times v0.0.0-20221101184323-aeef8854ee8a // indirect
@@ -126,26 +133,25 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
-	github.com/tdewolff/parse/v2 v2.7.9 // indirect
+	github.com/tdewolff/parse/v2 v2.7.11 // indirect
 	github.com/tg123/go-htpasswd v1.2.2 // indirect
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/weppos/publicsuffix-go v0.30.1 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/yookoala/realpath v1.0.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.etcd.io/bbolt v1.3.8 // indirect
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/term v0.16.0 // indirect
+	golang.org/x/term v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/gorm v1.25.5 // indirect
+	gorm.io/gorm v1.25.7 // indirect
 )
