@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-corelibs/lang"
@@ -51,6 +52,12 @@ messages.gotext.json.
 				Name:  "lang",
 				Value: language.English.String(),
 				Usage: "command separated list of languages to process",
+			},
+			&cli.BoolFlag{
+				Name:        "no-sort",
+				Usage:       "do not sort messages by ID",
+				Destination: &gNoSort,
+				EnvVars:     []string{strcase.ToScreamingSnake(appNamePrefix) + "_BE_LOCALES_NO_SORT"},
 			},
 		},
 		Action: c._mergeLocalesAction,
@@ -237,6 +244,9 @@ func (c *Command) _readGoText(path string) (gotext lang.GoText, messages map[str
 }
 
 func (c *Command) _writeGoText(destination string, gotext lang.GoText) (err error) {
+	if !gNoSort {
+		gotext.Sort()
+	}
 	var data []byte
 	if data, err = json.MarshalIndent(gotext, "", "    "); err != nil {
 		err = fmt.Errorf("error encoding json: %v - %v", destination, err)

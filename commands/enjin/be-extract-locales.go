@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-corelibs/lang"
@@ -29,6 +30,10 @@ import (
 	clpath "github.com/go-corelibs/path"
 
 	"github.com/go-enjin/enjenv/pkg/io"
+)
+
+var (
+	gNoSort bool
 )
 
 func (c *Command) makeBeExtractLocalesCommand(appNamePrefix string) *cli.Command {
@@ -51,6 +56,12 @@ produces a basic out.gotext.json file.
 				Name:  "lang",
 				Value: language.English.String(),
 				Usage: "command separated list of languages to process",
+			},
+			&cli.BoolFlag{
+				Name:        "no-sort",
+				Usage:       "do not sort messages by ID",
+				Destination: &gNoSort,
+				EnvVars:     []string{strcase.ToScreamingSnake(appNamePrefix) + "_BE_LOCALES_NO_SORT"},
 			},
 		},
 		Action: c._extractLocalesAction,
@@ -78,7 +89,7 @@ func (c *Command) _extractLocalesAction(ctx *cli.Context) (err error) {
 	return
 }
 
-func (c *Command) _extractLocalesRecurse(path string) (msgs []*lang.Message, err error) {
+func (c *Command) _extractLocalesRecurse(path string) (msgs lang.Messages, err error) {
 	if clpath.IsDir(path) {
 		// recurse
 		if files, e := clpath.ListAllFiles(path, true); e == nil {
@@ -99,15 +110,11 @@ func (c *Command) _extractLocalesRecurse(path string) (msgs []*lang.Message, err
 		contents = string(data)
 	}
 
-	msgs, err = lang.ParseTemplateMessages(contents)
-	for idx := range msgs {
-		if msgs[idx].TranslatorComment != "" {
-			msgs[idx].TranslatorComment += "\n"
+	if msgs, err = lang.ParseTemplateTranslations(path, contents); err == nil {
+		for idx := range msgs {
+			msgs[idx].TranslatorComment = lang.CoalesceTranslatorComment(msgs[idx].TranslatorComment)
 		}
-		msgs[idx].TranslatorComment += "[from: " + path + "]"
-	}
-	for idx := range msgs {
-		msgs[idx].TranslatorComment = lang.CoalesceTranslatorComment(msgs[idx].TranslatorComment)
+
 	}
 	return
 }
@@ -131,12 +138,16 @@ func (c *Command) _extractLocalesProcess(outDir string, tags []language.Tag, arg
 		}
 	}
 
-	var messages []*lang.Message
+	var messages lang.Messages
 
 	for _, arg := range argv {
 		if msgs, ee := c._extractLocalesRecurse(arg); ee == nil {
 			messages = append(messages, msgs...)
 		}
+	}
+
+	if !gNoSort {
+		messages.Sort()
 	}
 
 	for _, tag := range tags {

@@ -15,6 +15,7 @@
 package enjin
 
 import (
+	"github.com/iancoleman/strcase"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-corelibs/x-text/language"
@@ -40,6 +41,12 @@ after.
 				Name:  "lang",
 				Value: language.English.String(),
 				Usage: "command separated list of languages to process",
+			},
+			&cli.BoolFlag{
+				Name:        "no-sort",
+				Usage:       "do not sort messages by ID",
+				Destination: &gNoSort,
+				EnvVars:     []string{strcase.ToScreamingSnake(appNamePrefix) + "_BE_LOCALES_NO_SORT"},
 			},
 		},
 		Action: c._updateLocalesAction,
