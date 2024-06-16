@@ -24,8 +24,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/go-corelibs/context"
 	"github.com/go-enjin/be/pkg/cli/run"
-	"github.com/go-enjin/be/pkg/context"
 	"github.com/go-enjin/be/pkg/net"
 
 	"github.com/go-corelibs/env"
@@ -122,7 +122,7 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 	s.Ctx.Set("NODE_ROOT", s.Root)
 	s.Ctx.Set("NODE_CACHE", fmt.Sprintf("%v/%v", s.TagName, CacheDirName))
 	// s.Ctx.Set("NODE_PATH", fmt.Sprintf("%v/lib/node_modules", s.Root))
-	for k, v := range s.Ctx.AsMapStrings() {
+	for k, v := range s.Ctx.ToStringMap() {
 		env.Set(k, basepath.MakeEnjenvPath(v))
 	}
 	env.Set("NODE_DISABLE_COLORS", "1")
@@ -138,7 +138,7 @@ func (s *System) ExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
 	if clpath.IsDir(path) {
 		content += fmt.Sprintf("export %v_VERSION=\"%v\"\n", strings.ToUpper(Tag), s.Version)
-		for k, v := range s.Ctx.AsMapStrings() {
+		for k, v := range s.Ctx.ToStringMap() {
 			value := basepath.MakeEnjenvPath(v)
 			content += fmt.Sprintf("export %v=\"%v\"\n", k, value)
 			env.Set(k, value)
@@ -159,7 +159,7 @@ func (s *System) UnExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
 	if clpath.IsDir(path) {
 		content += fmt.Sprintf("unset %v_VERSION;\n", strings.ToUpper(Tag))
-		for k := range s.Ctx.AsMapStrings() {
+		for k := range s.Ctx.ToStringMap() {
 			env.Set(k, "")
 			content += fmt.Sprintf("unset %v;\n", k)
 		}

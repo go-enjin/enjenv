@@ -26,7 +26,7 @@ import (
 
 	"github.com/go-enjin/be/_templates"
 	"github.com/go-enjin/be/features/pages/funcmaps"
-	beContext "github.com/go-enjin/be/pkg/context"
+	clContext "github.com/go-corelibs/context"
 )
 
 func (c *Command) makeMakeFeatureCommand(appNamePrefix string) *cli.Command {
@@ -67,7 +67,7 @@ Output a new feature.CFeature implementation.
 				return
 			}
 
-			rpl := beContext.Context{
+			rpl := clContext.Context{
 				"CurrentYear": time.Now().Year(),
 			}
 

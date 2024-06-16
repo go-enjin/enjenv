@@ -100,7 +100,7 @@ func (s *System) GetDefaultVersion() (version string) {
 
 func (s *System) makeOsEnvironCtx() (environ []string) {
 	environ = os.Environ()
-	for k, v := range s.Ctx.AsMapStrings() {
+	for k, v := range s.Ctx.ToStringMap() {
 		var value string
 		switch k {
 		case "GOFLAGS":
@@ -171,7 +171,7 @@ func (s *System) Prepare(ctx *cli.Context) (err error) {
 	s.Ctx.SetSpecific("GOTMPDIR", filepath.Join(s.TagName, GoTmpDirName))
 	s.Ctx.SetSpecific("GOCACHE", filepath.Join(s.TagName, GoCacheDirName))
 	s.Ctx.SetSpecific("GOMODCACHE", filepath.Join(s.TagName, GoModCacheDirName))
-	for k, v := range s.Ctx.AsMapStrings() {
+	for k, v := range s.Ctx.ToStringMap() {
 		env.Set(k, basepath.MakeEnjenvPath(v))
 	}
 	withModRw := s.goFlagsWithModCacheRw()
@@ -197,7 +197,7 @@ func (s *System) ExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
 	if clpath.IsDir(path) {
 		content += fmt.Sprintf("export %v_VERSION=\"%v\"\n", strings.ToUpper(Tag), s.Version)
-		for k, v := range s.Ctx.AsMapStrings() {
+		for k, v := range s.Ctx.ToStringMap() {
 			var value string
 			switch k {
 			case "GOFLAGS":
@@ -224,7 +224,7 @@ func (s *System) UnExportString(ctx *cli.Context) (content string, err error) {
 	path := basepath.MakeEnjenvPath(s.TagName)
 	if clpath.IsDir(path) {
 		content += fmt.Sprintf("unset %v_VERSION;\n", strings.ToUpper(Tag))
-		for k := range s.Ctx.AsMapStrings() {
+		for k := range s.Ctx.ToStringMap() {
 			env.Set(k, "")
 			content += fmt.Sprintf("unset %v;\n", k)
 		}
@@ -310,7 +310,7 @@ func (s *System) GetKnownSums() (sums map[string]string, err error) {
 }
 
 func (s *System) MakeDirs() (err error) {
-	for k, p := range s.Ctx.AsMapStrings() {
+	for k, p := range s.Ctx.ToStringMap() {
 		pp := basepath.MakeEnjenvPath(p)
 		switch k {
 		case "GOENV":

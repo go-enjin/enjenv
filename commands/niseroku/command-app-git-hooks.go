@@ -19,7 +19,7 @@ import (
 
 	"github.com/sosedoff/gitkit"
 
-	"github.com/go-enjin/be/pkg/context"
+	"github.com/go-corelibs/context"
 	pkgIo "github.com/go-enjin/enjenv/pkg/io"
 
 	"github.com/go-corelibs/env"

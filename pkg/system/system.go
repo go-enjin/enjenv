@@ -113,7 +113,7 @@ func (s *CSystem) GetDefaultVersion() (version string) {
 }
 
 func (s *CSystem) MakeDirs() (err error) {
-	for k, p := range s.Ctx.AsMapStrings() {
+	for k, p := range s.Ctx.ToStringMap() {
 		pp := basepath.MakeEnjenvPath(p)
 		if !clpath.Exists(pp) {
 			if err = clpath.MkdirAll(pp); err != nil {
