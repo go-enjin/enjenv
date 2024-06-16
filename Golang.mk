@@ -16,7 +16,7 @@
 
 MAKEFILE_KEYS += GOLANG
 GOLANG_MK_FILE := Golang.mk
-GOLANG_MK_VERSION := v0.2.0
+GOLANG_MK_VERSION := v0.2.1
 GOLANG_MK_DESCRIPTION := globals, functions and internal targets
 
 .PHONY: __golang __deps __generate
@@ -361,13 +361,13 @@ __reportcard: export GOFMT_BIN=$(call __gofmt_bin)
 __reportcard: __golang
 	@echo "# code sanity and style report"
 	@echo "#: go vet"
-	@$(call __go_bin) vet ./...
+	@$(call __go_bin) vet -tags all ./... || true
 	@echo "#: gocyclo"
 	@gocyclo -over 15 `find * -name "*.go"` || true
 	@echo "#: ineffassign"
-	@ineffassign ./...
+	@ineffassign ./... || true
 	@echo "#: misspell"
-	@misspell ./...
+	@misspell ./... || true
 	@echo "#: gofmt -s"
 	@echo -e -n `find * -name "*.go" | while read SRC; do \
 	  ${GOFMT_BIN} -s "$${SRC}" > "$${SRC}.fmts"; \
@@ -377,7 +377,7 @@ __reportcard: __golang
 	  rm -f "$${SRC}.fmts"; \
 	done`
 	@echo "#: govulncheck"
-	@echo -e -n `govulncheck ./... \
+	@echo -e -n `govulncheck -tags all ./... \
 	  | egrep '^Vulnerability #' \
 	  | sort -u -V \
 	  | while read LINE; do \
