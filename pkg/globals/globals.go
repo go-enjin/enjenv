@@ -26,7 +26,7 @@ var (
 )
 
 var (
-	BuildVersion   = "v0.2.2"
+	BuildVersion   = "v0.2.3"
 	BuildRelease   = "trunk"
 	BuildBinPath   = ""
 	BuildBinHash   = "0000000000"
