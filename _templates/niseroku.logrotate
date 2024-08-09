@@ -1,9 +1,16 @@
-/var/log/niseroku.log /var/lib/niseroku/logs.d/*.log {
+/var/log/niseroku.log {
+    rotate 7
+    daily
+    compress
+    copytruncate
+    create 0644 www-data www-data
+}
+
+/var/lib/niseroku/logs.d/*.log {
     su www-data www-data
     rotate 7
     daily
     compress
-    delaycompress
+    copytruncate
     create 0644 www-data www-data
-    sharedscripts
 }
