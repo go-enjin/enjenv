@@ -1,3 +1,18 @@
+enjenv (0.2.3) unstable; urgency=medium
+
+  * tagged v0.2.3 release build - 8ccc988c0da23d6f793eb17ebbad364501ceab51
+  * upstream changes:
+   * 8ccc988 Makefile,pkg/globals: setting version to v0.2.3
+   * c15752e pkg/globals: set default golang version to v1.22.6
+   * 04b9430 go.mod: all packages updated; tidy
+   * 50ab6ec _templates (logrotate): handle niseroku.log differently than logs.d; use copytruncate, no delaycompress or sharedscripts
+   * 97f91e9 go.mod: setting go v1.22.6
+   * f9f40d2 Golang.mk: updated to v0.2.1
+   * f532e87 commands/enjin: implement --no-sort to not sort translation messages by ID; updates for lang v0.3.1 changes
+   * a354246 *.go: migrate to go-corelibs/context
+
+ -- The Go-Enjin Team <go.enjin.org+apt@gmail.com>  Fri, 09 Aug 2024 14:51:45 -0400
+
 enjenv (0.2.2) unstable; urgency=medium
 
   * tagged v0.2.2 release build - ff9a3298d7c4e45da03ab15081734354476635ca
