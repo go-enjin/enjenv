@@ -21,12 +21,12 @@ import (
 )
 
 var (
-	DefaultGolangVersion = "1.21.6"
+	DefaultGolangVersion = "1.22.6"
 	DefaultNodejsVersion = "18.16.1"
 )
 
 var (
-	BuildVersion   = "v0.2.2"
+	BuildVersion   = "v0.2.3"
 	BuildRelease   = "trunk"
 	BuildBinPath   = ""
 	BuildBinHash   = "0000000000"
