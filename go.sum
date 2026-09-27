@@ -186,8 +186,8 @@ github.com/go-corelibs/values v1.2.2 h1:gbJ8QxF+2gMdmJkkOSt/hMnobxQ4wkHdG+PdaFD7
 github.com/go-corelibs/values v1.2.2/go.mod h1:McRXDAGd7lcE1h4e/RgQgim8yzOGHQUA5fQV4wzvPhk=
 github.com/go-corelibs/x-sync v0.1.2 h1:lRhvIuhxNA8Y1nXnLDm5dREV64yCW3w39G9X0jcNc58=
 github.com/go-corelibs/x-sync v0.1.2/go.mod h1:8yKo+bIqfVQ5bJ1E4jn/KxlucmFUQekJy6ZYyY0AN7M=
-github.com/go-corelibs/x-text v0.40.0 h1:n/GD0K0sR8lwN4yZpjTTtjvwnn+zHG2YLngrDmlYm9Q=
-github.com/go-corelibs/x-text v0.40.0/go.mod h1:IVkwiGCEQxYrzzo56ai+LlJ/G2UN3LzvZkGAIj0LK58=
+github.com/go-corelibs/x-text v0.40.1 h1:KihUSfQhIR8gmBwY1zHZe2iUflhPBJivwZMONDC77HM=
+github.com/go-corelibs/x-text v0.40.1/go.mod h1:8Z8kp6+o8mrWv7TM8ktF+Tz/nFsL4owMiO/eOHylEsU=
 github.com/go-curses/cdk v0.5.26 h1:Gv8j8X4B5Y0MPAmT0CMHuUmQm9W5tP6wO2OhX9pnWPM=
 github.com/go-curses/cdk v0.5.26/go.mod h1:ZIbJuXfAkIutG/k8ilCH/6HRs54RL1UhvJ+21mQA+og=
 github.com/go-curses/ctk v0.5.16 h1:cAwvbvoYmsMYRIUKNxbuJRFGFCGmQjfG/eef4aIiOJQ=

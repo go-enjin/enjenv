@@ -17,7 +17,7 @@ require (
 	github.com/go-corelibs/shasum v1.1.2
 	github.com/go-corelibs/slices v1.6.3
 	github.com/go-corelibs/strings v1.9.2
-	github.com/go-corelibs/x-text v0.40.0
+	github.com/go-corelibs/x-text v0.40.1
 	github.com/go-curses/cdk v0.5.26
 	github.com/go-curses/ctk v0.5.16
 	github.com/go-enjin/be v0.7.15
